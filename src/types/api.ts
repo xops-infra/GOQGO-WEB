@@ -32,6 +32,8 @@ export interface ChatMessage {
   type: 'user' | 'agent' | 'system'
   status?: 'sending' | 'sent' | 'error'
   messageType?: 'text' | 'image' | 'file'
+  imageUrl?: string
+  imagePath?: string
 }
 
 export interface ChatSession {

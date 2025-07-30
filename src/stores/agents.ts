@@ -1,42 +1,46 @@
 import { defineStore } from 'pinia'
-import { ref, computed, watch } from 'vue'
-import { agentApi } from '@/api/agents'
+import { ref, computed } from 'vue'
+import { agentApi, type Agent, type CreateAgentRequest } from '@/api/agents'
 import { useNamespacesStore } from './namespaces'
-import type { Agent, CreateAgentRequest } from '@/types/api'
 
 export const useAgentsStore = defineStore('agents', () => {
   // 状态
   const agents = ref<Agent[]>([])
   const loading = ref(false)
+  const selectedAgent = ref<Agent | null>(null)
   
   // 获取namespaces store
   const namespacesStore = useNamespacesStore()
-  
-  // 监听namespace变化，自动重新加载agents
-  watch(
-    () => namespacesStore.currentNamespace,
-    (newNamespace) => {
-      if (newNamespace) {
-        fetchAgents(newNamespace)
-      }
-    }
-  )
   
   // 计算属性
   const runningAgents = computed(() => 
     agents.value.filter(agent => agent.status === 'running')
   )
   
-  const agentsByRole = computed(() => {
-    const grouped: Record<string, Agent[]> = {}
+  const agentsByStatus = computed(() => {
+    const groups = {
+      running: [] as Agent[],
+      idle: [] as Agent[],
+      error: [] as Agent[],
+      Creating: [] as Agent[],
+      Terminating: [] as Agent[]
+    }
+    
     agents.value.forEach(agent => {
-      if (!grouped[agent.role]) {
-        grouped[agent.role] = []
+      if (groups[agent.status as keyof typeof groups]) {
+        groups[agent.status as keyof typeof groups].push(agent)
       }
-      grouped[agent.role].push(agent)
     })
-    return grouped
+    
+    return groups
   })
+
+  // 监听namespace变化的处理函数
+  const handleNamespaceChange = async (event: CustomEvent) => {
+    const { namespace } = event.detail
+    console.log(`Agents store: 检测到namespace变化为 ${namespace}`)
+    await fetchAgents(namespace)
+  }
   
   // 方法
   const fetchAgents = async (namespace?: string) => {
@@ -47,6 +51,17 @@ export const useAgentsStore = defineStore('agents', () => {
       const data = await agentApi.getList(targetNamespace)
       // API返回的是 { items: Agent[] } 格式
       agents.value = data.items || []
+      console.log(`获取到 ${targetNamespace} 命名空间下的 ${agents.value.length} 个agents`)
+      
+      // 自动选择第一个agent
+      if (agents.value.length > 0) {
+        const firstAgent = agents.value[0]
+        selectedAgent.value = firstAgent
+        console.log(`🎯 自动选择第一个agent: ${firstAgent.name}`)
+      } else {
+        selectedAgent.value = null
+        console.log('📭 没有可用的agents')
+      }
     } catch (error) {
       console.warn('API调用失败，使用模拟数据:', error)
       
@@ -85,19 +100,34 @@ export const useAgentsStore = defineStore('agents', () => {
       ]
       
       agents.value = mockAgents
+      
+      // 自动选择第一个模拟agent
+      if (mockAgents.length > 0) {
+        selectedAgent.value = mockAgents[0]
+        console.log(`🎯 自动选择第一个模拟agent: ${mockAgents[0].name}`)
+      }
     } finally {
       loading.value = false
     }
   }
-  
+
   const createAgent = async (data: CreateAgentRequest) => {
+    loading.value = true
     try {
       // 尝试调用真实API
-      const newAgent = await agentApi.create(namespacesStore.currentNamespace, data)
+      const newAgent = await agentApi.create(data.namespace, data)
       agents.value.push(newAgent)
+      
+      // 自动选择新创建的agent
+      selectedAgent.value = newAgent
+      console.log(`🎯 自动选择新创建的agent: ${newAgent.name}`)
+      
+      // 刷新namespace数据以更新agent计数
+      await namespacesStore.refreshNamespaces()
+      
       return newAgent
     } catch (error) {
-      console.warn('API调用失败，使用模拟创建:', error)
+      console.error('创建Agent失败:', error)
       
       // Fallback到模拟创建
       const newAgent: Agent = {
@@ -112,63 +142,131 @@ export const useAgentsStore = defineStore('agents', () => {
       }
       
       agents.value.push(newAgent)
+      
+      // 自动选择新创建的模拟agent
+      selectedAgent.value = newAgent
+      console.log(`🎯 自动选择新创建的模拟agent: ${newAgent.name}`)
+      
       return newAgent
+    } finally {
+      loading.value = false
     }
   }
-  
-  const deleteAgent = async (name: string) => {
+
+  const deleteAgent = async (namespace: string, name: string) => {
+    loading.value = true
     try {
-      // 尝试调用真实API
-      await agentApi.delete(namespacesStore.currentNamespace, name)
+      await agentApi.delete(namespace, name)
+      
+      // 从本地列表移除
       agents.value = agents.value.filter(agent => agent.name !== name)
+      
+      // 智能选择下一个agent
+      if (selectedAgent.value?.name === name) {
+        if (agents.value.length > 0) {
+          selectedAgent.value = agents.value[0]
+          console.log(`🎯 删除后自动选择第一个agent: ${agents.value[0].name}`)
+        } else {
+          selectedAgent.value = null
+          console.log('📭 删除后没有可用的agents')
+        }
+      }
+      
+      // 刷新namespace数据以更新agent计数
+      await namespacesStore.refreshNamespaces()
+      
+      console.log(`Agent ${name} 删除成功`)
     } catch (error) {
-      console.warn('API调用失败，使用模拟删除:', error)
+      console.error('删除Agent失败:', error)
+      
       // Fallback到模拟删除
       agents.value = agents.value.filter(agent => agent.name !== name)
+      
+      // 智能选择下一个agent
+      if (selectedAgent.value?.name === name) {
+        if (agents.value.length > 0) {
+          selectedAgent.value = agents.value[0]
+          console.log(`🎯 删除后自动选择第一个模拟agent: ${agents.value[0].name}`)
+        } else {
+          selectedAgent.value = null
+          console.log('📭 删除后没有可用的agents')
+        }
+      }
+      
+      console.log(`Agent ${name} 删除成功 (模拟)`)
+    } finally {
+      loading.value = false
     }
   }
-  
-  const sendMessage = async (name: string, message: string) => {
+
+  const sendMessage = async (namespace: string, name: string, message: string) => {
     try {
-      // 尝试调用真实API
-      await agentApi.send(namespacesStore.currentNamespace, name, message)
-      console.log(`向 ${name} 发送消息成功: ${message}`)
+      await agentApi.send(namespace, name, message)
+      console.log(`消息已发送给 ${name}: ${message}`)
     } catch (error) {
-      console.warn('API调用失败，模拟发送:', error)
-      console.log(`模拟向 ${name} 发送消息: ${message}`)
+      console.error('发送消息失败:', error)
+      throw error
     }
   }
-  
+
   const getLogs = async (name: string, lines: number = 50) => {
     try {
-      // 尝试调用真实API
       const logs = await agentApi.getLogs(namespacesStore.currentNamespace, name, lines)
       return logs
     } catch (error) {
-      console.warn('API调用失败，返回模拟日志:', error)
+      console.error('获取日志失败:', error)
       // 返回模拟日志
       return [
-        `[${new Date().toISOString()}] Connected to ${name}`,
-        `[${new Date().toISOString()}] Agent ${name} is ready`,
-        `[${new Date().toISOString()}] Waiting for commands...`
+        `[${new Date().toISOString()}] Agent ${name} started`,
+        `[${new Date().toISOString()}] Role: ${selectedAgent.value?.role || 'unknown'}`,
+        `[${new Date().toISOString()}] Status: ${selectedAgent.value?.status || 'unknown'}`
       ]
     }
   }
-  
+
+  const selectAgent = (agent: Agent) => {
+    selectedAgent.value = agent
+  }
+
+  const clearSelection = () => {
+    selectedAgent.value = null
+  }
+
+  // 刷新agents列表
+  const refreshAgents = async () => {
+    await fetchAgents()
+  }
+
+  // 设置事件监听器
+  const setupEventListeners = () => {
+    window.addEventListener('namespace-changed', handleNamespaceChange as EventListener)
+  }
+
+  // 清理事件监听器
+  const cleanupEventListeners = () => {
+    window.removeEventListener('namespace-changed', handleNamespaceChange as EventListener)
+  }
+
   return {
     // 状态
     agents,
     loading,
+    selectedAgent,
     
     // 计算属性
     runningAgents,
-    agentsByRole,
+    agentsByStatus,
     
     // 方法
     fetchAgents,
     createAgent,
     deleteAgent,
     sendMessage,
-    getLogs
+    getLogs,
+    selectAgent,
+    clearSelection,
+    refreshAgents,
+    setupEventListeners,
+    cleanupEventListeners
   }
 })

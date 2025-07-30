@@ -68,9 +68,29 @@ export class ChatSocket {
   }
 
   // 发送消息
-  sendMessage(message: string) {
+  sendMessage(message: string, messageType: 'text' | 'image' = 'text') {
+    console.log('=== ChatSocket发送消息 ===')
+    console.log('消息内容:', message)
+    console.log('消息类型:', messageType)
+    console.log('Socket连接状态:', this.socket?.connected)
+    console.log('Socket对象:', this.socket)
+    
     if (this.socket?.connected) {
-      this.socket.emit('send_message', { message })
+      const payload = { 
+        message,
+        messageType
+      }
+      console.log('📤 发送payload:', payload)
+      
+      this.socket.emit('send_message', payload)
+      console.log('✅ 消息已通过Socket发送')
+    } else {
+      console.log('❌ Socket未连接，无法发送消息')
+      console.log('Socket状态详情:', {
+        exists: !!this.socket,
+        connected: this.socket?.connected,
+        id: this.socket?.id
+      })
     }
   }
 

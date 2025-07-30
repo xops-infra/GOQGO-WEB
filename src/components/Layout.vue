@@ -7,16 +7,12 @@
           <img src="@/assets/Goqgo.svg" alt="GoQGo" class="header-logo" />
           <div class="header-title">
             <h1>Q Chat Manager</h1>
-            <span class="subtitle">程序员和短视频更配哦～</span>
+            <span class="subtitle">AI助手管理平台</span>
           </div>
         </div>
         <div class="header-right">
           <n-space>
             <NamespaceManager />
-            <n-button size="small" type="primary" @click="openChatRoom">
-              <n-icon><ChatbubbleEllipsesOutline /></n-icon>
-              聊天室
-            </n-button>
             <n-button size="small" quaternary @click="toggleTheme">
               <n-icon>
                 <SunnyOutline v-if="appStore.theme === 'dark'" />
@@ -44,7 +40,7 @@
             v-for="agent in agents"
             :key="agent.name"
             class="instance-item"
-            :class="{ active: selectedAgent?.name === agent.name }"
+            :class="{ active: agentsStore.selectedAgent?.name === agent.name }"
             @click="selectAgent(agent)"
           >
             <div class="instance-info">
@@ -61,11 +57,11 @@
       <!-- 中间终端区域 -->
       <div class="center-panel">
         <div class="terminal-header">
-          <span v-if="selectedAgent">{{ selectedAgent.name }} - 终端</span>
+          <span v-if="agentsStore.selectedAgent">{{ agentsStore.selectedAgent.name }} - 终端</span>
           <span v-else>选择一个实例</span>
         </div>
         <div class="terminal-container" ref="terminalRef">
-          <div v-if="!selectedAgent" class="terminal-placeholder">
+          <div v-if="!agentsStore.selectedAgent" class="terminal-placeholder">
             <n-empty description="请从左侧选择一个Q CLI实例" />
           </div>
           <div v-else class="terminal-content">
@@ -188,13 +184,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { 
   AddOutline,
   SunnyOutline,
-  MoonOutline,
-  ChatbubbleEllipsesOutline
+  MoonOutline
 } from '@vicons/ionicons5'
 import { useAppStore } from '@/stores/app'
 import { useAgentsStore } from '@/stores/agents'
@@ -205,10 +199,8 @@ import type { Agent, CreateAgentRequest } from '@/types/api'
 const appStore = useAppStore()
 const agentsStore = useAgentsStore()
 const namespacesStore = useNamespacesStore()
-const router = useRouter()
 
 // 响应式数据
-const selectedAgent = ref<Agent | null>(null)
 const commandInput = ref('')
 const chatInput = ref('')
 const showCreateModal = ref(false)
@@ -269,7 +261,7 @@ const roleOptions = [
 
 // 方法
 const selectAgent = async (agent: Agent) => {
-  selectedAgent.value = agent
+  agentsStore.selectAgent(agent)
   
   try {
     // 获取真实日志
@@ -300,7 +292,7 @@ const selectAgent = async (agent: Agent) => {
 }
 
 const sendCommand = async () => {
-  if (!commandInput.value.trim() || !selectedAgent.value) return
+  if (!commandInput.value.trim() || !agentsStore.selectedAgent) return
   
   // 添加用户输入的命令
   terminalLogs.value.push({
@@ -312,14 +304,14 @@ const sendCommand = async () => {
   
   try {
     // 发送命令到Agent
-    await agentsStore.sendMessage(selectedAgent.value.name, commandInput.value)
+    await agentsStore.sendMessage(namespacesStore.currentNamespace, agentsStore.selectedAgent.name, commandInput.value)
     
     // 模拟命令执行结果
     setTimeout(() => {
       terminalLogs.value.push({
         id: `result-${Date.now()}`,
         timestamp: new Date().toISOString(),
-        content: `Command sent to ${selectedAgent.value?.name}: ${commandInput.value}`,
+        content: `Command sent to ${agentsStore.selectedAgent?.name}: ${commandInput.value}`,
         type: 'success'
       })
     }, 500)
@@ -350,15 +342,15 @@ const sendMessage = async () => {
   chatInput.value = ''
   
   try {
-    if (selectedAgent.value) {
+    if (agentsStore.selectedAgent) {
       // 发送消息到选中的Agent
-      await agentsStore.sendMessage(selectedAgent.value.name, messageContent)
+      await agentsStore.sendMessage(namespacesStore.currentNamespace, agentsStore.selectedAgent.name, messageContent)
       
       // 模拟AI回复
       setTimeout(() => {
         chatMessages.value.push({
           id: `reply-${Date.now()}`,
-          sender: selectedAgent.value?.name || 'Assistant',
+          sender: agentsStore.selectedAgent?.name || 'Assistant',
           content: `收到消息: ${messageContent}`,
           timestamp: new Date().toISOString(),
           type: 'agent'
@@ -419,10 +411,6 @@ const toggleTheme = () => {
   appStore.toggleTheme()
 }
 
-const openChatRoom = () => {
-  router.push('/chat')
-}
-
 const formatTime = (timestamp: string) => {
   return new Date(timestamp).toLocaleTimeString('zh-CN', {
     hour: '2-digit',
@@ -432,8 +420,18 @@ const formatTime = (timestamp: string) => {
 }
 
 // 生命周期
-onMounted(() => {
-  agentsStore.fetchAgents()
+onMounted(async () => {
+  // 设置agents store的事件监听器
+  agentsStore.setupEventListeners()
+  
+  // 初始化数据
+  await namespacesStore.fetchNamespaces()
+  await agentsStore.fetchAgents()
+})
+
+onUnmounted(() => {
+  // 清理事件监听器
+  agentsStore.cleanupEventListeners()
 })
 </script>
 

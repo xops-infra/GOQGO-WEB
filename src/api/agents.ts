@@ -35,7 +35,7 @@ export const agentApi = {
   
   // 获取Agent日志
   getLogs: (namespace: string, name: string, lines: number = 50) =>
-    axios.get(`/v1/namespaces/${namespace}/agents/${name}/logs?lines=${lines}`),
+    axios.get(`/api/v1/namespaces/${namespace}/agents/${name}/logs?lines=${lines}`),
   
   // 重启Agent
   restart: (namespace: string, name: string) =>

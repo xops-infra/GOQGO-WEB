@@ -1,5 +1,23 @@
 <template>
-  <div class="chat-room">
+  <div class="chat-room" 
+       @dragover="handleDragOver" 
+       @drop="handleDrop"
+       @dragenter="handleDragEnter"
+       @dragleave="handleDragLeave"
+       :class="{ 'drag-active': isDragActive }">
+    
+    <!-- 拖拽覆盖层 -->
+    <div v-if="isDragActive" class="drag-overlay">
+      <div class="drag-content">
+        <n-icon size="48" color="#07c160">
+          <svg viewBox="0 0 24 24">
+            <path fill="currentColor" d="M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M21,19L16,10L11,17L7,13L3,19H21Z"/>
+          </svg>
+        </n-icon>
+        <h3>释放文件以上传图片</h3>
+        <p>支持 PNG, JPG, GIF 等图片格式</p>
+      </div>
+    </div>
     <!-- 聊天头部 -->
     <div class="chat-header">
       <div class="chat-title">
@@ -61,7 +79,18 @@
               
               <!-- 消息气泡 -->
               <div class="message-bubble">
-                <div class="message-text">{{ message.content }}</div>
+                <!-- 图片消息 -->
+                <div v-if="message.messageType === 'image' && message.imagePath" class="message-image-content">
+                  <ImageMessage 
+                    :image-path="message.imagePath"
+                    :alt-text="`${message.senderName}发送的图片`"
+                    :max-width="250"
+                    :max-height="200"
+                  />
+                </div>
+                <!-- 文本消息 -->
+                <div v-else class="message-text">{{ message.content }}</div>
+                
                 <div class="message-time">
                   {{ formatTime(message.timestamp) }}
                   <n-icon
@@ -118,27 +147,59 @@
         <n-input
           v-model:value="inputMessage"
           type="textarea"
-          :placeholder="isConnected ? '输入消息...' : '连接中...'"
+          :placeholder="isConnected ? '输入消息... (支持粘贴图片 Ctrl+V 或拖拽文件)' : '连接中...'"
           :disabled="!isConnected"
           :autosize="{ minRows: 1, maxRows: 4 }"
           @keydown="handleKeyDown"
           @input="handleInput"
           @blur="handleInputBlur"
           class="message-input"
+          ref="inputRef"
         />
-        <n-button
-          type="primary"
-          :disabled="!inputMessage.trim() || !isConnected"
-          @click="handleSendMessage"
-          class="send-button"
-          circle
-        >
-          <n-icon size="18">
-            <svg viewBox="0 0 24 24">
-              <path fill="currentColor" d="M2,21L23,12L2,3V10L17,12L2,14V21Z"/>
-            </svg>
-          </n-icon>
-        </n-button>
+        <div class="input-actions">
+          <n-button
+            text
+            @click="handleImageUpload"
+            class="image-button"
+            :disabled="!isConnected"
+          >
+            <n-icon size="20">
+              <svg viewBox="0 0 24 24">
+                <path fill="currentColor" d="M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M21,19L16,10L11,17L7,13L3,19H21Z"/>
+              </svg>
+            </n-icon>
+          </n-button>
+          <n-button
+            type="primary"
+            :disabled="!inputMessage.trim() || !isConnected"
+            @click="handleSendMessage"
+            class="send-button"
+            circle
+          >
+            <n-icon size="18">
+              <svg viewBox="0 0 24 24">
+                <path fill="currentColor" d="M2,21L23,12L2,3V10L17,12L2,14V21Z"/>
+              </svg>
+            </n-icon>
+          </n-button>
+        </div>
+      </div>
+      
+      <!-- 图片预览 -->
+      <div v-if="imagePreview" class="image-preview">
+        <div class="preview-container">
+          <img :src="imagePreview.url" :alt="imagePreview.name" class="preview-image" />
+          <div class="preview-info">
+            <span class="preview-name">{{ imagePreview.name }}</span>
+            <n-button text @click="clearImagePreview" class="preview-close">
+              <n-icon size="16">
+                <svg viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                </svg>
+              </n-icon>
+            </n-button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -146,9 +207,11 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { NIcon, NAvatar, NBadge, NInput, NButton } from 'naive-ui'
+import { NIcon, NAvatar, NBadge, NInput, NButton, useMessage } from 'naive-ui'
 import { useChatStore } from '@/stores/chat'
 import { storeToRefs } from 'pinia'
+import ImageMessage from './ImageMessage.vue'
+import { handleImagePaste, isImagePath, extractImagePath, formatImagePath } from '@/utils/imageUtils'
 
 // Props
 interface Props {
@@ -162,11 +225,16 @@ const props = withDefaults(defineProps<Props>(), {
 // 状态管理
 const chatStore = useChatStore()
 const { messages, onlineUsers, typingUsers, isConnected, currentNamespace } = storeToRefs(chatStore)
+const message = useMessage()
 
 // 响应式数据
 const inputMessage = ref('')
 const messagesContainer = ref<HTMLElement>()
+const inputRef = ref()
 const typingTimer = ref<NodeJS.Timeout>()
+const imagePreview = ref<{ url: string; name: string; file: File } | null>(null)
+const isDragActive = ref(false)
+const dragCounter = ref(0)
 
 // 滚动到底部
 const scrollToBottom = () => {
@@ -205,12 +273,267 @@ const getDefaultAvatar = (senderId: string) => {
   `)}`
 }
 
+// 处理图片粘贴
+const handlePaste = async (e: ClipboardEvent) => {
+  console.log('=== 图片粘贴事件开始 ===')
+  console.log('事件对象:', e)
+  console.log('事件类型:', e.type)
+  console.log('目标元素:', e.target)
+  
+  if (!e.clipboardData) {
+    console.log('❌ 没有剪贴板数据')
+    return
+  }
+  
+  console.log('✅ 剪贴板数据存在')
+  console.log('剪贴板数据类型:', e.clipboardData.constructor.name)
+  
+  const items = Array.from(e.clipboardData.items)
+  console.log('剪贴板项目数量:', items.length)
+  console.log('剪贴板项目详情:', items.map((item, index) => ({
+    index,
+    type: item.type,
+    kind: item.kind,
+    constructor: item.constructor.name
+  })))
+  
+  // 检查所有类型
+  const types = e.clipboardData.types
+  console.log('剪贴板类型列表:', types)
+  
+  try {
+    // 检查是否有图片数据
+    const imageItem = items.find(item => item.type.startsWith('image/'))
+    
+    if (imageItem) {
+      console.log('🖼️ 找到图片项目!')
+      console.log('图片类型:', imageItem.type)
+      console.log('图片种类:', imageItem.kind)
+      
+      e.preventDefault() // 阻止默认粘贴行为
+      console.log('✅ 已阻止默认粘贴行为')
+      
+      const file = imageItem.getAsFile()
+      console.log('获取文件结果:', file)
+      
+      if (file) {
+        console.log('📁 成功获取图片文件!')
+        console.log('文件名:', file.name)
+        console.log('文件类型:', file.type)
+        console.log('文件大小:', file.size, 'bytes')
+        console.log('最后修改时间:', new Date(file.lastModified))
+        
+        // 生成图片路径
+        const timestamp = Date.now()
+        const randomId = Math.floor(Math.random() * 10000)
+        const extension = getFileExtension(file.type)
+        const fileName = `image_${timestamp}_${randomId}.${extension}`
+        const imagePath = `/Users/mikas/Library/Application Support/cliExtra/temp_images/${fileName}`
+        
+        console.log('📝 生成的文件信息:')
+        console.log('- 时间戳:', timestamp)
+        console.log('- 随机ID:', randomId)
+        console.log('- 扩展名:', extension)
+        console.log('- 文件名:', fileName)
+        console.log('- 完整路径:', imagePath)
+        
+        // 显示成功提示
+        message.success(`图片已粘贴: ${fileName}`)
+        console.log('✅ 显示成功提示')
+        
+        // 发送图片消息
+        console.log('📤 开始发送图片消息...')
+        await chatStore.sendImageMessage(imagePath)
+        console.log('✅ 图片消息发送完成')
+        
+        scrollToBottom()
+        console.log('✅ 滚动到底部完成')
+      } else {
+        console.log('❌ 无法获取图片文件')
+        console.log('getAsFile() 返回:', file)
+      }
+    } else {
+      console.log('❌ 剪贴板中没有图片数据')
+      console.log('可用的类型:', items.map(item => item.type))
+      
+      // 尝试获取其他数据
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i]
+        console.log(`项目 ${i}:`, {
+          type: item.type,
+          kind: item.kind
+        })
+        
+        if (item.kind === 'string') {
+          item.getAsString((str) => {
+            console.log(`项目 ${i} 字符串内容:`, str.substring(0, 100))
+          })
+        }
+      }
+    }
+  } catch (error) {
+    console.error('❌ 处理图片粘贴失败:', error)
+    console.error('错误堆栈:', error.stack)
+    message.error('图片粘贴失败')
+  }
+  
+  console.log('=== 图片粘贴事件结束 ===')
+}
+
+// 获取文件扩展名
+const getFileExtension = (mimeType: string): string => {
+  const mimeMap: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg', 
+    'image/png': 'png',
+    'image/gif': 'gif',
+    'image/webp': 'webp',
+    'image/bmp': 'bmp'
+  }
+  return mimeMap[mimeType] || 'png'
+}
+
+// 处理拖拽进入
+const handleDragEnter = (e: DragEvent) => {
+  e.preventDefault()
+  dragCounter.value++
+  console.log('🎯 拖拽进入，计数器:', dragCounter.value)
+  
+  if (dragCounter.value === 1) {
+    isDragActive.value = true
+    console.log('✅ 激活拖拽状态')
+  }
+}
+
+// 处理拖拽离开
+const handleDragLeave = (e: DragEvent) => {
+  e.preventDefault()
+  dragCounter.value--
+  console.log('🚪 拖拽离开，计数器:', dragCounter.value)
+  
+  if (dragCounter.value === 0) {
+    isDragActive.value = false
+    console.log('❌ 取消拖拽状态')
+  }
+}
+
+// 处理拖拽悬停
+const handleDragOver = (e: DragEvent) => {
+  e.preventDefault()
+  e.dataTransfer!.dropEffect = 'copy'
+}
+
+// 处理文件拖拽释放
+const handleDrop = async (e: DragEvent) => {
+  e.preventDefault()
+  console.log('=== 文件拖拽释放 ===')
+  
+  // 重置拖拽状态
+  isDragActive.value = false
+  dragCounter.value = 0
+  
+  if (!e.dataTransfer) {
+    console.log('❌ 没有拖拽数据')
+    return
+  }
+  
+  const files = Array.from(e.dataTransfer.files)
+  console.log('📁 拖拽的文件数量:', files.length)
+  
+  if (files.length === 0) {
+    console.log('❌ 没有文件')
+    return
+  }
+  
+  // 处理第一个图片文件
+  const imageFile = files.find(file => file.type.startsWith('image/'))
+  
+  if (imageFile) {
+    console.log('🖼️ 找到图片文件:', imageFile.name, imageFile.type, imageFile.size)
+    
+    try {
+      // 生成图片路径
+      const timestamp = Date.now()
+      const randomId = Math.floor(Math.random() * 10000)
+      const extension = getFileExtension(imageFile.type)
+      const fileName = `image_${timestamp}_${randomId}.${extension}`
+      const imagePath = `/Users/mikas/Library/Application Support/cliExtra/temp_images/${fileName}`
+      
+      console.log('📝 生成图片路径:', imagePath)
+      
+      // 显示成功提示
+      message.success(`图片已拖拽上传: ${fileName}`)
+      
+      // 发送图片消息
+      await chatStore.sendImageMessage(imagePath, imageFile)
+      scrollToBottom()
+      
+    } catch (error) {
+      console.error('❌ 处理拖拽图片失败:', error)
+      message.error('图片上传失败')
+    }
+  } else {
+    console.log('❌ 拖拽的文件中没有图片')
+    message.warning('请拖拽图片文件 (PNG, JPG, GIF等)')
+  }
+}
+
+// 处理图片上传按钮点击
+const handleImageUpload = () => {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.onchange = async (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0]
+    if (file) {
+      try {
+        // 创建预览
+        const url = URL.createObjectURL(file)
+        imagePreview.value = { url, name: file.name, file }
+      } catch (error) {
+        console.error('处理图片上传失败:', error)
+        message.error('图片上传失败')
+      }
+    }
+  }
+  input.click()
+}
+
+// 清除图片预览
+const clearImagePreview = () => {
+  if (imagePreview.value) {
+    URL.revokeObjectURL(imagePreview.value.url)
+    imagePreview.value = null
+  }
+}
+
 // 发送消息
 const handleSendMessage = async () => {
+  if (imagePreview.value) {
+    // 发送图片消息
+    try {
+      await chatStore.sendImageMessage('', imagePreview.value.file)
+      clearImagePreview()
+      scrollToBottom()
+    } catch (error) {
+      message.error('发送图片失败')
+    }
+    return
+  }
+
   if (!inputMessage.value.trim()) return
   
   try {
-    await chatStore.sendMessage(inputMessage.value)
+    // 检查是否为图片路径格式
+    if (isImagePath(inputMessage.value)) {
+      const imagePath = extractImagePath(inputMessage.value)
+      if (imagePath) {
+        await chatStore.sendImageMessage(imagePath)
+      }
+    } else {
+      await chatStore.sendMessage(inputMessage.value)
+    }
+    
     inputMessage.value = ''
     scrollToBottom()
   } catch (error) {
@@ -256,20 +579,116 @@ watch(messages, () => {
 
 // 生命周期
 onMounted(async () => {
+  console.log('=== ChatRoom组件挂载 ===')
+  console.log('命名空间:', props.namespace)
+  
   try {
+    console.log('🔗 开始连接聊天室...')
     await chatStore.connect(props.namespace)
+    console.log('✅ 聊天室连接成功')
+    
     scrollToBottom()
+    console.log('✅ 滚动到底部完成')
+    
+    // 等待DOM更新
+    await nextTick()
+    
+    // 使用多种方式添加粘贴事件监听器
+    setTimeout(() => {
+      console.log('🔍 开始绑定粘贴事件...')
+      
+      // 方法1: 通过inputRef访问Naive UI组件
+      if (inputRef.value) {
+        console.log('✅ 找到inputRef组件')
+        
+        // 获取Naive UI内部的textarea元素
+        const textareaEl = inputRef.value.$el?.querySelector('textarea')
+        if (textareaEl) {
+          console.log('✅ 通过ref找到textarea，绑定粘贴事件')
+          textareaEl.addEventListener('paste', handlePaste)
+        }
+      }
+      
+      // 方法2: 查找所有textarea元素
+      const textareas = document.querySelectorAll('textarea')
+      console.log('🔍 找到的textarea元素数量:', textareas.length)
+      
+      textareas.forEach((textarea, index) => {
+        if (textarea.placeholder && textarea.placeholder.includes('输入消息')) {
+          console.log(`✅ 找到聊天输入框 ${index}，添加粘贴事件`)
+          textarea.addEventListener('paste', handlePaste)
+        }
+      })
+      
+      // 方法3: 通过类名查找
+      const messageInputs = document.querySelectorAll('.message-input textarea')
+      console.log('🔍 通过类名找到的输入框数量:', messageInputs.length)
+      
+      messageInputs.forEach((input, index) => {
+        console.log(`✅ 为输入框 ${index} 添加粘贴事件`)
+        input.addEventListener('paste', handlePaste)
+      })
+      
+      // 方法4: 全局粘贴事件作为备用
+      console.log('👂 添加全局粘贴事件监听器')
+      document.addEventListener('paste', handleGlobalPaste)
+      
+    }, 1000) // 延迟1秒确保DOM完全渲染
+    
+    // 测试环境信息
+    console.log('🧪 测试环境信息:')
+    console.log('- User Agent:', navigator.userAgent)
+    console.log('- 是否为安全上下文:', window.isSecureContext)
+    console.log('- 协议:', window.location.protocol)
+    
   } catch (error) {
+    console.error('❌ 连接聊天室失败:', error)
     message.error('连接聊天室失败')
   }
 })
 
 onUnmounted(() => {
+  console.log('=== ChatRoom组件卸载 ===')
+  
   chatStore.disconnect()
   if (typingTimer.value) {
     clearTimeout(typingTimer.value)
   }
+  clearImagePreview()
+  
+  // 移除输入框粘贴事件监听器
+  const inputElement = document.querySelector('.message-input textarea') as HTMLTextAreaElement
+  if (inputElement) {
+    inputElement.removeEventListener('paste', handlePaste)
+    console.log('✅ 输入框粘贴事件监听器已移除')
+  }
+  
+  // 移除全局粘贴事件监听器
+  document.removeEventListener('paste', handleGlobalPaste)
+  console.log('✅ 全局粘贴事件监听器已移除')
 })
+
+// 全局粘贴事件处理
+const handleGlobalPaste = (e: ClipboardEvent) => {
+  console.log('=== 全局粘贴事件触发 ===')
+  console.log('当前活动元素:', document.activeElement)
+  console.log('活动元素标签:', document.activeElement?.tagName)
+  console.log('活动元素类名:', document.activeElement?.className)
+  
+  // 检查是否在聊天室组件内
+  const chatRoom = document.querySelector('.chat-room')
+  const isInChatRoom = chatRoom && chatRoom.contains(document.activeElement)
+  
+  console.log('是否在聊天室内:', !!isInChatRoom)
+  
+  // 如果在聊天室内，就处理粘贴事件
+  if (isInChatRoom) {
+    console.log('✅ 在聊天室内，调用handlePaste')
+    handlePaste(e)
+  } else {
+    console.log('❌ 不在聊天室内，忽略粘贴事件')
+  }
+}
 </script>
 
 <style scoped lang="scss">
@@ -278,6 +697,51 @@ onUnmounted(() => {
   flex-direction: column;
   height: 100%;
   background: #f5f5f5;
+  position: relative;
+  
+  &.drag-active {
+    .drag-overlay {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+}
+
+.drag-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(7, 193, 96, 0.1);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  border: 3px dashed #07c160;
+  border-radius: 8px;
+  margin: 8px;
+}
+
+.drag-content {
+  text-align: center;
+  color: #07c160;
+  
+  h3 {
+    margin: 16px 0 8px 0;
+    font-size: 20px;
+    font-weight: 600;
+  }
+  
+  p {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.8;
+  }
 }
 
 .chat-header {
@@ -524,6 +988,28 @@ onUnmounted(() => {
   }
 }
 
+.input-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.image-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: #666;
+  
+  &:hover {
+    background: #f0f0f0;
+    color: #333;
+  }
+  
+  &:disabled {
+    color: #ccc;
+  }
+}
+
 .send-button {
   flex-shrink: 0;
   width: 36px;
@@ -536,6 +1022,64 @@ onUnmounted(() => {
   
   &:disabled {
     background: #ccc;
+  }
+}
+
+.message-image-content {
+  padding: 0;
+  
+  .message-bubble.message-self & {
+    background: transparent;
+  }
+  
+  .message-bubble.message-other & {
+    background: transparent;
+  }
+}
+
+.image-preview {
+  margin-top: 8px;
+  padding: 8px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  border: 1px solid #e5e5e5;
+}
+
+.preview-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preview-image {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.preview-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.preview-name {
+  font-size: 12px;
+  color: #666;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview-close {
+  color: #999;
+  
+  &:hover {
+    color: #666;
   }
 }
 </style>
