@@ -1,0 +1,92 @@
+<?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg t="1753273737832" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="1995" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200">
+  <defs>
+    <!-- 渐变定义 -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#5B9BD5;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#4A90E2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3A7BC8;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#E8F4FF;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- 文字阴影滤镜 -->
+    <filter id="textShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#2C5282" flood-opacity="0.5"/>
+    </filter>
+    
+    <!-- 发光效果 -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- 主背景渐变 -->
+  <path d="M154 927c-35.8 0-65-29.2-65-65V162c0-35.8 29.2-65 65-65h716c35.8 0 65 29.2 65 65v700c0 35.8-29.2 65-65 65H154z" fill="url(#bgGradient)" p-id="2006"></path>
+  
+  <!-- 主背景边框 -->
+  <path d="M870 122c10.6 0 20.6 4.2 28.2 11.8 7.6 7.6 11.8 17.6 11.8 28.2v700c0 10.6-4.2 20.6-11.8 28.2-7.6 7.6-17.6 11.8-28.2 11.8H154c-10.6 0-20.6-4.2-28.2-11.8-7.6-7.6-11.8-17.6-11.8-28.2V162c0-10.6 4.2-20.6 11.8-28.2 7.6-7.6 17.6-11.8 28.2-11.8h716m0-50H154c-49.5 0-90 40.5-90 90v700c0 49.5 40.5 90 90 90h716c49.5 0 90-40.5 90-90V162c0-49.5-40.5-90-90-90z" fill="#2C5282" p-id="2007"></path>
+
+  <!-- 装饰性几何图形 - 左上角 -->
+  <circle cx="200" cy="200" r="80" fill="#FFFFFF" opacity="0.1"/>
+  <circle cx="200" cy="200" r="50" fill="#FFFFFF" opacity="0.15"/>
+  <circle cx="200" cy="200" r="25" fill="#FFFFFF" opacity="0.2"/>
+  
+  <!-- 装饰性几何图形 - 右下角 -->
+  <circle cx="824" cy="824" r="60" fill="#FFFFFF" opacity="0.08"/>
+  <circle cx="824" cy="824" r="35" fill="#FFFFFF" opacity="0.12"/>
+  
+  <!-- 装饰线条 - 背景图案 -->
+  <path d="M100 300 Q200 250 300 300 T500 300" stroke="#FFFFFF" stroke-width="2" fill="none" opacity="0.1"/>
+  <path d="M524 700 Q624 650 724 700 T924 700" stroke="#FFFFFF" stroke-width="2" fill="none" opacity="0.1"/>
+  
+  <!-- 中央装饰圆环 -->
+  <circle cx="512" cy="512" r="350" stroke="#FFFFFF" stroke-width="3" fill="none" opacity="0.08"/>
+  <circle cx="512" cy="512" r="320" stroke="#FFFFFF" stroke-width="2" fill="none" opacity="0.06"/>
+  
+  <!-- 顶部装饰带 -->
+  <rect x="64" y="140" width="896" height="8" fill="#FFFFFF" opacity="0.15" rx="4"/>
+  
+  <!-- 底部装饰带 -->
+  <rect x="64" y="876" width="896" height="8" fill="#FFFFFF" opacity="0.15" rx="4"/>
+  
+  <!-- 左侧装饰条 -->
+  <rect x="140" y="64" width="8" height="896" fill="#FFFFFF" opacity="0.1" rx="4"/>
+  
+  <!-- 右侧装饰条 -->
+  <rect x="876" y="64" width="8" height="896" fill="#FFFFFF" opacity="0.1" rx="4"/>
+
+  <!-- GoQGo 主文字 - 更大更突出 -->
+  <text x="512" y="540" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="160" font-weight="900" fill="url(#textGradient)" filter="url(#textShadow)">GoQGo</text>
+  
+  <!-- 文字描边效果 -->
+  <text x="512" y="540" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="160" font-weight="900" fill="none" stroke="#2C5282" stroke-width="2" opacity="0.3">GoQGo</text>
+  
+  <!-- 副标题/说明文字 -->
+  <text x="512" y="620" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="600" fill="#E8F4FF" opacity="0.9">AI Assistant Platform</text>
+  
+  <!-- 装饰性星星图案 -->
+  <g fill="#FFFFFF" opacity="0.3">
+    <path d="M350 350 L355 360 L365 355 L360 365 L370 370 L360 375 L365 385 L355 380 L350 390 L345 380 L335 385 L340 375 L330 370 L340 365 L335 355 L345 360 Z"/>
+    <path d="M650 280 L653 286 L659 283 L656 289 L662 292 L656 295 L659 301 L653 298 L650 304 L647 298 L641 301 L644 295 L638 292 L644 289 L641 283 L647 286 Z"/>
+    <path d="M720 720 L724 728 L732 724 L728 732 L736 736 L728 740 L732 748 L724 744 L720 752 L716 744 L708 748 L712 740 L704 736 L712 732 L708 724 L716 728 Z"/>
+  </g>
+  
+  <!-- 发光点装饰 -->
+  <circle cx="280" cy="420" r="4" fill="#FFFFFF" opacity="0.6" filter="url(#glow)"/>
+  <circle cx="744" cy="580" r="5" fill="#FFFFFF" opacity="0.5" filter="url(#glow)"/>
+  <circle cx="450" cy="680" r="3" fill="#FFFFFF" opacity="0.7" filter="url(#glow)"/>
+  <circle cx="580" cy="320" r="4" fill="#FFFFFF" opacity="0.6" filter="url(#glow)"/>
+  
+  <!-- 底部品牌点 -->
+  <circle cx="512" cy="700" r="12" fill="#FFFFFF" opacity="0.4"/>
+  <circle cx="512" cy="700" r="6" fill="#FFFFFF" opacity="0.8"/>
+  <circle cx="512" cy="700" r="2" fill="#FFFFFF"/>
+</svg> 
