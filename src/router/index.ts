@@ -6,28 +6,9 @@ const router = createRouter({
   routes: [
     {
       path: '/',
+      name: 'home',
       component: Layout,
-      redirect: '/chat',
-      children: [
-        {
-          path: '/chat',
-          name: 'chat',
-          component: () => import('@/views/ChatView.vue'),
-          meta: { title: '聊天管理' }
-        },
-        {
-          path: '/agents',
-          name: 'agents',
-          component: () => import('@/views/AgentsView.vue'),
-          meta: { title: '智能体管理' }
-        },
-        {
-          path: '/settings',
-          name: 'settings',
-          component: () => import('@/views/SettingsView.vue'),
-          meta: { title: '系统设置' }
-        }
-      ]
+      meta: { title: 'Q Chat Manager' }
     }
   ]
 })

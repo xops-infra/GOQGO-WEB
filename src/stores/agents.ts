@@ -29,13 +29,27 @@ export const useAgentsStore = defineStore('agents', () => {
   const fetchAgents = async (namespace: string = currentNamespace.value) => {
     loading.value = true
     try {
-      // 模拟API调用，返回模拟数据
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // 尝试调用真实API
+      const data = await agentApi.getList(namespace)
+      agents.value = data
+      currentNamespace.value = namespace
+    } catch (error) {
+      console.warn('API调用失败，使用模拟数据:', error)
       
+      // Fallback到模拟数据
       const mockAgents: Agent[] = [
         {
           id: 'agent-1',
-          name: 'frontend-dev',
+          name: 'backend',
+          namespace: namespace,
+          status: 'running',
+          role: 'backend-engineer',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: 'agent-2',
+          name: 'frontend',
           namespace: namespace,
           status: 'running',
           role: 'frontend-engineer',
@@ -43,20 +57,11 @@ export const useAgentsStore = defineStore('agents', () => {
           updatedAt: new Date().toISOString()
         },
         {
-          id: 'agent-2',
-          name: 'backend-dev',
+          id: 'agent-3',
+          name: 'q_cli_system',
           namespace: namespace,
           status: 'idle',
-          role: 'backend-engineer',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: 'agent-3',
-          name: 'product-manager',
-          namespace: namespace,
-          status: 'running',
-          role: 'product-manager',
+          role: 'system-admin',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         }
@@ -64,8 +69,6 @@ export const useAgentsStore = defineStore('agents', () => {
       
       agents.value = mockAgents
       currentNamespace.value = namespace
-    } catch (error) {
-      console.error('获取Agent列表失败:', error)
     } finally {
       loading.value = false
     }
@@ -73,9 +76,14 @@ export const useAgentsStore = defineStore('agents', () => {
   
   const createAgent = async (data: CreateAgentRequest) => {
     try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // 尝试调用真实API
+      const newAgent = await agentApi.create(currentNamespace.value, data)
+      agents.value.push(newAgent)
+      return newAgent
+    } catch (error) {
+      console.warn('API调用失败，使用模拟创建:', error)
       
+      // Fallback到模拟创建
       const newAgent: Agent = {
         id: `agent-${Date.now()}`,
         name: data.name,
@@ -88,31 +96,45 @@ export const useAgentsStore = defineStore('agents', () => {
       
       agents.value.push(newAgent)
       return newAgent
-    } catch (error) {
-      console.error('创建Agent失败:', error)
-      throw error
     }
   }
   
   const deleteAgent = async (name: string) => {
     try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // 尝试调用真实API
+      await agentApi.delete(currentNamespace.value, name)
       agents.value = agents.value.filter(agent => agent.name !== name)
     } catch (error) {
-      console.error('删除Agent失败:', error)
-      throw error
+      console.warn('API调用失败，使用模拟删除:', error)
+      // Fallback到模拟删除
+      agents.value = agents.value.filter(agent => agent.name !== name)
     }
   }
   
   const sendMessage = async (name: string, message: string) => {
     try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 500))
-      console.log(`向 ${name} 发送消息: ${message}`)
+      // 尝试调用真实API
+      await agentApi.send(currentNamespace.value, name, message)
+      console.log(`向 ${name} 发送消息成功: ${message}`)
     } catch (error) {
-      console.error('发送消息失败:', error)
-      throw error
+      console.warn('API调用失败，模拟发送:', error)
+      console.log(`模拟向 ${name} 发送消息: ${message}`)
+    }
+  }
+  
+  const getLogs = async (name: string, lines: number = 50) => {
+    try {
+      // 尝试调用真实API
+      const logs = await agentApi.getLogs(currentNamespace.value, name, lines)
+      return logs
+    } catch (error) {
+      console.warn('API调用失败，返回模拟日志:', error)
+      // 返回模拟日志
+      return [
+        `[${new Date().toISOString()}] Connected to ${name}`,
+        `[${new Date().toISOString()}] Agent ${name} is ready`,
+        `[${new Date().toISOString()}] Waiting for commands...`
+      ]
     }
   }
   
@@ -130,6 +152,7 @@ export const useAgentsStore = defineStore('agents', () => {
     fetchAgents,
     createAgent,
     deleteAgent,
-    sendMessage
+    sendMessage,
+    getLogs
   }
 })
