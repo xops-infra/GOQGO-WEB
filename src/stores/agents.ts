@@ -1,13 +1,26 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { agentApi } from '@/api/agents'
+import { useNamespacesStore } from './namespaces'
 import type { Agent, CreateAgentRequest } from '@/types/api'
 
 export const useAgentsStore = defineStore('agents', () => {
   // 状态
   const agents = ref<Agent[]>([])
   const loading = ref(false)
-  const currentNamespace = ref('default')
+  
+  // 获取namespaces store
+  const namespacesStore = useNamespacesStore()
+  
+  // 监听namespace变化，自动重新加载agents
+  watch(
+    () => namespacesStore.currentNamespace,
+    (newNamespace) => {
+      if (newNamespace) {
+        fetchAgents(newNamespace)
+      }
+    }
+  )
   
   // 计算属性
   const runningAgents = computed(() => 
@@ -26,49 +39,52 @@ export const useAgentsStore = defineStore('agents', () => {
   })
   
   // 方法
-  const fetchAgents = async (namespace: string = currentNamespace.value) => {
+  const fetchAgents = async (namespace?: string) => {
+    const targetNamespace = namespace || namespacesStore.currentNamespace
     loading.value = true
     try {
       // 尝试调用真实API
-      const data = await agentApi.getList(namespace)
-      agents.value = data
-      currentNamespace.value = namespace
+      const data = await agentApi.getList(targetNamespace)
+      // API返回的是 { items: Agent[] } 格式
+      agents.value = data.items || []
     } catch (error) {
       console.warn('API调用失败，使用模拟数据:', error)
       
       // Fallback到模拟数据
       const mockAgents: Agent[] = [
         {
-          id: 'agent-1',
           name: 'backend',
-          namespace: namespace,
+          namespace: targetNamespace,
           status: 'running',
           role: 'backend-engineer',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          age: '2h',
+          workDir: './',
+          sessionName: '',
+          restartCount: 0
         },
         {
-          id: 'agent-2',
           name: 'frontend',
-          namespace: namespace,
+          namespace: targetNamespace,
           status: 'running',
           role: 'frontend-engineer',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          age: '1h',
+          workDir: './',
+          sessionName: '',
+          restartCount: 0
         },
         {
-          id: 'agent-3',
           name: 'q_cli_system',
-          namespace: namespace,
+          namespace: targetNamespace,
           status: 'idle',
           role: 'system-admin',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          age: '30m',
+          workDir: './',
+          sessionName: '',
+          restartCount: 0
         }
       ]
       
       agents.value = mockAgents
-      currentNamespace.value = namespace
     } finally {
       loading.value = false
     }
@@ -77,7 +93,7 @@ export const useAgentsStore = defineStore('agents', () => {
   const createAgent = async (data: CreateAgentRequest) => {
     try {
       // 尝试调用真实API
-      const newAgent = await agentApi.create(currentNamespace.value, data)
+      const newAgent = await agentApi.create(namespacesStore.currentNamespace, data)
       agents.value.push(newAgent)
       return newAgent
     } catch (error) {
@@ -85,13 +101,14 @@ export const useAgentsStore = defineStore('agents', () => {
       
       // Fallback到模拟创建
       const newAgent: Agent = {
-        id: `agent-${Date.now()}`,
         name: data.name,
         namespace: data.namespace,
         status: 'running',
         role: data.role,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        age: '0s',
+        workDir: data.workDir || './',
+        sessionName: '',
+        restartCount: 0
       }
       
       agents.value.push(newAgent)
@@ -102,7 +119,7 @@ export const useAgentsStore = defineStore('agents', () => {
   const deleteAgent = async (name: string) => {
     try {
       // 尝试调用真实API
-      await agentApi.delete(currentNamespace.value, name)
+      await agentApi.delete(namespacesStore.currentNamespace, name)
       agents.value = agents.value.filter(agent => agent.name !== name)
     } catch (error) {
       console.warn('API调用失败，使用模拟删除:', error)
@@ -114,7 +131,7 @@ export const useAgentsStore = defineStore('agents', () => {
   const sendMessage = async (name: string, message: string) => {
     try {
       // 尝试调用真实API
-      await agentApi.send(currentNamespace.value, name, message)
+      await agentApi.send(namespacesStore.currentNamespace, name, message)
       console.log(`向 ${name} 发送消息成功: ${message}`)
     } catch (error) {
       console.warn('API调用失败，模拟发送:', error)
@@ -125,7 +142,7 @@ export const useAgentsStore = defineStore('agents', () => {
   const getLogs = async (name: string, lines: number = 50) => {
     try {
       // 尝试调用真实API
-      const logs = await agentApi.getLogs(currentNamespace.value, name, lines)
+      const logs = await agentApi.getLogs(namespacesStore.currentNamespace, name, lines)
       return logs
     } catch (error) {
       console.warn('API调用失败，返回模拟日志:', error)
@@ -142,7 +159,6 @@ export const useAgentsStore = defineStore('agents', () => {
     // 状态
     agents,
     loading,
-    currentNamespace,
     
     // 计算属性
     runningAgents,

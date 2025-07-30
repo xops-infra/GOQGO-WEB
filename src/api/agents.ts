@@ -1,10 +1,14 @@
 import axios from '@/utils/axios'
 import type { Agent, CreateAgentRequest } from '@/types/api'
 
+export interface AgentList {
+  items: Agent[]
+}
+
 export const agentApi = {
   // 获取Agent列表
   getList: (namespace: string = 'default') => 
-    axios.get<Agent[]>(`/v1/namespaces/${namespace}/agents`),
+    axios.get<AgentList>(`/v1/namespaces/${namespace}/agents`),
   
   // 创建Agent
   create: (namespace: string, data: CreateAgentRequest) =>

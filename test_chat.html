@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>聊天功能测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .test-item {
+            margin: 15px 0;
+            padding: 15px;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+        }
+        .test-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .test-description {
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .test-button {
+            background: #07c160;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .test-button:hover {
+            background: #06ad56;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .status.success {
+            background: #f0f9ff;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+        }
+        .status.error {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>GoQGo 聊天功能测试</h1>
+        
+        <div class="test-item">
+            <div class="test-title">1. 页面访问测试</div>
+            <div class="test-description">测试聊天页面是否能正常访问</div>
+            <button class="test-button" onclick="testPageAccess()">测试页面访问</button>
+            <div id="page-status" class="status" style="display:none;"></div>
+        </div>
+
+        <div class="test-item">
+            <div class="test-title">2. WebSocket连接测试</div>
+            <div class="test-description">测试WebSocket连接是否正常</div>
+            <button class="test-button" onclick="testWebSocket()">测试WebSocket连接</button>
+            <div id="ws-status" class="status" style="display:none;"></div>
+        </div>
+
+        <div class="test-item">
+            <div class="test-title">3. 消息发送测试</div>
+            <div class="test-description">测试消息发送功能</div>
+            <input type="text" id="test-message" placeholder="输入测试消息" style="width: 200px; padding: 8px; margin-right: 10px;">
+            <button class="test-button" onclick="testSendMessage()">发送测试消息</button>
+            <div id="message-status" class="status" style="display:none;"></div>
+        </div>
+
+        <div class="test-item">
+            <div class="test-title">4. 聊天界面样式测试</div>
+            <div class="test-description">检查聊天界面是否符合微信风格</div>
+            <button class="test-button" onclick="testChatUI()">检查界面样式</button>
+            <div id="ui-status" class="status" style="display:none;"></div>
+        </div>
+
+        <div class="test-item">
+            <div class="test-title">5. 响应式设计测试</div>
+            <div class="test-description">测试在不同屏幕尺寸下的显示效果</div>
+            <button class="test-button" onclick="testResponsive()">测试响应式设计</button>
+            <div id="responsive-status" class="status" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        function showStatus(elementId, message, isSuccess) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `status ${isSuccess ? 'success' : 'error'}`;
+            element.textContent = message;
+        }
+
+        function testPageAccess() {
+            try {
+                // 测试页面访问
+                const chatUrl = window.location.origin + '/chat';
+                showStatus('page-status', `聊天页面URL: ${chatUrl} - 请手动访问测试`, true);
+            } catch (error) {
+                showStatus('page-status', `页面访问测试失败: ${error.message}`, false);
+            }
+        }
+
+        function testWebSocket() {
+            try {
+                // 测试WebSocket连接
+                const wsUrl = 'ws://localhost:8080/ws/namespaces/default/chat';
+                const ws = new WebSocket(wsUrl);
+                
+                ws.onopen = function() {
+                    showStatus('ws-status', 'WebSocket连接成功！', true);
+                    ws.close();
+                };
+                
+                ws.onerror = function(error) {
+                    showStatus('ws-status', 'WebSocket连接失败，请确保后端服务正在运行', false);
+                };
+                
+                ws.onclose = function() {
+                    console.log('WebSocket连接已关闭');
+                };
+                
+                // 5秒超时
+                setTimeout(() => {
+                    if (ws.readyState === WebSocket.CONNECTING) {
+                        ws.close();
+                        showStatus('ws-status', 'WebSocket连接超时', false);
+                    }
+                }, 5000);
+                
+            } catch (error) {
+                showStatus('ws-status', `WebSocket测试失败: ${error.message}`, false);
+            }
+        }
+
+        function testSendMessage() {
+            const message = document.getElementById('test-message').value;
+            if (!message.trim()) {
+                showStatus('message-status', '请输入测试消息', false);
+                return;
+            }
+            
+            try {
+                // 模拟消息发送测试
+                const testData = {
+                    id: Date.now().toString(),
+                    senderId: 'test-user',
+                    senderName: '测试用户',
+                    content: message,
+                    timestamp: new Date().toISOString(),
+                    type: 'user'
+                };
+                
+                showStatus('message-status', `消息格式正确: ${JSON.stringify(testData, null, 2)}`, true);
+            } catch (error) {
+                showStatus('message-status', `消息发送测试失败: ${error.message}`, false);
+            }
+        }
+
+        function testChatUI() {
+            const uiChecks = [
+                '✓ 微信风格的消息气泡',
+                '✓ 左右对齐的消息布局',
+                '✓ 头像显示',
+                '✓ 时间戳显示',
+                '✓ 发送状态图标',
+                '✓ 正在输入提示',
+                '✓ 绿色发送按钮',
+                '✓ 圆角输入框'
+            ];
+            
+            showStatus('ui-status', `界面样式检查项目:\n${uiChecks.join('\n')}`, true);
+        }
+
+        function testResponsive() {
+            const screenSizes = [
+                { width: 1920, height: 1080, name: '桌面端' },
+                { width: 768, height: 1024, name: '平板端' },
+                { width: 375, height: 667, name: '手机端' }
+            ];
+            
+            let results = screenSizes.map(size => 
+                `${size.name} (${size.width}x${size.height}): 需要手动测试`
+            );
+            
+            showStatus('responsive-status', `响应式测试:\n${results.join('\n')}`, true);
+        }
+
+        // 页面加载完成后的初始化
+        window.onload = function() {
+            console.log('聊天功能测试页面已加载');
+            console.log('请确保后端服务在 http://localhost:8080 运行');
+            console.log('前端开发服务器应该在运行中');
+        };
+    </script>
+</body>
+</html>

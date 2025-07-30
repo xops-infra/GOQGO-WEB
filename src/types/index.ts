@@ -22,3 +22,9 @@ export interface AppState {
   sidebarCollapsed: boolean
   theme: 'light' | 'dark'
 }
+
+export interface NamespaceOption {
+  label: string
+  value: string
+  disabled?: boolean
+}

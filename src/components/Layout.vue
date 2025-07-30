@@ -7,18 +7,16 @@
           <img src="@/assets/Goqgo.svg" alt="GoQGo" class="header-logo" />
           <div class="header-title">
             <h1>Q Chat Manager</h1>
-            <span class="subtitle">AI助手管理平台</span>
+            <span class="subtitle">程序员和短视频更配哦～</span>
           </div>
         </div>
         <div class="header-right">
           <n-space>
-            <n-select
-              v-model:value="currentNamespace"
-              :options="namespaceOptions"
-              size="small"
-              style="width: 150px"
-              @update:value="handleNamespaceChange"
-            />
+            <NamespaceManager />
+            <n-button size="small" type="primary" @click="openChatRoom">
+              <n-icon><ChatbubbleEllipsesOutline /></n-icon>
+              聊天室
+            </n-button>
             <n-button size="small" quaternary @click="toggleTheme">
               <n-icon>
                 <SunnyOutline v-if="appStore.theme === 'dark'" />
@@ -44,9 +42,9 @@
         <div class="instances-list">
           <div
             v-for="agent in agents"
-            :key="agent.id"
+            :key="agent.name"
             class="instance-item"
-            :class="{ active: selectedAgent?.id === agent.id }"
+            :class="{ active: selectedAgent?.name === agent.name }"
             @click="selectAgent(agent)"
           >
             <div class="instance-info">
@@ -137,7 +135,7 @@
     <!-- 底部状态栏 -->
     <div class="status-bar">
       <div class="status-left">
-        <span>命名空间: {{ currentNamespace }}</span>
+        <span>命名空间: {{ namespacesStore.currentNamespace }}</span>
         <span>实例数: {{ agents.length }}</span>
         <span>运行中: {{ runningCount }}</span>
       </div>
@@ -191,21 +189,26 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { 
   AddOutline,
   SunnyOutline,
-  MoonOutline
+  MoonOutline,
+  ChatbubbleEllipsesOutline
 } from '@vicons/ionicons5'
 import { useAppStore } from '@/stores/app'
 import { useAgentsStore } from '@/stores/agents'
+import { useNamespacesStore } from '@/stores/namespaces'
+import NamespaceManager from './NamespaceManager.vue'
 import type { Agent, CreateAgentRequest } from '@/types/api'
 
 const appStore = useAppStore()
 const agentsStore = useAgentsStore()
+const namespacesStore = useNamespacesStore()
+const router = useRouter()
 
 // 响应式数据
 const selectedAgent = ref<Agent | null>(null)
-const currentNamespace = ref('default')
 const commandInput = ref('')
 const chatInput = ref('')
 const showCreateModal = ref(false)
@@ -256,12 +259,6 @@ const runningCount = computed(() =>
   agents.value.filter(agent => agent.status === 'running').length
 )
 
-const namespaceOptions = [
-  { label: 'default', value: 'default' },
-  { label: 'development', value: 'development' },
-  { label: 'production', value: 'production' }
-]
-
 const roleOptions = [
   { label: '前端工程师', value: 'frontend-engineer' },
   { label: '后端工程师', value: 'backend-engineer' },
@@ -278,7 +275,7 @@ const selectAgent = async (agent: Agent) => {
     // 获取真实日志
     const logs = await agentsStore.getLogs(agent.name)
     terminalLogs.value = logs.map((log, index) => ({
-      id: `${agent.id}-${index}`,
+      id: `${agent.name}-${index}`,
       timestamp: new Date().toISOString(),
       content: log,
       type: 'info'
@@ -287,13 +284,13 @@ const selectAgent = async (agent: Agent) => {
     // Fallback到模拟日志
     terminalLogs.value = [
       {
-        id: `${agent.id}-1`,
+        id: `${agent.name}-1`,
         timestamp: new Date().toISOString(),
         content: `Connected to ${agent.name}`,
         type: 'success'
       },
       {
-        id: `${agent.id}-2`,
+        id: `${agent.name}-2`,
         timestamp: new Date().toISOString(),
         content: `Role: ${agent.role}`,
         type: 'info'
@@ -396,17 +393,12 @@ const clearChat = () => {
   chatMessages.value = []
 }
 
-const handleNamespaceChange = (namespace: string) => {
-  currentNamespace.value = namespace
-  agentsStore.fetchAgents(namespace)
-}
-
 const handleCreateAgent = async () => {
   try {
     await createFormRef.value?.validate()
     creating.value = true
     
-    createForm.value.namespace = currentNamespace.value
+    createForm.value.namespace = namespacesStore.currentNamespace
     await agentsStore.createAgent(createForm.value)
     
     showCreateModal.value = false
@@ -425,6 +417,10 @@ const handleCreateAgent = async () => {
 
 const toggleTheme = () => {
   appStore.toggleTheme()
+}
+
+const openChatRoom = () => {
+  router.push('/chat')
 }
 
 const formatTime = (timestamp: string) => {

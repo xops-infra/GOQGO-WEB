@@ -43,19 +43,6 @@ GOQGO-WEB/
 └── package.json       # 项目依赖
 ```
 
-## 快速开始
-
-```bash
-# 安装依赖
-npm install
-
-# 启动开发服务器
-npm run dev
-
-# 构建生产版本
-npm run build
-```
-
 ## 核心功能模块
 
 - **聊天系统** - 基于Socket.io的实时群聊功能

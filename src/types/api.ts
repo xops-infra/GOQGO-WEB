@@ -1,11 +1,15 @@
 export interface Agent {
-  id: string
+  id?: string
   name: string
   namespace: string
-  status: 'running' | 'idle' | 'error'
+  status: 'running' | 'idle' | 'error' | 'Creating' | 'Terminating'
   role: string
-  createdAt: string
-  updatedAt: string
+  age?: string
+  workDir?: string
+  sessionName?: string
+  restartCount?: number
+  createdAt?: string
+  updatedAt?: string
   avatar?: string
 }
 
@@ -14,16 +18,20 @@ export interface CreateAgentRequest {
   namespace: string
   role: string
   context?: string
-  env?: Record<string, string>
+  workDir?: string
+  env?: string[]
 }
 
 export interface ChatMessage {
   id: string
-  agentId: string
+  senderId: string
+  senderName: string
+  senderAvatar?: string
   content: string
   timestamp: string
   type: 'user' | 'agent' | 'system'
   status?: 'sending' | 'sent' | 'error'
+  messageType?: 'text' | 'image' | 'file'
 }
 
 export interface ChatSession {
