@@ -1,1 +1,0 @@
-/Users/mikas/github/cliExtra/bin/tools/smart_grep.sh
