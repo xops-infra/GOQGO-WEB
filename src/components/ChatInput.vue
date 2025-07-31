@@ -28,7 +28,13 @@
     </div>
 
     <!-- 输入区域 -->
-    <div class="input-container">
+    <div 
+      class="input-container"
+      @dragover.prevent="handleDragOver"
+      @dragleave.prevent="handleDragLeave"
+      @drop.prevent="handleDrop"
+      :class="{ 'drag-over': isDragOver }"
+    >
       <n-input
         v-model:value="inputMessage"
         type="textarea"
@@ -46,25 +52,27 @@
         ref="inputRef"
       />
       <div class="input-actions">
+        <!-- 简化的附件上传按钮 -->
         <n-tooltip>
           <template #trigger>
             <n-button
               text
-              @click="handleImageUpload"
-              class="image-button"
+              @click="handleFileUpload"
+              class="attachment-button"
               :disabled="!isConnected"
             >
               <template #icon>
                 <n-icon size="18">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M19.5 12c.277 0 .5.223.5.5v4c0 1.375-1.125 2.5-2.5 2.5h-11c-1.375 0-2.5-1.125-2.5-2.5v-4c0-.277.223-.5.5-.5s.5.223.5.5v4c0 .825.675 1.5 1.5 1.5h11c.825 0 1.5-.675 1.5-1.5v-4c0-.277.223-.5.5-.5zM12 4c.277 0 .5.223.5.5v7.793l3.146-3.147c.196-.195.512-.195.708 0s.195.512 0 .708l-4 4c-.196.195-.512.195-.708 0l-4-4c-.195-.196-.195-.512 0-.708s.512-.195.708 0l3.146 3.147V4.5c0-.277.223-.5.5-.5z"/>
+                  <svg viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M16.5,6V17.5A4,4 0 0,1 12.5,21.5A4,4 0 0,1 8.5,17.5V5A2.5,2.5 0 0,1 11,2.5A2.5,2.5 0 0,1 13.5,5V15.5A1,1 0 0,1 12.5,16.5A1,1 0 0,1 11.5,15.5V6H10V15.5A2.5,2.5 0 0,0 12.5,18A2.5,2.5 0 0,0 15,15.5V5A4,4 0 0,0 11,1A4,4 0 0,0 7,5V17.5A5.5,5.5 0 0,0 12.5,23A5.5,5.5 0 0,0 18,17.5V6H16.5Z"/>
                   </svg>
                 </n-icon>
               </template>
             </n-button>
           </template>
-          发送图片
+          上传文件 (支持拖拽，限制5MB，不支持视频)
         </n-tooltip>
+        
         <n-button
           type="primary"
           :disabled="!canSendMessage"
@@ -80,6 +88,19 @@
             </n-icon>
           </template>
         </n-button>
+      </div>
+      
+      <!-- 拖拽提示层 -->
+      <div v-if="isDragOver" class="drag-overlay">
+        <div class="drag-content">
+          <n-icon size="48" color="#07c160">
+            <svg viewBox="0 0 24 24">
+              <path fill="currentColor" d="M16.5,6V17.5A4,4 0 0,1 12.5,21.5A4,4 0 0,1 8.5,17.5V5A2.5,2.5 0 0,1 11,2.5A2.5,2.5 0 0,1 13.5,5V15.5A1,1 0 0,1 12.5,16.5A1,1 0 0,1 11.5,15.5V6H10V15.5A2.5,2.5 0 0,0 12.5,18A2.5,2.5 0 0,0 15,15.5V5A4,4 0 0,0 11,1A4,4 0 0,0 7,5V17.5A5.5,5.5 0 0,0 12.5,23A5.5,5.5 0 0,0 18,17.5V6H16.5Z"/>
+            </svg>
+          </n-icon>
+          <p>拖拽文件到这里上传</p>
+          <p class="drag-hint">支持图片、文档等文件，限制5MB，不支持视频</p>
+        </div>
       </div>
     </div>
 
@@ -182,7 +203,7 @@ const placeholderText = computed(() => {
 
 // 处理图片粘贴
 const handlePaste = async (e: ClipboardEvent) => {
-  console.log('=== 图片粘贴事件开始 ===')
+  console.log('=== 文件粘贴事件开始 ===')
   
   if (!e.clipboardData) {
     console.log('❌ 没有剪贴板数据')
@@ -193,34 +214,68 @@ const handlePaste = async (e: ClipboardEvent) => {
   console.log('📋 剪贴板项目:', items.map(item => ({ type: item.type, kind: item.kind })))
   
   try {
-    // 检查是否有图片数据
-    const imageItems = items.filter(item => item.type.startsWith('image/'))
+    // 检查是否有文件数据
+    const fileItems = items.filter(item => item.kind === 'file')
     
-    for (const imageItem of imageItems) {
-      console.log('🖼️ 找到图片项目:', imageItem.type)
+    for (const fileItem of fileItems) {
+      console.log('📎 找到文件项目:', fileItem.type)
       e.preventDefault() // 阻止默认粘贴行为
       
-      const file = imageItem.getAsFile()
+      const file = fileItem.getAsFile()
       if (file) {
-        console.log('📄 获取到图片文件:', file.name, file.type, file.size)
-        
-        // 创建本地预览URL
-        const url = URL.createObjectURL(file)
-        const fileName = generateFileName(file)
-        
-        imagePreviews.value.push({
-          url,
-          name: fileName,
-          file
-        })
-        
-        console.log('✅ 创建图片预览:', imagePreviews.value)
+        console.log('📄 获取到文件:', file.name, file.type, file.size)
+        await addFile(file)
       }
     }
   } catch (error) {
     console.error('❌ 处理图片粘贴失败:', error)
     message.error('图片粘贴失败')
   }
+}
+
+// 处理拖拽进入
+const handleDragOver = (e: DragEvent) => {
+  e.preventDefault()
+  isDragOver.value = true
+}
+
+// 处理拖拽离开
+const handleDragLeave = (e: DragEvent) => {
+  e.preventDefault()
+  // 只有当离开整个容器时才设置为false
+  if (!e.currentTarget?.contains(e.relatedTarget as Node)) {
+    isDragOver.value = false
+  }
+}
+
+// 处理文件拖拽放置
+const handleDrop = async (e: DragEvent) => {
+  e.preventDefault()
+  isDragOver.value = false
+  
+  const files = Array.from(e.dataTransfer?.files || [])
+  console.log('🗂️ 拖拽文件数量:', files.length)
+  
+  for (const file of files) {
+    await addFile(file)
+  }
+}
+
+// 处理文件上传按钮点击
+const handleFileUpload = () => {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '*'
+  input.multiple = true
+  input.onchange = async (e) => {
+    const files = Array.from((e.target as HTMLInputElement).files || [])
+    console.log('📁 选择文件数量:', files.length)
+    
+    for (const file of files) {
+      await addFile(file)
+    }
+  }
+  input.click()
 }
 
 // 处理图片上传按钮点击
@@ -409,6 +464,57 @@ const handleKeyUp = (e: KeyboardEvent) => {
   isShiftPressed.value = e.shiftKey
 }
 
+// 输入法状态
+const isComposing = ref(false)
+
+// 拖拽状态
+const isDragOver = ref(false)
+
+// 文件大小限制 (5MB)
+const MAX_FILE_SIZE = 5 * 1024 * 1024
+
+// 不支持的文件类型
+const UNSUPPORTED_TYPES = ['video/']
+
+// 检查文件是否有效
+const isValidFile = (file: File) => {
+  // 检查文件大小
+  if (file.size > MAX_FILE_SIZE) {
+    message.error(`文件 ${file.name} 超过5MB限制`)
+    return false
+  }
+  
+  // 检查是否为视频文件
+  if (UNSUPPORTED_TYPES.some(type => file.type.startsWith(type))) {
+    message.error(`不支持视频文件: ${file.name}`)
+    return false
+  }
+  
+  return true
+}
+
+// 处理文件添加
+const addFile = async (file: File) => {
+  if (!isValidFile(file)) return
+  
+  try {
+    // 创建本地预览URL
+    const url = URL.createObjectURL(file)
+    const fileName = generateFileName(file)
+    
+    imagePreviews.value.push({
+      url,
+      name: fileName,
+      file
+    })
+    
+    console.log('📎 添加文件:', fileName, `(${formatFileSize(file.size)})`)
+  } catch (error) {
+    console.error('处理文件失败:', error)
+    message.error(`处理文件 ${file.name} 失败`)
+  }
+}
+
 // 输入法状态处理
 const handleCompositionStart = () => {
   isComposing.value = true
@@ -547,6 +653,14 @@ onUnmounted(() => {
   display: flex;
   gap: 8px;
   padding: 16px;
+  position: relative;
+  transition: all 0.3s ease;
+  
+  &.drag-over {
+    background: rgba(7, 193, 96, 0.05);
+    border-radius: 8px;
+    transform: scale(1.02);
+  }
   
   .message-input {
     flex: 1;
@@ -558,7 +672,7 @@ onUnmounted(() => {
     gap: 12px;
     padding-bottom: 6px;
 
-    .image-button {
+    .attachment-button {
       color: #8f959e;
       padding: 4px;
       height: 32px;
@@ -567,15 +681,18 @@ onUnmounted(() => {
       align-items: center;
       justify-content: center;
       transition: all 0.2s;
-      border-radius: 4px;
+      border-radius: 6px;
+      position: relative;
       
       &:hover {
         color: #07c160;
         background: rgba(7, 193, 96, 0.1);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(7, 193, 96, 0.2);
       }
       
       &:active {
-        transform: scale(0.95);
+        transform: translateY(0) scale(0.95);
       }
       
       &:disabled {
@@ -584,6 +701,8 @@ onUnmounted(() => {
         
         &:hover {
           background: none;
+          transform: none;
+          box-shadow: none;
         }
       }
     }
@@ -599,6 +718,39 @@ onUnmounted(() => {
       
       &:active {
         transform: scale(0.95);
+      }
+    }
+  }
+  
+  .drag-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(7, 193, 96, 0.1);
+    border: 2px dashed #07c160;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    backdrop-filter: blur(2px);
+    
+    .drag-content {
+      text-align: center;
+      color: #07c160;
+      
+      p {
+        margin: 8px 0;
+        font-size: 16px;
+        font-weight: 500;
+        
+        &.drag-hint {
+          font-size: 12px;
+          color: #666;
+          font-weight: normal;
+        }
       }
     }
   }

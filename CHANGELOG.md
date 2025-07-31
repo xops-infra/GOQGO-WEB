@@ -1,5 +1,151 @@
 # CHANGELOG
 
+## [2025-07-31] - 聊天附件上传功能优化
+
+### 📎 附件上传功能简化
+- **统一文件上传** - 简化附件上传按钮，支持所有文件类型（除视频外）
+- **拖拽上传支持** - 支持文件拖拽到输入框进行上传
+- **粘贴上传增强** - 扩展粘贴功能，支持所有文件类型粘贴上传
+- **文件大小限制** - 限制文件大小不超过5MB，提升用户体验
+- **视频文件过滤** - 不支持视频文件上传，避免大文件传输问题
+
+### 🎯 功能详情
+
+#### 上传方式支持
+```javascript
+// 1. 点击按钮上传
+const handleFileUpload = () => {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '*'  // 支持所有文件类型
+  input.multiple = true  // 支持多文件选择
+}
+
+// 2. 拖拽上传
+const handleDrop = async (e: DragEvent) => {
+  const files = Array.from(e.dataTransfer?.files || [])
+  for (const file of files) {
+    await addFile(file)  // 统一文件处理
+  }
+}
+
+// 3. 粘贴上传
+const handlePaste = async (e: ClipboardEvent) => {
+  const fileItems = items.filter(item => item.kind === 'file')
+  // 支持粘贴任何文件类型
+}
+```
+
+#### 文件验证机制
+```javascript
+// 文件大小限制 (5MB)
+const MAX_FILE_SIZE = 5 * 1024 * 1024
+
+// 不支持的文件类型
+const UNSUPPORTED_TYPES = ['video/']
+
+const isValidFile = (file: File) => {
+  // 检查文件大小
+  if (file.size > MAX_FILE_SIZE) {
+    message.error(`文件 ${file.name} 超过5MB限制`)
+    return false
+  }
+  
+  // 检查是否为视频文件
+  if (UNSUPPORTED_TYPES.some(type => file.type.startsWith(type))) {
+    message.error(`不支持视频文件: ${file.name}`)
+    return false
+  }
+  
+  return true
+}
+```
+
+### 🎨 UI/UX 改进
+
+#### 拖拽视觉反馈
+- **拖拽悬停效果** - 文件拖拽到输入区域时显示绿色边框和提示
+- **拖拽遮罩层** - 显示友好的拖拽提示信息
+- **动画过渡** - 平滑的拖拽状态切换动画
+
+#### 按钮样式优化
+- **现代化设计** - 使用回形针图标，更直观表示附件功能
+- **悬停效果** - 绿色主题色悬停效果，与应用风格一致
+- **状态反馈** - 禁用状态的视觉反馈
+
+#### 错误提示优化
+- **文件大小提示** - 清晰显示超过5MB限制的文件
+- **文件类型提示** - 明确提示不支持的视频文件
+- **友好的错误信息** - 用户友好的错误提示文案
+
+### 🔧 技术实现
+
+#### 统一文件处理
+```javascript
+// 统一的文件添加函数
+const addFile = async (file: File) => {
+  if (!isValidFile(file)) return
+  
+  try {
+    const url = URL.createObjectURL(file)
+    const fileName = generateFileName(file)
+    
+    imagePreviews.value.push({
+      url, name: fileName, file
+    })
+  } catch (error) {
+    message.error(`处理文件 ${file.name} 失败`)
+  }
+}
+```
+
+#### 拖拽事件处理
+```javascript
+// 拖拽状态管理
+const isDragOver = ref(false)
+
+// 拖拽事件处理
+const handleDragOver = (e: DragEvent) => {
+  e.preventDefault()
+  isDragOver.value = true
+}
+
+const handleDragLeave = (e: DragEvent) => {
+  e.preventDefault()
+  if (!e.currentTarget?.contains(e.relatedTarget as Node)) {
+    isDragOver.value = false
+  }
+}
+```
+
+### 📋 支持的文件类型
+
+| 类型 | 支持情况 | 说明 |
+|------|----------|------|
+| **图片** | ✅ 完全支持 | jpg, png, gif, webp等 |
+| **文档** | ✅ 完全支持 | pdf, doc, txt, xlsx等 |
+| **音频** | ✅ 完全支持 | mp3, wav, flac等 |
+| **压缩包** | ✅ 完全支持 | zip, rar, 7z等 |
+| **视频** | ❌ 不支持 | mp4, avi, mov等 |
+| **其他** | ✅ 完全支持 | 所有其他文件类型 |
+
+### 🚀 用户体验提升
+
+#### 操作便捷性
+- **多种上传方式** - 点击、拖拽、粘贴三种方式任选
+- **批量上传** - 支持同时选择多个文件
+- **本地缓存** - 文件先缓存本地，发送时才上传
+
+#### 性能优化
+- **文件大小限制** - 5MB限制避免大文件传输卡顿
+- **视频过滤** - 排除视频文件减少带宽占用
+- **内存管理** - 正确释放文件URL避免内存泄漏
+
+#### 视觉体验
+- **统一设计风格** - 与应用整体绿色主题保持一致
+- **流畅动画** - 拖拽和悬停的平滑过渡效果
+- **清晰反馈** - 明确的状态提示和错误信息
+
 ## [2025-07-31] - 实例实时日志主题颜色修复
 
 ### 🎨 UI主题统一
