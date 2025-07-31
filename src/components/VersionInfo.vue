@@ -169,16 +169,18 @@ onMounted(async () => {
 <style scoped lang="scss">
 .version-info-container {
   position: relative;
+  padding-bottom: 8px; // 改用 padding-bottom 而不是 margin-bottom
 }
 
 .version-info {
   font-size: 12px;
-  color: #8c8c8c;
+  color: white;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 4px;
   transition: color 0.3s ease;
+  transform: translateY(4px); // 向下移动 4px
 
   &:hover {
     color: #1890ff;

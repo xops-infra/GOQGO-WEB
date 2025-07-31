@@ -48,155 +48,142 @@ import { useMessage } from 'naive-ui'
 
 console.log('🚀 NamespaceManager 开始加载')
 
-// Store
+// 状态管理
 const namespacesStore = useNamespacesStore()
-const { currentNamespace, namespaces } = storeToRefs(namespacesStore)
+const { namespaces, currentNamespace } = storeToRefs(namespacesStore)
 const message = useMessage()
 
-// 本地状态
+// 响应式数据
 const loading = ref(false)
 
 // 计算属性
-const namespaceOptions = computed(() => {
-  const namespaceList = namespaces.value || []
-  const options = namespaceList.map(ns => ({
-    label: `${ns.metadata.name} (${ns.status?.agentCount || 0} 个智能体)`,
-    value: ns.metadata.name
-  }))
-  console.log('📊 Namespace选项:', options)
-  return options
-})
-
 const currentNamespaceDisplay = computed(() => {
-  const current = namespaces.value?.find(ns => ns.metadata.name === currentNamespace.value)
-  return current?.metadata.name || currentNamespace.value || 'default'
+  return currentNamespace.value || 'default'
 })
 
 const agentCount = computed(() => {
-  const current = namespaces.value?.find(ns => ns.metadata.name === currentNamespace.value)
-  return current?.status?.agentCount || 0
+  // 这里应该从agents store获取当前namespace的agent数量
+  // 暂时返回0
+  return 0
 })
 
 // 下拉菜单选项
 const dropdownOptions = computed(() => {
-  const namespaceItems = namespaces.value?.map(ns => {
-    const isCurrentNamespace = ns.metadata.name === currentNamespace.value
-    return {
-      label: `${ns.metadata.name} (${ns.status?.agentCount || 0} 个智能体)`,
-      key: `namespace-${ns.metadata.name}`,
-      icon: () => h('svg', { viewBox: '0 0 24 24', style: 'width: 16px; height: 16px;' }, [
-        h('path', { fill: 'currentColor', d: 'M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M7.5,13A2.5,2.5 0 0,0 5,15.5A2.5,2.5 0 0,0 7.5,18A2.5,2.5 0 0,0 10,15.5A2.5,2.5 0 0,0 7.5,13M16.5,13A2.5,2.5 0 0,0 14,15.5A2.5,2.5 0 0,0 16.5,18A2.5,2.5 0 0,0 19,15.5A2.5,2.5 0 0,0 16.5,13Z' })
-      ]),
-      // 为当前namespace添加特殊样式
-      props: isCurrentNamespace ? {
-        style: {
-          backgroundColor: 'var(--n-option-color-hover)',
-          fontWeight: 'bold'
-        }
-      } : undefined
-    }
-  }) || []
-
-  return [
-    ...namespaceItems,
-    {
+  const options = []
+  
+  // 命名空间列表
+  if (namespaces.value.length > 0) {
+    namespaces.value.forEach(ns => {
+      options.push({
+        key: `namespace-${ns}`,
+        label: ns,
+        icon: () => h('div', { class: 'option-icon' }, [
+          h('svg', { viewBox: '0 0 24 24' }, [
+            h('path', { 
+              fill: 'currentColor', 
+              d: 'M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M7.5,13A2.5,2.5 0 0,0 5,15.5A2.5,2.5 0 0,0 7.5,18A2.5,2.5 0 0,0 10,15.5A2.5,2.5 0 0,0 7.5,13M16.5,13A2.5,2.5 0 0,0 14,15.5A2.5,2.5 0 0,0 16.5,18A2.5,2.5 0 0,0 19,15.5A2.5,2.5 0 0,0 16.5,13Z'
+            })
+          ])
+        ])
+      })
+    })
+  }
+  
+  // 分隔线
+  if (options.length > 0) {
+    options.push({
+      key: 'divider-1',
       type: 'divider'
-    },
+    })
+  }
+  
+  // 管理选项
+  options.push(
     {
-      label: '刷新列表',
       key: 'refresh',
+      label: '刷新命名空间',
       icon: () => h(RefreshOutline)
     },
     {
-      label: '创建命名空间',
       key: 'create',
+      label: '创建命名空间',
       icon: () => h(AddOutline)
     },
     {
-      label: '管理设置',
       key: 'settings',
+      label: '命名空间设置',
       icon: () => h(SettingsOutline)
     }
-  ]
+  )
+  
+  return options
 })
 
 // 方法
-const handleMenuSelect = (key: string) => {
-  console.log('🔄 菜单选择:', key)
+const handleMenuSelect = async (key: string) => {
+  console.log('🎯 选择菜单项:', key)
   
   if (key.startsWith('namespace-')) {
-    const namespaceName = key.replace('namespace-', '')
-    handleNamespaceChange(namespaceName)
+    const namespace = key.replace('namespace-', '')
+    await switchNamespace(namespace)
   } else {
     switch (key) {
       case 'refresh':
-        handleRefresh()
+        await refreshNamespaces()
         break
       case 'create':
+        // TODO: 打开创建命名空间对话框
         message.info('创建命名空间功能开发中...')
         break
       case 'settings':
-        message.info('管理设置功能开发中...')
+        // TODO: 打开命名空间设置
+        message.info('命名空间设置功能开发中...')
         break
     }
   }
 }
 
-const handleNamespaceChange = async (value: string) => {
-  console.log('🔄 切换到namespace:', value)
-  if (!value || value === currentNamespace.value) return
-  
-  try {
-    await namespacesStore.switchNamespace(value)
-    console.log('✅ 切换成功')
-    message.success(`已切换到命名空间: ${value}`)
-  } catch (error) {
-    console.error('❌ 切换失败:', error)
-    message.error('切换命名空间失败')
+const switchNamespace = async (namespace: string) => {
+  if (namespace === currentNamespace.value) {
+    return
   }
-}
-
-const handleRefresh = async () => {
-  console.log('🔄 刷新namespace列表')
+  
   loading.value = true
   try {
-    await namespacesStore.fetchNamespaces()
-    console.log('✅ 刷新完成')
-    message.success('命名空间列表已刷新')
+    await namespacesStore.switchNamespace(namespace)
+    message.success(`已切换到命名空间: ${namespace}`)
   } catch (error) {
-    console.error('❌ 刷新失败:', error)
-    message.error('刷新失败')
+    console.error('❌ 切换命名空间失败:', error)
+    message.error('切换命名空间失败')
   } finally {
     loading.value = false
   }
 }
 
-// 监听currentNamespace变化
-watch(currentNamespace, (newValue, oldValue) => {
-  if (newValue !== oldValue) {
-    console.log('📍 Namespace变化:', oldValue, '->', newValue)
+const refreshNamespaces = async () => {
+  loading.value = true
+  try {
+    await namespacesStore.fetchNamespaces()
+    message.success('命名空间列表已刷新')
+  } catch (error) {
+    console.error('❌ 刷新命名空间失败:', error)
+    message.error('刷新命名空间失败')
+  } finally {
+    loading.value = false
   }
-}, { immediate: true })
+}
 
 // 生命周期
 onMounted(async () => {
-  console.log('🎬 NamespaceManager mounted')
+  console.log('🔧 NamespaceManager 组件挂载')
   
-  loading.value = true
-  try {
-    await namespacesStore.fetchNamespaces()
-    
-    console.log('✅ 初始化完成，当前namespace:', currentNamespace.value)
-    console.log('📊 可用namespaces:', namespaces.value.map(ns => `${ns.metadata.name}(${ns.status?.agentCount || 0})`))
-  } catch (error) {
-    console.error('❌ 初始化失败:', error)
-    message.error('初始化命名空间失败')
-  } finally {
-    loading.value = false
+  // 初始化命名空间列表
+  if (namespaces.value.length === 0) {
+    await refreshNamespaces()
   }
 })
 
-// 监听store中currentNamespace的变化
+// 监听store变化
 const unwatchCurrentNamespace = namespacesStore.$subscribe((mutation, state) => {
   if (currentNamespace.value !== state.currentNamespace) {
     currentNamespace.value = state.currentNamespace
@@ -216,17 +203,18 @@ onUnmounted(() => {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 6px 12px;
-    border-radius: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s ease;
-    border: 1px solid transparent;
+    border: 1px solid var(--border-color);
     min-width: 180px;
     white-space: nowrap;
+    background: var(--card-color);
     
     &:hover {
-      background-color: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.12);
+      background: var(--hover-color);
+      border-color: var(--primary-color-hover);
     }
     
     &.loading {
@@ -237,35 +225,33 @@ onUnmounted(() => {
   
   .namespace-icon {
     flex-shrink: 0;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--primary-color);
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: var(--primary-color-suppl);
     transition: all 0.2s ease;
     
     .namespace-container:hover & {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: rgba(255, 255, 255, 0.2);
-      color: rgba(255, 255, 255, 0.9);
+      background: var(--primary-color-hover);
+      color: #ffffff;
     }
   }
   
   .namespace-info {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 2px;
     min-width: 0;
     flex: 1;
     
     .namespace-name {
       font-size: 14px;
       font-weight: 600;
-      color: #ffffff;
+      color: var(--text-color-base);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -275,29 +261,16 @@ onUnmounted(() => {
     .namespace-stats {
       display: flex;
       align-items: center;
-      
-      :deep(.n-tag) {
-        font-size: 11px;
-        height: 18px;
-        padding: 0 6px;
-        font-weight: 500;
-        
-        &.n-tag--info {
-          background-color: rgba(24, 144, 255, 0.15);
-          color: #1890ff;
-          border: 1px solid rgba(24, 144, 255, 0.3);
-        }
-      }
     }
   }
   
   .dropdown-icon {
     flex-shrink: 0;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-color-3);
     transition: all 0.2s ease;
     
     .namespace-container:hover & {
-      color: rgba(255, 255, 255, 0.8);
+      color: var(--text-color-2);
       transform: rotate(180deg);
     }
   }
@@ -305,10 +278,10 @@ onUnmounted(() => {
 
 // 优化下拉菜单样式
 :deep(.n-dropdown-menu) {
-  background: #ffffff;
+  background: var(--popover-color);
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: var(--box-shadow-2);
+  border: 1px solid var(--border-color);
   padding: 4px;
   min-width: 200px;
   
@@ -319,7 +292,7 @@ onUnmounted(() => {
     transition: all 0.2s ease;
     
     &:hover {
-      background-color: #f8f9fa;
+      background-color: var(--hover-color);
     }
     
     .n-dropdown-option-body {
@@ -328,7 +301,7 @@ onUnmounted(() => {
       gap: 8px;
       
       .n-dropdown-option-body__prefix {
-        color: #6c757d;
+        color: var(--text-color-3);
         
         svg {
           width: 16px;
@@ -339,23 +312,27 @@ onUnmounted(() => {
       .n-dropdown-option-body__label {
         font-size: 14px;
         font-weight: 500;
-        color: #212529;
+        color: var(--text-color-base);
       }
     }
     
     &.n-dropdown-option--show-arrow {
       &:hover {
-        background-color: #e3f2fd;
+        background-color: var(--primary-color-suppl);
         
         .n-dropdown-option-body__prefix {
-          color: #1976d2;
+          color: var(--primary-color);
+        }
+        
+        .n-dropdown-option-body__label {
+          color: var(--primary-color);
         }
       }
     }
     
     &.n-dropdown-option--disabled {
       .n-dropdown-option-body__label {
-        color: #6c757d;
+        color: var(--text-color-disabled);
         font-size: 12px;
         font-weight: 400;
       }
@@ -364,7 +341,7 @@ onUnmounted(() => {
   
   .n-dropdown-divider {
     margin: 4px 0;
-    background-color: rgba(0, 0, 0, 0.06);
+    background-color: var(--border-color);
   }
 }
 </style>

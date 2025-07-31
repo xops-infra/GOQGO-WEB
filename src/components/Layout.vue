@@ -591,23 +591,23 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   overflow: hidden;
-  background: #f5f5f5;
+  background: var(--body-color);
   padding: 16px;
   gap: 16px;
 }
 
 .left-panel {
   width: 280px;
-  background: white;
+  background: var(--card-color);
   border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: var(--box-shadow-1);
   display: flex;
   flex-direction: column;
   
   .namespace-section {
     padding: 12px 16px;
-    border-bottom: 1px solid #f0f0f0;
-    background: #fafafa;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--body-color);
     border-radius: 8px 8px 0 0;
   }
   
@@ -616,12 +616,12 @@ onUnmounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border-color);
     
     h3 {
       margin: 0;
       font-size: 16px;
-      color: #333;
+      color: var(--text-color-base);
     }
   }
 }
@@ -631,23 +631,23 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: white;
+  background: var(--card-color);
   border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: var(--box-shadow-1);
   
   .chat-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    border-bottom: 1px solid #f0f0f0;
-    background: #fafafa;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--body-color);
     flex-shrink: 0; // 头部不收缩
     
     h3 {
       margin: 0;
       font-size: 16px;
-      color: #333;
+      color: var(--text-color-base);
       font-weight: 600;
     }
   }
@@ -674,13 +674,13 @@ onUnmounted(() => {
   background: transparent;
   
   &:hover {
-    background: rgba(0, 0, 0, 0.02);
-    border-color: rgba(0, 0, 0, 0.06);
+    background: var(--hover-color);
+    border-color: var(--border-color);
   }
   
   &.active {
-    background: rgba(24, 144, 255, 0.05);
-    border-color: rgba(24, 144, 255, 0.2);
+    background: var(--primary-color-suppl);
+    border-color: var(--primary-color-hover);
   }
   
   .instance-info {
@@ -692,7 +692,7 @@ onUnmounted(() => {
       
       .instance-name {
         font-weight: 500;
-        color: #333;
+        color: var(--text-color-base);
       }
       
       .instance-actions {
@@ -711,7 +711,7 @@ onUnmounted(() => {
       
       .instance-uptime {
         font-size: 12px;
-        color: #666;
+        color: var(--text-color-3);
       }
     }
     
