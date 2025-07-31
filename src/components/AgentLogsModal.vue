@@ -223,10 +223,27 @@ const resizeStart = ref({ x: 0, y: 0, width: 0, height: 0 })
 const connectLogStream = async () => {
   if (!props.agent) {
     console.error('❌ 无法连接日志流: agent 为空')
+    message.error('无法连接日志流: agent 信息为空')
     return
   }
   
   console.log('🚀 开始连接日志流:', props.agent.name, props.agent.namespace)
+  
+  // 检查后端服务是否可用
+  try {
+    const response = await fetch('http://localhost:8080/')
+    if (!response.ok) {
+      throw new Error(`后端服务响应错误: ${response.status}`)
+    }
+    console.log('✅ 后端服务检查通过')
+  } catch (error) {
+    console.error('❌ 后端服务不可用:', error)
+    message.error('无法连接到后端服务，请启动 GoQGo API 服务器：goqgo apiserver --port 8080', {
+      duration: 10000
+    })
+    isConnecting.value = false
+    return
+  }
   
   try {
     isConnecting.value = true
@@ -546,6 +563,8 @@ const initializeModal = () => {
 
 // 监听模态框显示状态
 watch(visible, async (show) => {
+  console.log('👁️ 日志窗口显示状态变化:', show, 'agent:', props.agent?.name)
+  
   if (show && props.agent) {
     console.log('🔄 重置日志窗口位置和状态:', props.agent.name, props.agent.namespace)
     
@@ -560,12 +579,15 @@ watch(visible, async (show) => {
     
     // 连接日志流
     try {
+      console.log('🔗 准备连接日志流...')
       await connectLogStream()
+      console.log('✅ 日志流连接完成')
     } catch (error) {
       console.error('❌ 连接日志流失败:', error)
       message.error('连接日志流失败: ' + (error as Error).message)
     }
   } else {
+    console.log('🔌 断开日志流连接')
     disconnectLogStream()
   }
 })

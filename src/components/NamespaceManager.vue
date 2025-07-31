@@ -40,25 +40,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, h } from 'vue'
+import { ref, computed, onMounted, onUnmounted, h, watch } from 'vue'
 import { SettingsOutline, RefreshOutline, AddOutline } from '@vicons/ionicons5'
 import { useNamespacesStore } from '@/stores/namespaces'
+import { storeToRefs } from 'pinia'
 import { useMessage } from 'naive-ui'
 
 console.log('🚀 NamespaceManager 开始加载')
 
 // Store
 const namespacesStore = useNamespacesStore()
+const { currentNamespace, namespaces } = storeToRefs(namespacesStore)
 const message = useMessage()
 
 // 本地状态
 const loading = ref(false)
-const currentNamespace = ref('default')
 
 // 计算属性
 const namespaceOptions = computed(() => {
-  const namespaces = namespacesStore.namespaces || []
-  const options = namespaces.map(ns => ({
+  const namespaceList = namespaces.value || []
+  const options = namespaceList.map(ns => ({
     label: `${ns.metadata.name} (${ns.status?.agentCount || 0} 个智能体)`,
     value: ns.metadata.name
   }))
@@ -67,18 +68,18 @@ const namespaceOptions = computed(() => {
 })
 
 const currentNamespaceDisplay = computed(() => {
-  const current = namespacesStore.namespaces?.find(ns => ns.metadata.name === currentNamespace.value)
-  return current?.metadata.name || 'default'
+  const current = namespaces.value?.find(ns => ns.metadata.name === currentNamespace.value)
+  return current?.metadata.name || currentNamespace.value || 'default'
 })
 
 const agentCount = computed(() => {
-  const current = namespacesStore.namespaces?.find(ns => ns.metadata.name === currentNamespace.value)
+  const current = namespaces.value?.find(ns => ns.metadata.name === currentNamespace.value)
   return current?.status?.agentCount || 0
 })
 
 // 下拉菜单选项
 const dropdownOptions = computed(() => {
-  const namespaceItems = namespacesStore.namespaces?.map(ns => ({
+  const namespaceItems = namespaces.value?.map(ns => ({
     label: ns.metadata.name,
     key: `namespace-${ns.metadata.name}`,
     icon: () => h('svg', { viewBox: '0 0 24 24', style: 'width: 16px; height: 16px;' }, [
@@ -140,14 +141,15 @@ const handleMenuSelect = (key: string) => {
 
 const handleNamespaceChange = async (value: string) => {
   console.log('🔄 切换到namespace:', value)
-  if (!value) return
+  if (!value || value === currentNamespace.value) return
   
-  currentNamespace.value = value
   try {
     await namespacesStore.switchNamespace(value)
     console.log('✅ 切换成功')
+    message.success(`已切换到命名空间: ${value}`)
   } catch (error) {
     console.error('❌ 切换失败:', error)
+    message.error('切换命名空间失败')
   }
 }
 
@@ -157,12 +159,21 @@ const handleRefresh = async () => {
   try {
     await namespacesStore.fetchNamespaces()
     console.log('✅ 刷新完成')
+    message.success('命名空间列表已刷新')
   } catch (error) {
     console.error('❌ 刷新失败:', error)
+    message.error('刷新失败')
   } finally {
     loading.value = false
   }
 }
+
+// 监听currentNamespace变化
+watch(currentNamespace, (newValue, oldValue) => {
+  if (newValue !== oldValue) {
+    console.log('📍 Namespace变化:', oldValue, '->', newValue)
+  }
+}, { immediate: true })
 
 // 生命周期
 onMounted(async () => {
@@ -172,12 +183,11 @@ onMounted(async () => {
   try {
     await namespacesStore.fetchNamespaces()
     
-    // 同步当前选择
-    currentNamespace.value = namespacesStore.currentNamespace
     console.log('✅ 初始化完成，当前namespace:', currentNamespace.value)
-    console.log('📊 可用namespaces:', namespacesStore.namespaces.map(ns => `${ns.metadata.name}(${ns.status?.agentCount || 0})`))
+    console.log('📊 可用namespaces:', namespaces.value.map(ns => `${ns.metadata.name}(${ns.status?.agentCount || 0})`))
   } catch (error) {
     console.error('❌ 初始化失败:', error)
+    message.error('初始化命名空间失败')
   } finally {
     loading.value = false
   }

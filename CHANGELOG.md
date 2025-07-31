@@ -1,5 +1,84 @@
 # CHANGELOG
 
+## [2025-07-31] - Namespace切换功能修复
+
+### 🔧 问题修复
+- **NamespaceManager状态同步** - 修复右上角namespace切换不生效的问题
+- **响应式状态管理** - 使用storeToRefs确保组件与store状态同步
+- **重复状态消除** - 移除组件内部的本地currentNamespace状态
+- **状态监听优化** - 添加watch监听器实时跟踪namespace变化
+
+### 🎯 修复详情
+
+#### 问题根因
+```javascript
+// 修复前：组件内部维护独立状态，与store不同步
+const currentNamespace = ref('default') // ❌ 本地状态
+const namespacesStore = useNamespacesStore() // Store状态
+
+// 修复后：直接使用store状态，确保同步
+const namespacesStore = useNamespacesStore()
+const { currentNamespace, namespaces } = storeToRefs(namespacesStore) // ✅ 响应式引用
+```
+
+#### 技术实现
+```javascript
+// 1. 使用storeToRefs确保响应式同步
+import { storeToRefs } from 'pinia'
+const { currentNamespace, namespaces } = storeToRefs(namespacesStore)
+
+// 2. 添加状态变化监听
+watch(currentNamespace, (newValue, oldValue) => {
+  if (newValue !== oldValue) {
+    console.log('📍 Namespace变化:', oldValue, '->', newValue)
+  }
+}, { immediate: true })
+
+// 3. 优化切换逻辑，避免重复切换
+const handleNamespaceChange = async (value: string) => {
+  if (!value || value === currentNamespace.value) return // 防重复
+  
+  try {
+    await namespacesStore.switchNamespace(value)
+    message.success(`已切换到命名空间: ${value}`)
+  } catch (error) {
+    message.error('切换命名空间失败')
+  }
+}
+```
+
+### 🔍 修复验证
+- ✅ Store状态与组件状态完全同步
+- ✅ 切换操作立即反映到UI显示
+- ✅ 多组件间状态一致性保证
+- ✅ 下拉菜单正确显示所有namespace
+- ✅ 点击切换立即生效，当前namespace高亮显示
+- ✅ Agent数量实时更新，错误处理和用户反馈完善
+
+### 🎨 用户体验改进
+- **即时反馈** - 切换成功/失败消息提示
+- **状态一致** - 所有组件显示统一的当前namespace
+- **操作流畅** - 无延迟的切换响应
+- **错误友好** - 清晰的错误信息和处理
+
+## [2025-07-31] - 后端服务连接检查
+
+### 新增功能
+- 在建立 WebSocket 连接前检查后端服务可用性
+- 当后端服务不可用时显示友好的错误提示和启动指引
+- 添加详细的连接状态调试日志
+
+### 用户体验改进
+- 提供明确的后端服务启动命令提示：`goqgo apiserver --port 8080`
+- 延长错误消息显示时间，便于用户查看完整信息
+- 添加后端服务启动指南文档
+
+### 错误处理优化
+- 区分不同类型的连接错误（agent 为空、后端服务不可用、WebSocket 连接失败）
+- 为每种错误提供相应的解决方案提示
+
+## [2025-07-31] - Agent 日志功能修复
+
 ## [2025-07-31] - 聊天功能全面增强
 
 ### 💬 ChatInput输入框增强
