@@ -199,6 +199,7 @@ import { ref, computed, nextTick, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useChatStore } from '@/stores/chat'
 import { useUserStore } from '@/stores/user'
+import { formatRelativeTime } from '@/utils/timeManager'
 import type { ChatMessage } from '@/types/api'
 
 // Props
@@ -229,10 +230,20 @@ const searchResults = ref<ChatMessage[]>([])
 
 // 计算属性
 const filteredMessages = computed(() => {
-  if (searchType.value === 'all') {
-    return props.messages
+  try {
+    if (!props.messages || !Array.isArray(props.messages)) {
+      console.warn('MessageSearch: messages prop is not a valid array:', props.messages)
+      return []
+    }
+    
+    if (searchType.value === 'all') {
+      return props.messages
+    }
+    return props.messages.filter(msg => msg && msg.type === searchType.value)
+  } catch (error) {
+    console.error('MessageSearch: filteredMessages计算失败:', error)
+    return []
   }
-  return props.messages.filter(msg => msg.type === searchType.value)
 })
 
 // 方法
@@ -258,23 +269,47 @@ const performSearch = async () => {
     await new Promise(resolve => setTimeout(resolve, 300))
     
     const query = searchQuery.value.toLowerCase().trim()
-    const results = filteredMessages.value.filter(message => {
-      if (message.type === 'text') {
-        return message.content.toLowerCase().includes(query)
-      } else if (message.type === 'image' || message.type === 'file') {
-        // 对于媒体消息，可以搜索文件名或描述
-        return message.metadata?.filename?.toLowerCase().includes(query) ||
-               message.metadata?.description?.toLowerCase().includes(query)
+    if (!query) {
+      searchResults.value = []
+      return
+    }
+    
+    const messages = filteredMessages.value
+    if (!Array.isArray(messages)) {
+      console.warn('MessageSearch: filteredMessages is not an array:', messages)
+      searchResults.value = []
+      return
+    }
+    
+    const results = messages.filter(message => {
+      try {
+        if (!message) return false
+        
+        if (message.type === 'text') {
+          return message.content && message.content.toLowerCase().includes(query)
+        } else if (message.type === 'image' || message.type === 'file') {
+          // 对于媒体消息，可以搜索文件名或描述
+          return (message.metadata?.filename?.toLowerCase().includes(query)) ||
+                 (message.metadata?.description?.toLowerCase().includes(query))
+        }
+        return false
+      } catch (error) {
+        console.error('MessageSearch: 过滤消息时出错:', error, 'message:', message)
+        return false
       }
-      return false
     })
     
     // 按时间倒序排列
-    searchResults.value = results.sort((a, b) => 
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    )
+    searchResults.value = results.sort((a, b) => {
+      try {
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      } catch (error) {
+        console.error('MessageSearch: 排序时出错:', error, 'a:', a, 'b:', b)
+        return 0
+      }
+    })
   } catch (error) {
-    console.error('搜索失败:', error)
+    console.error('MessageSearch: 搜索失败:', error)
     searchResults.value = []
   } finally {
     searching.value = false
@@ -314,23 +349,20 @@ const getUserInitials = (userId: string) => {
 }
 
 const getUserDisplayName = (userId: string) => {
-  return userStore.getUserDisplayName(userId)
+  try {
+    return userStore.getUserDisplayName(userId)
+  } catch (error) {
+    console.error('获取用户显示名称失败:', error, 'userId:', userId)
+    return userId || '未知用户'
+  }
 }
 
 const formatTime = (timestamp: string) => {
-  const date = new Date(timestamp)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  
-  if (diff < 24 * 60 * 60 * 1000) {
-    // 今天
-    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-  } else if (diff < 7 * 24 * 60 * 60 * 1000) {
-    // 本周
-    return date.toLocaleDateString('zh-CN', { weekday: 'short', hour: '2-digit', minute: '2-digit' })
-  } else {
-    // 更早
-    return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  try {
+    return formatRelativeTime(timestamp)
+  } catch (error) {
+    console.error('格式化时间失败:', error, 'timestamp:', timestamp)
+    return '未知时间'
   }
 }
 

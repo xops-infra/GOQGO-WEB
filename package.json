@@ -1,14 +1,17 @@
 {
   "name": "goqgo-web",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "GoQGo AI智能体协助开发平台的Web前端界面",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run build:version && vite build",
+    "build:version": "node scripts/build-version.js",
+    "build:prod": "NODE_ENV=production npm run build",
     "preview": "vite preview",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
-    "format": "prettier --write src/"
+    "format": "prettier --write src/",
+    "version:check": "node scripts/build-version.js"
   },
   "dependencies": {
     "@vicons/ionicons5": "^0.12.0",

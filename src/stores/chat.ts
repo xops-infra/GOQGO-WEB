@@ -156,6 +156,14 @@ export const useChatStore = defineStore('chat', () => {
     // 检查消息是否已存在
     const exists = messages.value.some(m => m.id === message.id)
     if (!exists) {
+      console.log('📨 添加新消息详细信息:', {
+        id: message.id,
+        messageType: message.messageType,
+        content: message.content,
+        imageUrl: message.imageUrl,
+        senderName: message.senderName,
+        type: message.type
+      })
       messages.value.push(message)
       console.log('✅ 添加新消息:', message.content?.substring(0, 50) + '...')
     }
@@ -195,7 +203,6 @@ export const useChatStore = defineStore('chat', () => {
     try {
       console.log('📤 通过WebSocket发送消息:', { 
         namespace: currentNamespace.value, 
-        chatName: currentChatName.value, 
         content: content.substring(0, 50) + '...' 
       })
 

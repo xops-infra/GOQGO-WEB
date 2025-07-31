@@ -20,7 +20,7 @@
     </div>
 
     <!-- 消息列表 -->
-    <div class="messages-container" ref="messagesContainer" @scroll="handleScroll">
+    <div class="messages-container" @scroll="handleScroll">
       <!-- 消息工具栏 -->
       <div class="messages-toolbar">
         <div class="toolbar-left">
@@ -35,7 +35,7 @@
       </div>
       
       <div 
-        ref="messagesContainer"
+        ref="messagesListRef"
         class="messages-list"
         :class="{ 
           'has-history-status': isLoadingHistory || (!hasMoreHistory && messages.length > 0) 
@@ -129,7 +129,7 @@ const { currentUser } = storeToRefs(userStore)
 const message = useMessage()
 
 // 响应式数据
-const messagesContainer = ref<HTMLElement>()
+const messagesListRef = ref<HTMLElement>()
 const chatInputRef = ref()
 const isDragActive = ref(false)
 const dragCounter = ref(0)
@@ -163,9 +163,11 @@ const getHistoryMessageEndIndex = () => {
 const handleSend = async (text: string) => {
   try {
     await chatStore.sendMessage(text)
-    // 发送消息后自动滚动到底部
-    shouldAutoScroll.value = true
-    scrollToBottom()
+    // 发送消息后立即滚动到底部
+    nextTick(() => {
+      scrollToBottom()
+      console.log('📤 发送消息后滚动到底部')
+    })
   } catch (error) {
     console.error('发送消息失败:', error)
     message.error('发送失败')
@@ -176,9 +178,11 @@ const handleSend = async (text: string) => {
 const handleSendImage = async (imageUrl: string) => {
   try {
     await chatStore.sendImageMessage(imageUrl)
-    // 发送图片后自动滚动到底部
-    shouldAutoScroll.value = true
-    scrollToBottom()
+    // 发送图片后立即滚动到底部
+    nextTick(() => {
+      scrollToBottom()
+      console.log('📷 发送图片后滚动到底部')
+    })
   } catch (error) {
     console.error('发送图片失败:', error)
     message.error('发送图片失败')
@@ -187,8 +191,8 @@ const handleSendImage = async (imageUrl: string) => {
 
 // 滚动到底部
 const scrollToBottom = () => {
-  if (messagesContainer.value) {
-    const container = messagesContainer.value
+  if (messagesListRef.value) {
+    const container = messagesListRef.value
     container.scrollTop = container.scrollHeight
     console.log('📜 滚动到底部:', { 
       scrollTop: container.scrollTop, 
@@ -220,8 +224,8 @@ const forceScrollToBottom = () => {
 const checkScrollStatus = () => {
   console.log('🔍 开始检查滚动状态...')
   
-  if (messagesContainer.value) {
-    const container = messagesContainer.value
+  if (messagesListRef.value) {
+    const container = messagesListRef.value
     const { scrollTop, scrollHeight, clientHeight } = container
     const isAtBottom = scrollHeight - scrollTop - clientHeight < 10
     
@@ -237,7 +241,7 @@ const checkScrollStatus = () => {
     
     return isAtBottom
   } else {
-    console.log('❌ messagesContainer不存在，无法检查滚动状态')
+    console.log('❌ messagesListRef不存在，无法检查滚动状态')
     return false
   }
 }
@@ -245,7 +249,7 @@ const checkScrollStatus = () => {
 // 调试方法：测试组件状态
 const testComponentStatus = () => {
   console.log('🧪 组件状态测试:')
-  console.log('- messagesContainer:', messagesContainer.value)
+  console.log('- messagesListRef:', messagesListRef.value)
   console.log('- messages.length:', messages.value.length)
   console.log('- isInitialLoad:', isInitialLoad.value)
   console.log('- shouldAutoScroll:', shouldAutoScroll.value)
@@ -253,8 +257,8 @@ const testComponentStatus = () => {
   console.log('- currentUser:', currentUser.value.username)
   console.log('- namespace:', props.namespace)
   
-  if (messagesContainer.value) {
-    const container = messagesContainer.value
+  if (messagesListRef.value) {
+    const container = messagesListRef.value
     console.log('- 容器尺寸:', {
       scrollTop: container.scrollTop,
       scrollHeight: container.scrollHeight,
@@ -278,9 +282,9 @@ if (import.meta.env.DEV) {
 
 // 处理滚动事件
 const handleScroll = () => {
-  if (!messagesContainer.value) return
+  if (!messagesListRef.value) return
   
-  const { scrollTop, scrollHeight, clientHeight } = messagesContainer.value
+  const { scrollTop, scrollHeight, clientHeight } = messagesListRef.value
   
   // 检查是否滚动到顶部，如果是则加载更多历史消息
   if (scrollTop === 0 && hasMoreHistory.value && !isLoadingHistory.value) {
@@ -300,19 +304,19 @@ const handleScroll = () => {
 
 // 加载更多历史消息
 const loadMoreHistory = async () => {
-  if (!messagesContainer.value) return
+  if (!messagesListRef.value) return
   
-  const previousScrollHeight = messagesContainer.value.scrollHeight
+  const previousScrollHeight = messagesListRef.value.scrollHeight
   
   try {
     await chatStore.loadMoreHistory()
     
     // 加载完成后，保持滚动位置
     nextTick(() => {
-      if (messagesContainer.value) {
-        const newScrollHeight = messagesContainer.value.scrollHeight
+      if (messagesListRef.value) {
+        const newScrollHeight = messagesListRef.value.scrollHeight
         const scrollDiff = newScrollHeight - previousScrollHeight
-        messagesContainer.value.scrollTop = scrollDiff
+        messagesListRef.value.scrollTop = scrollDiff
       }
     })
   } catch (error) {
@@ -345,9 +349,9 @@ watch(messages, (newMessages, oldMessages) => {
     // 初始加载，等待DOM渲染完成后滚动
     setTimeout(() => {
       console.log('🔄 开始初始滚动...')
-      console.log('📦 messagesContainer状态:', messagesContainer.value ? '已绑定' : '未绑定')
+      console.log('📦 messagesListRef状态:', messagesListRef.value ? '已绑定' : '未绑定')
       
-      if (messagesContainer.value) {
+      if (messagesListRef.value) {
         checkScrollStatus() // 滚动前检查状态
         forceScrollToBottom()
         
@@ -362,7 +366,7 @@ watch(messages, (newMessages, oldMessages) => {
           console.log('✅ 初始加载完成，已滚动到底部')
         }, 100)
       } else {
-        console.log('❌ messagesContainer未绑定，无法滚动')
+        console.log('❌ messagesListRef未绑定，无法滚动')
       }
     }, 300) // 增加延迟时间
   } else if (shouldAutoScroll.value && !isUserScrolling.value) {
@@ -405,45 +409,46 @@ const handleDrop = async (e: DragEvent) => {
   
   if (!e.dataTransfer?.files.length) return
   
-  const files = Array.from(e.dataTransfer.files)
+  const droppedFiles = Array.from(e.dataTransfer.files)
   
-  // 将文件传递给ChatInput组件进行预览
-  if (chatInputRef.value && chatInputRef.value.addFiles) {
-    chatInputRef.value.addFiles(files)
-  } else {
-    // 如果没有预览功能，则直接上传
-    for (const file of files) {
-      if (!file.type.startsWith('image/')) {
-        message.warning(`文件 ${file.name} 不是图片格式`)
-        continue
-      }
+  // 直接上传文件
+  for (const file of droppedFiles) {
+    if (!file.type.startsWith('image/')) {
+      message.warning(`文件 ${file.name} 不是图片格式`)
+      continue
+    }
+    
+    // 检查文件大小限制 (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      message.error(`图片 ${file.name} 超过5MB限制`)
+      continue
+    }
+    
+    try {
+      // 上传文件到服务器
+      const formData = new FormData()
+      formData.append('file', file)
       
-      // 检查文件大小限制 (5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        message.error(`图片 ${file.name} 超过5MB限制`)
-        continue
-      }
+      const response = await fetch(`http://localhost:8080/api/v1/users/${currentUser.value.username}/files`, {
+        method: 'POST',
+        body: formData
+      })
       
-      try {
-        // 上传文件到服务器
-        const formData = new FormData()
-        formData.append('file', file)
-        
-        const response = await fetch('http://localhost:8080/api/v1/upload', {
-          method: 'POST',
-          body: formData
-        })
-        
-        if (!response.ok) throw new Error('上传失败')
-        
-        const data = await response.json()
-        
-        // 发送图片消息
-        await handleSendImage(data.url)
-      } catch (error) {
-        console.error('处理拖拽图片失败:', error)
-        message.error(`处理图片 ${file.name} 失败`)
+      if (!response.ok) throw new Error('上传失败')
+      
+      const data = await response.json()
+      
+      // 处理后端返回的数据结构
+      if (data.success && data.files && data.files.length > 0) {
+        const uploadedFile = data.files[0]
+        const imageUrl = `http://localhost:8080${uploadedFile.downloadUrl}`
+        await handleSendImage(imageUrl)
+      } else {
+        throw new Error(data.message || '上传失败')
       }
+    } catch (error) {
+      console.error('处理拖拽图片失败:', error)
+      message.error(`处理图片 ${file.name} 失败`)
     }
   }
 }
@@ -451,7 +456,7 @@ const handleDrop = async (e: DragEvent) => {
 // 滚动到指定消息
 const scrollToMessage = (messageId: string) => {
   const messageElement = document.querySelector(`[data-message-id="${messageId}"]`)
-  if (messageElement && messagesContainer.value) {
+  if (messageElement && messagesListRef.value) {
     messageElement.scrollIntoView({ 
       behavior: 'smooth', 
       block: 'center' 
@@ -506,8 +511,8 @@ onMounted(async () => {
     isInitialLoad.value = true
     console.log('🔄 设置初始加载标志为true')
     
-    // 检查messagesContainer是否正确绑定
-    console.log('📦 messagesContainer引用:', messagesContainer.value)
+    // 检查messagesListRef是否正确绑定
+    console.log('📦 messagesListRef引用:', messagesListRef.value)
     
     await chatStore.connect(props.namespace)
     
@@ -519,18 +524,18 @@ onMounted(async () => {
     // 额外的保险措施：延迟检查并滚动
     setTimeout(() => {
       console.log('🔍 延迟检查滚动状态...')
-      console.log('📦 messagesContainer引用检查:', messagesContainer.value)
+      console.log('📦 messagesListRef引用检查:', messagesListRef.value)
       console.log('📨 消息数量检查:', messages.value.length)
       
-      if (messagesContainer.value && messages.value.length > 0) {
+      if (messagesListRef.value && messages.value.length > 0) {
         const isAtBottom = checkScrollStatus()
         if (!isAtBottom) {
           console.log('⚠️ 发现未在底部，强制滚动')
           forceScrollToBottom()
         }
       } else {
-        console.log('⚠️ messagesContainer或消息为空')
-        console.log('messagesContainer:', messagesContainer.value)
+        console.log('⚠️ messagesListRef或消息为空')
+        console.log('messagesListRef:', messagesListRef.value)
         console.log('messages.length:', messages.value.length)
       }
     }, 1000) // 1秒后检查
