@@ -37,8 +37,8 @@
           v-for="message in messages"
           :key="message.id"
           :class="['message-item', {
-            'message-self': message.senderId === 'current-user',
-            'message-other': message.senderId !== 'current-user',
+            'message-self': message.senderId === currentUser.username,
+            'message-other': message.senderId !== currentUser.username,
           }]"
         >
           <MessageItem :message="message" />
@@ -73,6 +73,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useChatStore } from '@/stores/chat'
+import { useUserStore } from '@/stores/user'
 import { useMessage } from 'naive-ui'
 import MessageItem from './MessageItem.vue'
 import ChatInput from './ChatInput.vue'
@@ -88,7 +89,9 @@ const props = withDefaults(defineProps<Props>(), {
 
 // 状态管理
 const chatStore = useChatStore()
+const userStore = useUserStore()
 const { messages, onlineUsers, typingUsers, isConnected, isLoadingHistory, hasMoreHistory } = storeToRefs(chatStore)
+const { currentUser } = storeToRefs(userStore)
 const message = useMessage()
 
 // 响应式数据
@@ -242,7 +245,8 @@ const handleDrop = async (e: DragEvent) => {
 // 生命周期
 onMounted(async () => {
   try {
-    await chatStore.connect(props.namespace)
+    console.log('🚀 ChatRoom挂载，连接聊天室:', props.namespace, '用户:', currentUser.value.username)
+    await chatStore.connect(props.namespace, 'default')
     // 连接成功后滚动到底部
     nextTick(() => {
       scrollToBottom()

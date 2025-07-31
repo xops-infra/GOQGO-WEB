@@ -7,7 +7,7 @@ export interface ChatMessage {
   sender: string
   content: string
   type: 'text' | 'image' | 'file'
-  timestamp: number
+  timestamp: string // 改为string类型，匹配ISO格式
   metadata?: Record<string, any>
 }
 
@@ -21,13 +21,19 @@ export interface ChatSession {
 }
 
 export const chatApi = {
-  // 获取聊天历史
-  getHistory: (namespace: string, chatName: string = 'default', limit: number = 50) =>
-    axios.get<ChatMessage[]>(`/api/v1/namespaces/${namespace}/chats/${chatName}/messages`, {
+  // 获取聊天历史 - 匹配后端接口格式
+  getHistory: (namespace: string, username: string, limit: number = 50) =>
+    axios.get<ChatMessage[]>(`/api/v1/namespaces/${namespace}/chats/${namespace}-${username}/messages`, {
       params: { limit }
     }),
   
-  // 发送消息
+  // 发送消息 - 匹配后端接口格式
+  sendMessage: (namespace: string, username: string, content: string, messageType: string = 'text') =>
+    axios.post<ChatMessage>(`/api/v1/namespaces/${namespace}/chats/${namespace}-${username}/messages`, {
+      content,
+      type: messageType,
+      timestamp: new Date().toISOString()
+    }),
   sendMessage: (namespace: string, chatName: string = 'default', message: string) =>
     axios.post<ChatMessage>(`/api/v1/namespaces/${namespace}/chats/${chatName}/messages`, { 
       content: message,

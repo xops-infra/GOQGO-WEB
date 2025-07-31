@@ -14,14 +14,32 @@
           <div class="header-right">
             <n-space>
               <NamespaceManager />
-              <n-button size="small" quaternary @click="toggleTheme">
-                <template #icon>
-                  <n-icon>
-                    <SunIcon v-if="appStore.theme === 'dark'" />
-                    <MoonIcon v-else />
+              <UserInfo />
+              <div class="theme-toggle">
+                <div class="theme-container" @click="toggleTheme">
+                  <div class="theme-icon">
+                    <n-icon size="18">
+                      <SunIcon v-if="appStore.theme === 'dark'" />
+                      <MoonIcon v-else />
+                    </n-icon>
+                  </div>
+                  
+                  <div class="theme-info">
+                    <div class="theme-name">{{ appStore.theme === 'dark' ? '深色模式' : '浅色模式' }}</div>
+                    <div class="theme-status">
+                      <n-tag size="small" round :type="appStore.theme === 'dark' ? 'warning' : 'info'">
+                        {{ appStore.theme === 'dark' ? '护眼模式' : '标准模式' }}
+                      </n-tag>
+                    </div>
+                  </div>
+                  
+                  <n-icon class="dropdown-icon" size="16">
+                    <svg viewBox="0 0 24 24">
+                      <path fill="currentColor" d="M7,10L12,15L17,10H7Z"/>
+                    </svg>
                   </n-icon>
-                </template>
-              </n-button>
+                </div>
+              </div>
             </n-space>
           </div>
         </div>
@@ -216,6 +234,7 @@ import {
   NTag
 } from 'naive-ui'
 import NamespaceManager from './NamespaceManager.vue'
+import UserInfo from './UserInfo.vue'
 import ChatRoom from './ChatRoom.vue'
 import AgentLogsModal from './AgentLogsModal.vue'
 import type { Agent, CreateAgentRequest } from '@/types/api'
@@ -584,6 +603,98 @@ onMounted(async () => {
   &:hover {
     background: rgba(24, 144, 255, 0.2) !important;
     border-color: rgba(24, 144, 255, 0.5) !important;
+  }
+}
+
+// 主题切换组件样式
+.theme-toggle {
+  .theme-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+  }
+  
+  .theme-icon {
+    flex-shrink: 0;
+    color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+    
+    .theme-container:hover & {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.9);
+    }
+  }
+  
+  .theme-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    flex: 1;
+    
+    .theme-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.2;
+    }
+    
+    .theme-status {
+      display: flex;
+      align-items: center;
+      
+      :deep(.n-tag) {
+        font-size: 11px;
+        height: 18px;
+        padding: 0 6px;
+        font-weight: 500;
+        
+        &.n-tag--info {
+          background-color: rgba(24, 144, 255, 0.15);
+          color: #1890ff;
+          border: 1px solid rgba(24, 144, 255, 0.3);
+        }
+        
+        &.n-tag--warning {
+          background-color: rgba(250, 173, 20, 0.15);
+          color: #faad14;
+          border: 1px solid rgba(250, 173, 20, 0.3);
+        }
+      }
+    }
+  }
+  
+  .dropdown-icon {
+    flex-shrink: 0;
+    color: rgba(255, 255, 255, 0.5);
+    transition: all 0.2s ease;
+    
+    .theme-container:hover & {
+      color: rgba(255, 255, 255, 0.8);
+      transform: rotate(180deg);
+    }
   }
 }
 </style>
