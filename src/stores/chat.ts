@@ -33,9 +33,19 @@ export const useChatStore = defineStore('chat', () => {
 
   // 连接聊天室
   const connect = async (namespace: string) => {
-    currentNamespace.value = namespace
+    // 调试信息
+    console.log('🔍 connect函数接收到的namespace:', { 
+      value: namespace, 
+      type: typeof namespace, 
+      isString: typeof namespace === 'string',
+      stringified: String(namespace)
+    })
     
-    console.log('🔌 连接聊天室:', { namespace, username: userStore.currentUser.username })
+    // 确保namespace是字符串类型
+    const namespaceStr = typeof namespace === 'string' ? namespace : String(namespace)
+    currentNamespace.value = namespaceStr
+    
+    console.log('🔌 连接聊天室:', { namespace: namespaceStr, username: userStore.currentUser.username })
     
     // 清空之前的数据
     messages.value = []
@@ -53,7 +63,7 @@ export const useChatStore = defineStore('chat', () => {
     chatSocket = new ChatSocket(userStore.currentUser.username)
     
     // 连接到指定的命名空间聊天室
-    chatSocket.connect(namespace, {
+    chatSocket.connect(namespaceStr, {
       onMessage: (message) => {
         console.log('📨 收到新消息:', message)
         addMessage(message)

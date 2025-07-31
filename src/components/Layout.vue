@@ -164,7 +164,7 @@
         <!-- 右侧聊天区域 -->
         <div class="right-panel">
           <div class="chat-header">
-            <h3>{{ currentNamespace }} 聊天室</h3>
+            <h3>{{ safeCurrentNamespace }} 聊天室</h3>
             <n-button 
               size="small" 
               :type="showStatsPanel ? 'primary' : 'default'"
@@ -181,7 +181,7 @@
             </n-button>
           </div>
           <ChatRoom 
-            :namespace="currentNamespace" 
+            :namespace="safeCurrentNamespace" 
             :show-stats="showStatsPanel" 
             class="chat-room-container"
           />
@@ -289,6 +289,12 @@ const agentsStore = useAgentsStore()
 const namespacesStore = useNamespacesStore()
 const { currentNamespace } = storeToRefs(namespacesStore)
 const message = useMessage()
+
+// 确保namespace是字符串类型
+const safeCurrentNamespace = computed(() => {
+  const ns = currentNamespace.value
+  return typeof ns === 'string' ? ns : String(ns || 'default')
+})
 
 // 日志窗口接口定义
 interface LogWindow {
