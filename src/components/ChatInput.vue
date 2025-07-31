@@ -8,7 +8,7 @@
       
       <!-- 拖拽提示 -->
       <div v-if="isDragOver" class="drag-overlay">
-        <n-icon size="48" color="#07c160">
+        <n-icon size="48" :color="'var(--color-success)'">
           <svg viewBox="0 0 24 24">
             <path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
           </svg>
@@ -364,14 +364,15 @@ const handleDrop = async (e: DragEvent) => {
 }
 
 .chat-input {
-  background: #ffffff;
-  border-top: 1px solid #e0e0e0;
+  background-color: var(--bg-primary);
+  border-top: 1px solid var(--border-primary);
+  color: var(--text-primary);
   position: relative;
   transition: all 0.3s ease;
 
   &.drag-over {
-    background: rgba(7, 193, 96, 0.05);
-    border-color: #07c160;
+    background-color: rgba(16, 185, 129, 0.05);
+    border-color: var(--color-success);
   }
 }
 
@@ -388,13 +389,13 @@ const handleDrop = async (e: DragEvent) => {
   align-items: center;
   justify-content: center;
   z-index: 10;
-  border: 2px dashed #07c160;
+  border: 2px dashed var(--color-success);
   border-radius: 8px;
   margin: 8px;
 
   p {
     margin: 12px 0 0 0;
-    color: #07c160;
+    color: var(--color-success);
     font-weight: 500;
     font-size: 16px;
   }
@@ -420,7 +421,7 @@ const handleDrop = async (e: DragEvent) => {
     transition: all 0.2s ease;
 
     &:hover {
-      background-color: rgba(0, 0, 0, 0.06);
+      background-color: var(--bg-hover);
     }
 
     &:disabled {
@@ -431,6 +432,36 @@ const handleDrop = async (e: DragEvent) => {
 
 .message-input {
   flex: 1;
+  
+  :deep(.n-input) {
+    background-color: var(--bg-secondary) !important;
+    border-color: var(--border-primary) !important;
+    
+    .n-input__input-el,
+    .n-input__textarea-el {
+      background-color: var(--bg-secondary) !important;
+      color: var(--text-primary) !important;
+      border: none !important;
+      
+      &::placeholder {
+        color: var(--text-tertiary) !important;
+      }
+    }
+    
+    .n-input__border,
+    .n-input__state-border {
+      border-color: var(--border-primary) !important;
+    }
+    
+    &:hover .n-input__state-border {
+      border-color: var(--border-focus) !important;
+    }
+    
+    &.n-input--focus .n-input__state-border {
+      border-color: var(--color-primary) !important;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+    }
+  }
   
   :deep(.n-input__textarea-el) {
     resize: none;

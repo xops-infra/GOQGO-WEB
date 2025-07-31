@@ -32,25 +32,7 @@
           </div>
           <div class="header-right">
             <n-space :size="12" align="center">
-              
-              <n-tooltip>
-                <template #trigger>
-                  <n-button 
-                    text 
-                    size="small" 
-                    @click="toggleTheme"
-                    class="theme-button"
-                  >
-                    <template #icon>
-                      <n-icon size="16">
-                        <SunIcon v-if="appStore.theme === 'dark'" />
-                        <MoonIcon v-else />
-                      </n-icon>
-                    </template>
-                  </n-button>
-                </template>
-                <span>{{ appStore.theme === 'dark' ? '切换到浅色主题' : '切换到深色主题' }}</span>
-              </n-tooltip>
+              <ThemeToggle />
               <UserInfo />
             </n-space>
           </div>
@@ -201,7 +183,7 @@
             {{ selectedDetails.name }}
           </n-descriptions-item>
           <n-descriptions-item label="命名空间">
-            {{ selectedDetails.namespace }}
+            {{ typeof selectedDetails.namespace === 'string' ? selectedDetails.namespace : String(selectedDetails.namespace || 'default') }}
           </n-descriptions-item>
           <n-descriptions-item label="角色">
             <n-tag :type="getRoleType(selectedDetails.role)" size="small" round>
@@ -254,8 +236,6 @@ import { ref, computed, onMounted, onUnmounted, Teleport } from 'vue'
 import { storeToRefs } from 'pinia'
 import { 
   AddOutline as AddIcon,
-  SunnyOutline as SunIcon,
-  MoonOutline as MoonIcon,
   InformationCircleOutline as InfoIcon,
   RefreshOutline as RefreshIcon,
   TrashBinOutline as DeleteIcon
@@ -279,6 +259,7 @@ import {
 } from 'naive-ui'
 import NamespaceManager from './NamespaceManager.vue'
 import UserInfo from './UserInfo.vue'
+import ThemeToggle from './ThemeToggle.vue'
 import ChatRoom from './ChatRoom.vue'
 import AgentLogsModal from './AgentLogsModal.vue'
 import type { Agent, CreateAgentRequest } from '@/types/api'
@@ -446,10 +427,6 @@ const deleteAgent = async (agent: Agent) => {
   }
 }
 
-const toggleTheme = () => {
-  appStore.toggleTheme()
-}
-
 // 工具函数
 const getRoleType = (role: string): 'default' | 'info' | 'success' | 'warning' | 'error' => {
   const roleMap: Record<string, 'default' | 'info' | 'success' | 'warning' | 'error'> = {
@@ -516,17 +493,19 @@ onUnmounted(() => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f5f5f5;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .header-bar {
   height: 60px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--color-primary) 0%, #764ba2 100%);
+  color: var(--text-inverse);
   display: flex;
   align-items: center;
   padding: 0 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-md);
+  border-bottom: 1px solid var(--border-primary);
   
   .header-content {
     width: 100%;

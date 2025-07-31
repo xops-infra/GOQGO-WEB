@@ -13,22 +13,24 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { darkTheme, type GlobalThemeOverrides } from 'naive-ui'
 import { useAppStore } from '@/stores/app'
-import { themeManager, useTheme } from '@/utils/theme'
+import { themeManager } from '@/utils/theme'
 
 const appStore = useAppStore()
-const { getCurrentTheme } = useTheme()
+
+// 响应式的当前主题状态
+const currentTheme = ref<'light' | 'dark'>('light')
 
 // Naive UI 主题配置
 const naiveTheme = computed(() => {
-  return getCurrentTheme() === 'dark' ? darkTheme : null
+  return currentTheme.value === 'dark' ? darkTheme : null
 })
 
 // Naive UI 主题覆盖
 const themeOverrides = computed<GlobalThemeOverrides>(() => {
-  const isDark = getCurrentTheme() === 'dark'
+  const isDark = currentTheme.value === 'dark'
   
   return {
     common: {
@@ -66,19 +68,54 @@ const themeOverrides = computed<GlobalThemeOverrides>(() => {
   }
 })
 
+// 更新当前主题状态
+const updateCurrentTheme = () => {
+  currentTheme.value = themeManager.getCurrentTheme()
+}
+
 onMounted(() => {
-  // 初始化主题
+  // 初始化主题管理器
+  themeManager.init()
+  
+  // 从本地存储恢复主题设置
   const savedTheme = themeManager.getSavedTheme()
   appStore.theme = savedTheme
-})
-
-onUnmounted(() => {
-  themeManager.destroy()
+  
+  // 设置初始主题
+  updateCurrentTheme()
+  
+  // 监听 store 中的主题变化
+  watch(
+    () => appStore.theme,
+    (newTheme) => {
+      themeManager.applyTheme(newTheme)
+      updateCurrentTheme()
+    },
+    { immediate: true }
+  )
+  
+  // 监听系统主题变化
+  if (typeof window !== 'undefined') {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleSystemThemeChange = () => {
+      if (appStore.theme === 'auto') {
+        updateCurrentTheme()
+      }
+    }
+    
+    mediaQuery.addEventListener('change', handleSystemThemeChange)
+    
+    // 清理函数
+    onUnmounted(() => {
+      mediaQuery.removeEventListener('change', handleSystemThemeChange)
+      themeManager.destroy()
+    })
+  }
 })
 </script>
 
 <style lang="scss">
-@import '@/styles/theme.scss';
+@use '@/styles/theme.scss';
 
 #app {
   height: 100vh;
@@ -109,13 +146,38 @@ onUnmounted(() => {
   transition: all 0.3s ease !important;
 }
 
-.n-input {
+// 强制覆盖所有输入框样式
+.n-input,
+.n-input .n-input-wrapper,
+.n-input .n-input__input,
+.n-input .n-input__textarea {
   background-color: var(--bg-secondary) !important;
-  border-color: var(--border-primary) !important;
   color: var(--text-primary) !important;
+}
+
+.n-input {
+  .n-input__input-el,
+  .n-input__textarea-el {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border: none !important;
+    
+    &::placeholder {
+      color: var(--text-tertiary) !important;
+    }
+  }
   
-  &:focus {
+  .n-input__border,
+  .n-input__state-border {
+    border-color: var(--border-primary) !important;
+  }
+  
+  &:hover .n-input__state-border {
     border-color: var(--border-focus) !important;
+  }
+  
+  &.n-input--focus .n-input__state-border {
+    border-color: var(--color-primary) !important;
   }
 }
 
@@ -160,6 +222,21 @@ onUnmounted(() => {
 .n-drawer {
   .n-drawer-body-content-wrapper {
     background-color: var(--bg-secondary) !important;
+  }
+}
+
+// 下拉菜单强制覆盖
+.n-dropdown-menu {
+  background-color: var(--bg-primary) !important;
+  border: 1px solid var(--border-primary) !important;
+  box-shadow: var(--shadow-lg) !important;
+  
+  .n-dropdown-option {
+    color: var(--text-primary) !important;
+    
+    &:hover {
+      background-color: var(--bg-hover) !important;
+    }
   }
 }
 </style>

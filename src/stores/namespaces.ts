@@ -93,15 +93,17 @@ export const useNamespacesStore = defineStore('namespaces', () => {
         if (!currentNamespace.value) {
           // 如果没有当前选择，选择第一个可用的
           const firstActive = namespacesWithCounts.find(ns => ns.status?.phase === 'Active') || namespacesWithCounts[0]
-          console.log('🎯 自动选择第一个namespace:', firstActive.metadata.name)
-          await switchNamespace(firstActive.metadata.name)
+          const namespaceName = String(firstActive.metadata.name || 'default')
+          console.log('🎯 自动选择第一个namespace:', namespaceName)
+          await switchNamespace(namespaceName)
         } else {
           // 检查当前选择的namespace是否还存在
           const currentExists = namespacesWithCounts.some(ns => ns.metadata.name === currentNamespace.value)
           if (!currentExists) {
             console.log('⚠️ 当前namespace不存在，切换到第一个可用的')
             const firstActive = namespacesWithCounts.find(ns => ns.status?.phase === 'Active') || namespacesWithCounts[0]
-            await switchNamespace(firstActive.metadata.name)
+            const namespaceName = String(firstActive.metadata.name || 'default')
+            await switchNamespace(namespaceName)
           } else {
             console.log('✅ 保持当前namespace:', currentNamespace.value)
           }
@@ -152,18 +154,26 @@ export const useNamespacesStore = defineStore('namespaces', () => {
 
   // 切换命名空间
   const switchNamespace = async (namespaceName: string) => {
-    if (namespaceName === currentNamespace.value) return
+    // 确保传入的参数是字符串
+    const safeNamespaceName = String(namespaceName || 'default')
+    console.log('🔄 switchNamespace 接收到参数:', { 
+      original: namespaceName, 
+      type: typeof namespaceName, 
+      safe: safeNamespaceName 
+    })
+    
+    if (safeNamespaceName === currentNamespace.value) return
     
     switchingNamespace.value = true
     try {
-      currentNamespace.value = namespaceName
+      currentNamespace.value = safeNamespaceName
       // 保存到localStorage
-      localStorage.setItem('currentNamespace', namespaceName)
+      localStorage.setItem('currentNamespace', safeNamespaceName)
       
       // 触发相关数据更新
       await refreshNamespaceData()
       
-      console.log(`已切换到命名空间: ${namespaceName}`)
+      console.log(`已切换到命名空间: ${safeNamespaceName}`)
     } catch (error) {
       console.error('切换命名空间失败:', error)
       throw error

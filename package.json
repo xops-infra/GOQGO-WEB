@@ -1,6 +1,6 @@
 {
   "name": "goqgo-web",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "GoQGo AI智能体协助开发平台的Web前端界面",
   "type": "module",
   "scripts": {

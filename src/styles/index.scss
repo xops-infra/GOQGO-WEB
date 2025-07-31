@@ -1,0 +1,13 @@
+// 导入主题样式
+@use './theme.scss';
+
+// 导入组件样式增强
+@use './components.scss';
+
+// 导入输入框修复样式
+@use './input-fix.scss';
+
+// 导入其他样式文件
+// @use './utilities.scss';
+
+// 全局样式重置和基础设置已在theme.scss中定义

@@ -270,7 +270,7 @@ onUnmounted(() => {
   // 用户消息样式
   &.message-user {
     .sender-name.sender-user {
-      color: #1890ff;
+      color: var(--color-primary);
       font-weight: 600;
     }
   }
@@ -281,7 +281,7 @@ onUnmounted(() => {
       background-color: rgba(82, 196, 26, 0.02);
     }
     .sender-name.sender-agent {
-      color: #52c41a;
+      color: var(--color-success);
       font-weight: 600;
     }
   }
@@ -292,17 +292,19 @@ onUnmounted(() => {
       background-color: rgba(250, 173, 20, 0.02);
     }
     .sender-name.sender-system {
-      color: #faad14;
+      color: var(--color-warning);
       font-weight: 600;
     }
   }
 }
 
 .message-card {
-  background: #ffffff;
+  background-color: var(--bg-primary);
   border-radius: 12px;
-  border: 1px solid #f0f0f0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--border-primary);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
   transition: all 0.2s ease;
   overflow: hidden;
 
@@ -317,8 +319,9 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px 8px 16px;
-  background: rgba(0, 0, 0, 0.01);
-  border-bottom: 1px solid #f5f5f5;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-secondary);
+  transition: all 0.3s ease;
 
   .user-info {
     display: flex;
@@ -339,7 +342,7 @@ onUnmounted(() => {
         right: -1px;
         width: 12px;
         height: 12px;
-        background: #ffffff;
+        background-color: var(--bg-primary);
         border-radius: 50%;
         display: flex;
         align-items: center;
@@ -385,7 +388,7 @@ onUnmounted(() => {
 
     .message-time {
       font-size: 12px;
-      color: #8c8c8c;
+      color: var(--text-tertiary);
       white-space: nowrap;
     }
 
@@ -393,12 +396,12 @@ onUnmounted(() => {
       font-size: 12px;
       
       &.sending {
-        color: #1890ff;
+        color: var(--color-primary);
         animation: spin 1s linear infinite;
       }
       
       &.error {
-        color: #f5222d;
+        color: var(--color-error);
       }
     }
   }
@@ -406,20 +409,22 @@ onUnmounted(() => {
 
 .message-content-box {
   padding: 12px 16px 16px 16px;
-  background: #ffffff;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
 
   .text-content {
     font-size: 14px;
     line-height: 1.6;
-    color: #262626;
+    color: var(--text-primary);
     word-wrap: break-word;
     white-space: pre-wrap;
     margin: 0;
 
     // @mention 样式
     :deep(.mention) {
-      color: #1890ff;
-      background-color: rgba(24, 144, 255, 0.1);
+      color: var(--color-primary);
+      background-color: rgba(59, 130, 246, 0.1);
       padding: 2px 4px;
       margin-right: 4px;
       border-radius: 4px;
@@ -430,7 +435,8 @@ onUnmounted(() => {
 
     // 代码块样式
     :deep(code) {
-      background-color: #f6f8fa;
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
       padding: 2px 4px;
       border-radius: 3px;
       font-family: 'JetBrains Mono', 'Consolas', monospace;
@@ -438,7 +444,8 @@ onUnmounted(() => {
     }
 
     :deep(pre) {
-      background-color: #f6f8fa;
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
       padding: 12px;
       border-radius: 6px;
       overflow-x: auto;
@@ -535,10 +542,11 @@ onUnmounted(() => {
     padding: 12px 16px;
     text-decoration: none;
     color: inherit;
-    background: #f8f9fa;
-    border: 1px solid #e9ecef;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
     gap: 12px;
     min-width: 0;
+    transition: all 0.3s ease;
 
     .file-icon {
       font-size: 20px;
@@ -547,13 +555,13 @@ onUnmounted(() => {
 
     .file-type {
       font-weight: 600;
-      color: #495057;
+      color: var(--text-primary);
       flex-shrink: 0;
     }
 
     .file-url {
       font-size: 12px;
-      color: #6c757d;
+      color: var(--text-secondary);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -635,8 +643,8 @@ onUnmounted(() => {
     transition: opacity 0.3s ease;
 
     .image-label {
-      background: rgba(255, 255, 255, 0.9);
-      color: #333;
+      background-color: var(--bg-modal);
+      color: var(--text-primary);
       padding: 4px 8px;
       border-radius: 16px;
       font-size: 12px;

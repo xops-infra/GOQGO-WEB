@@ -1,11 +1,13 @@
-import { watch } from 'vue'
-import { useAppStore } from '@/stores/app'
+import { watch, nextTick } from 'vue'
+import type { App } from 'vue'
 
 export type ThemeMode = 'light' | 'dark' | 'auto'
 
 export class ThemeManager {
   private static instance: ThemeManager
   private mediaQuery: MediaQuery | null = null
+  private initialized = false
+  private app: App | null = null
 
   static getInstance(): ThemeManager {
     if (!ThemeManager.instance) {
@@ -15,30 +17,58 @@ export class ThemeManager {
   }
 
   constructor() {
-    this.init()
+    // 不在构造函数中初始化，等待 Vue 应用准备好
   }
 
-  private init() {
+  // 在 Vue 应用初始化后调用
+  init(app?: App) {
+    if (this.initialized) return
+    
+    if (app) {
+      this.app = app
+    }
+
     // 监听系统主题变化
     if (typeof window !== 'undefined') {
       this.mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
       this.mediaQuery.addEventListener('change', this.handleSystemThemeChange.bind(this))
     }
 
-    // 监听应用主题变化
-    const appStore = useAppStore()
-    watch(
-      () => appStore.theme,
-      (newTheme) => {
-        this.applyTheme(newTheme)
-      },
-      { immediate: true }
-    )
+    // 应用初始主题
+    const savedTheme = this.getSavedTheme()
+    this.applyTheme(savedTheme)
+
+    this.initialized = true
+  }
+
+  // 设置 store 监听器（在组件中调用）
+  setupStoreWatcher() {
+    if (typeof window === 'undefined') return
+
+    nextTick(() => {
+      try {
+        // 动态导入 store 避免初始化问题
+        import('@/stores/app').then(({ useAppStore }) => {
+          const appStore = useAppStore()
+          
+          watch(
+            () => appStore.theme,
+            (newTheme) => {
+              this.applyTheme(newTheme)
+            },
+            { immediate: true }
+          )
+        })
+      } catch (error) {
+        console.warn('Failed to setup store watcher:', error)
+      }
+    })
   }
 
   private handleSystemThemeChange(e: MediaQueryListEvent) {
-    const appStore = useAppStore()
-    if (appStore.theme === 'auto') {
+    // 只有在 auto 模式下才响应系统主题变化
+    const savedTheme = this.getSavedTheme()
+    if (savedTheme === 'auto') {
       this.applyTheme('auto')
     }
   }
@@ -79,29 +109,40 @@ export class ThemeManager {
   }
 
   toggleTheme() {
-    const appStore = useAppStore()
-    const currentTheme = appStore.theme
+    const currentTheme = this.getSavedTheme()
     const newTheme = currentTheme === 'light' ? 'dark' : 'light'
-    appStore.theme = newTheme
+    this.setTheme(newTheme)
   }
 
   setTheme(theme: ThemeMode) {
-    const appStore = useAppStore()
-    appStore.theme = theme
+    this.applyTheme(theme)
+    
+    // 尝试更新 store（如果可用）
+    try {
+      import('@/stores/app').then(({ useAppStore }) => {
+        const appStore = useAppStore()
+        appStore.theme = theme
+      }).catch(() => {
+        // Store 不可用时忽略错误
+      })
+    } catch (error) {
+      // 忽略错误，主题仍然会被应用
+    }
   }
 
   getCurrentTheme(): 'light' | 'dark' {
-    const appStore = useAppStore()
-    if (appStore.theme === 'auto') {
+    const savedTheme = this.getSavedTheme()
+    if (savedTheme === 'auto') {
       return this.getSystemTheme()
     }
-    return appStore.theme
+    return savedTheme
   }
 
   destroy() {
     if (this.mediaQuery) {
       this.mediaQuery.removeEventListener('change', this.handleSystemThemeChange.bind(this))
     }
+    this.initialized = false
   }
 }
 
@@ -110,10 +151,17 @@ export const themeManager = ThemeManager.getInstance()
 
 // 主题相关的工具函数
 export const useTheme = () => {
-  const appStore = useAppStore()
+  // 确保主题管理器已初始化
+  if (!themeManager['initialized']) {
+    themeManager.init()
+    themeManager.setupStoreWatcher()
+  }
+
+  // 获取当前主题（不依赖 store）
+  const getCurrentSavedTheme = () => themeManager.getSavedTheme()
   
   return {
-    theme: appStore.theme,
+    theme: getCurrentSavedTheme(),
     isDark: () => themeManager.getCurrentTheme() === 'dark',
     isLight: () => themeManager.getCurrentTheme() === 'light',
     toggle: () => themeManager.toggleTheme(),

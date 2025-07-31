@@ -1,0 +1,111 @@
+// 专门修复输入框主题的样式文件
+// 确保所有输入框都能正确应用深色主题
+
+// 全局输入框样式强制覆盖
+.n-input,
+.n-input *,
+.n-input .n-input-wrapper,
+.n-input .n-input__input,
+.n-input .n-input__textarea,
+.n-input .n-input__input-el,
+.n-input .n-input__textarea-el {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+// 输入框边框和状态
+.n-input {
+  .n-input__border,
+  .n-input__state-border {
+    border-color: var(--border-primary) !important;
+    background-color: transparent !important;
+  }
+  
+  // 悬停状态
+  &:hover {
+    .n-input__state-border {
+      border-color: var(--border-focus) !important;
+    }
+  }
+  
+  // 焦点状态
+  &.n-input--focus {
+    .n-input__state-border {
+      border-color: var(--color-primary) !important;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+    }
+  }
+  
+  // 占位符文本
+  .n-input__input-el::placeholder,
+  .n-input__textarea-el::placeholder {
+    color: var(--text-tertiary) !important;
+  }
+}
+
+// 文本域特殊处理
+.n-input--textarea {
+  .n-input__textarea,
+  .n-input__textarea-el {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+  }
+}
+
+// 聊天输入框特殊处理
+.chat-input .n-input,
+.message-input .n-input {
+  background-color: var(--bg-secondary) !important;
+  
+  .n-input__input-el,
+  .n-input__textarea-el {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+  }
+}
+
+// 搜索框特殊处理
+.n-input--search {
+  .n-input__input-el {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+  }
+}
+
+// 确保所有输入相关的元素都应用主题
+input[type="text"],
+input[type="search"],
+textarea {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-primary) !important;
+  
+  &::placeholder {
+    color: var(--text-tertiary) !important;
+  }
+  
+  &:focus {
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+  }
+}
+
+// 修复可能的内联样式覆盖
+.n-input[style*="background"] {
+  background-color: var(--bg-secondary) !important;
+}
+
+.n-input .n-input__input-el[style*="background"],
+.n-input .n-input__textarea-el[style*="background"] {
+  background-color: var(--bg-secondary) !important;
+}
+
+// 确保深色主题下的对比度
+[data-theme='dark'] {
+  .n-input,
+  .n-input .n-input__input-el,
+  .n-input .n-input__textarea-el {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+  }
+}

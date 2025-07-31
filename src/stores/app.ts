@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User, AppState } from '@/types'
 
+export type ThemeMode = 'light' | 'dark' | 'auto'
+
 export const useAppStore = defineStore('app', () => {
   // 状态
   const user = ref<User | null>({
@@ -12,7 +14,7 @@ export const useAppStore = defineStore('app', () => {
   })
   const currentProject = ref<string | null>('goqgo-web')
   const sidebarCollapsed = ref(false)
-  const theme = ref<'light' | 'dark'>('light')
+  const theme = ref<ThemeMode>('light')
   
   // 计算属性
   const isLoggedIn = computed(() => !!user.value)
@@ -40,6 +42,10 @@ export const useAppStore = defineStore('app', () => {
     theme.value = theme.value === 'light' ? 'dark' : 'light'
   }
   
+  const setTheme = (newTheme: ThemeMode) => {
+    theme.value = newTheme
+  }
+  
   return {
     // 状态
     user,
@@ -55,6 +61,7 @@ export const useAppStore = defineStore('app', () => {
     setUser,
     setCurrentProject,
     toggleSidebar,
-    toggleTheme
+    toggleTheme,
+    setTheme
   }
 })

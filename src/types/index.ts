@@ -20,7 +20,7 @@ export interface AppState {
   user: User | null
   currentProject: string | null
   sidebarCollapsed: boolean
-  theme: 'light' | 'dark'
+  theme: 'light' | 'dark' | 'auto'
 }
 
 export interface NamespaceOption {
@@ -28,3 +28,5 @@ export interface NamespaceOption {
   value: string
   disabled?: boolean
 }
+
+export type ThemeMode = 'light' | 'dark' | 'auto'

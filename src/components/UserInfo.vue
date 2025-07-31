@@ -117,7 +117,7 @@
           style="margin-top: 16px"
         >
           <n-descriptions-item label="智能体数量">
-            {{ currentUserData.status.agentCount }} / {{ currentUserData.spec.quotas.maxAgents }}
+            {{ realTimeAgentCount }} / {{ currentUserData.spec.quotas.maxAgents }}
           </n-descriptions-item>
           <n-descriptions-item label="命名空间数量">
             {{ currentUserData.status.namespaceCount }} / {{ currentUserData.spec.quotas.maxNamespaces }}
@@ -174,11 +174,14 @@
 import { ref, computed, onMounted, h } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/user'
+import { useAgentsStore } from '@/stores/agents'
 import { useMessage } from 'naive-ui'
 
 // 状态管理
 const userStore = useUserStore()
+const agentsStore = useAgentsStore()
 const { currentUser, currentUserData } = storeToRefs(userStore)
+const { agents } = storeToRefs(agentsStore)
 const message = useMessage()
 
 // 响应式数据
@@ -242,6 +245,12 @@ const hasAnyDagPermission = computed(() => {
   if (!currentUserData.value) return false
   const perms = currentUserData.value.spec.permissions.dags
   return perms.create || perms.run || perms.delete
+})
+
+// 实时智能体数量统计
+const realTimeAgentCount = computed(() => {
+  if (!agents.value) return 0
+  return agents.value.length
 })
 
 // 下拉菜单选项
@@ -431,10 +440,11 @@ onMounted(async () => {
   .user-description {
     margin: 8px 0 0 0;
     padding: 16px;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
     border-radius: 8px;
-    color: #495057;
+    color: var(--text-secondary);
     line-height: 1.6;
+    transition: all 0.3s ease;
     border-left: 4px solid #007bff;
     font-style: italic;
   }
@@ -531,10 +541,11 @@ onMounted(async () => {
 
 // 优化下拉菜单样式
 :deep(.n-dropdown-menu) {
-  background: #ffffff;
+  background-color: var(--bg-primary);
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-primary);
+  transition: all 0.3s ease;
   padding: 4px;
   
   .n-dropdown-option {

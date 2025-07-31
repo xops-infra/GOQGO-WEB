@@ -6,6 +6,9 @@ import App from './App.vue'
 // Naive UI
 import naive from 'naive-ui'
 
+// 导入全局样式
+import '@/styles/index.scss'
+
 // 创建应用实例
 const app = createApp(App)
 

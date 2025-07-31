@@ -104,7 +104,7 @@ export function formatVersionDisplay(versionInfo: VersionInfo): string {
   const baseVersion = versionInfo.version
   
   if (isDev) {
-    return `${baseVersion}-dev.${versionInfo.commitHash}`
+    return `${baseVersion}-beta.${versionInfo.commitHash}`
   }
   
   return baseVersion

@@ -9,7 +9,7 @@
     <!-- 拖拽覆盖层 -->
     <div v-if="isDragActive" class="drag-overlay">
       <div class="drag-content">
-        <n-icon size="48" color="#07c160">
+        <n-icon size="48" :color="'var(--color-success)'">
           <svg viewBox="0 0 24 24">
             <path fill="currentColor" d="M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M21,19L16,10L11,17L7,13L3,19H21Z"/>
           </svg>
@@ -556,9 +556,11 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%; // 填充父容器高度
-  background: #f5f5f5;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   position: relative;
   overflow: hidden; // 防止整体滚动
+  transition: background-color 0.3s ease, color 0.3s ease;
   
   &.drag-active {
     .drag-overlay {
@@ -583,13 +585,13 @@ onUnmounted(() => {
   opacity: 0;
   visibility: hidden;
   transition: all 0.3s ease;
-  border: 3px dashed #07c160;
+  border: 3px dashed var(--color-success);
   border-radius: 8px;
   margin: 8px;
   
   .drag-content {
     text-align: center;
-    color: #07c160;
+    color: var(--color-success);
     
     h3 {
       margin: 16px 0 8px 0;
@@ -614,19 +616,20 @@ onUnmounted(() => {
   
   .messages-toolbar {
     flex-shrink: 0; // 工具栏不收缩
-    background: rgba(255, 255, 255, 0.95);
+    background-color: var(--bg-secondary);
     backdrop-filter: blur(8px);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    border-bottom: 1px solid var(--border-primary);
     padding: 8px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     z-index: 10;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
     
     .toolbar-left {
       .message-count {
         font-size: 12px;
-        color: #6c757d;
+        color: var(--text-tertiary);
         font-weight: 500;
       }
     }
@@ -655,12 +658,13 @@ onUnmounted(() => {
       gap: 8px;
       padding: 16px;
       margin: 0 -16px; // 扩展到容器边缘
-      background: rgba(255, 255, 255, 0.9);
-      border: 1px solid rgba(0, 0, 0, 0.06);
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-primary);
       border-radius: 8px;
-      color: #666;
+      color: var(--text-secondary);
       font-size: 14px;
       backdrop-filter: blur(4px);
+      transition: all 0.3s ease;
     }
     
     // 历史消息分割线
@@ -675,12 +679,13 @@ onUnmounted(() => {
       span {
         position: relative;
         padding: 8px 20px;
-        background: #f5f5f5;
-        color: #999;
+        background-color: var(--bg-secondary);
+        color: var(--text-tertiary);
         font-size: 12px;
         border-radius: 16px;
-        border: 1px solid rgba(0, 0, 0, 0.06);
+        border: 1px solid var(--border-primary);
         z-index: 2;
+        transition: all 0.3s ease;
         
         // 分割线效果
         &::before {
@@ -693,8 +698,8 @@ onUnmounted(() => {
           background: linear-gradient(
             to right,
             transparent,
-            rgba(0, 0, 0, 0.1) 20%,
-            rgba(0, 0, 0, 0.1) 80%,
+            var(--border-primary) 20%,
+            var(--border-primary) 80%,
             transparent
           );
           z-index: 1;

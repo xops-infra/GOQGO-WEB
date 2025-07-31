@@ -394,10 +394,11 @@ watch(showSearch, (newVal) => {
   right: 0;
   width: 400px;
   max-width: 90vw;
-  background: #ffffff;
+  background-color: var(--bg-primary);
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-primary);
+  transition: all 0.3s ease;
   z-index: 1000;
   max-height: 500px;
   display: flex;
