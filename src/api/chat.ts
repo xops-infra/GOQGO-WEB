@@ -1,65 +1,53 @@
-import axios from '@/utils/axios'
+import axios from 'axios'
+import type { ChatMessage } from '@/types/api'
 
-export interface ChatMessage {
-  id: string
-  chatId: string
-  senderId: string
-  sender: string
-  content: string
-  type: 'text' | 'image' | 'file'
-  timestamp: string // 改为string类型，匹配ISO格式
-  metadata?: Record<string, any>
+const API_BASE = 'http://localhost:8080/api/v1'
+
+export interface SendMessageRequest {
+  message: string
+  type?: 'user' | 'agent' | 'system'
 }
 
-export interface ChatSession {
+export interface SendMessageResponse {
   id: string
-  name: string
-  namespace: string
-  members: string[]
-  createdAt: string
-  updatedAt: string
+  success: boolean
+  message?: string
 }
 
 export const chatApi = {
-  // 获取聊天历史 - 匹配后端接口格式
-  getHistory: (namespace: string, username: string, limit: number = 50) =>
-    axios.get<ChatMessage[]>(`/api/v1/namespaces/${namespace}/chats/${namespace}-${username}/messages`, {
-      params: { limit }
-    }),
-  
-  // 发送消息 - 匹配后端接口格式
-  sendMessage: (namespace: string, username: string, content: string, messageType: string = 'text') =>
-    axios.post<ChatMessage>(`/api/v1/namespaces/${namespace}/chats/${namespace}-${username}/messages`, {
-      content,
-      type: messageType,
+  // 发送消息到聊天室
+  sendMessage: async (namespace: string, chatName: string, data: SendMessageRequest): Promise<SendMessageResponse> => {
+    const response = await axios.post(`${API_BASE}/namespaces/${namespace}/chats/${chatName}/messages`, {
+      content: data.message,
+      type: data.type || 'user',
       timestamp: new Date().toISOString()
-    }),
-  sendMessage: (namespace: string, chatName: string = 'default', message: string) =>
-    axios.post<ChatMessage>(`/api/v1/namespaces/${namespace}/chats/${chatName}/messages`, { 
-      content: message,
-      type: 'text'
-    }),
-  
-  // 发送图片消息
-  sendImageMessage: (namespace: string, chatName: string = 'default', imageUrl: string) =>
-    axios.post<ChatMessage>(`/api/v1/namespaces/${namespace}/chats/${chatName}/messages`, {
-      content: imageUrl,
-      type: 'image'
-    }),
-  
-  // 删除消息
-  deleteMessage: (namespace: string, chatName: string = 'default', messageId: string) =>
-    axios.delete(`/api/v1/namespaces/${namespace}/chats/${chatName}/messages/${messageId}`),
-  
-  // 编辑消息
-  editMessage: (namespace: string, chatName: string = 'default', messageId: string, content: string) =>
-    axios.put(`/api/v1/namespaces/${namespace}/chats/${chatName}/messages/${messageId}`, {
-      content
-    }),
-  
-  // 搜索消息
-  searchMessages: (namespace: string, chatName: string = 'default', query: string) =>
-    axios.get<ChatMessage[]>(`/api/v1/namespaces/${namespace}/chats/${chatName}/messages/search`, {
-      params: { query }
     })
+    return response.data
+  },
+
+  // 获取聊天历史
+  getChatHistory: async (namespace: string, chatName: string, limit?: number, before?: string): Promise<ChatMessage[]> => {
+    const params = new URLSearchParams()
+    if (limit) params.append('limit', limit.toString())
+    if (before) params.append('before', before)
+    
+    const response = await axios.get(`${API_BASE}/namespaces/${namespace}/chats/${chatName}/messages?${params}`)
+    return response.data.items || []
+  },
+
+  // 获取聊天室信息
+  getChatInfo: async (namespace: string, chatName: string) => {
+    const response = await axios.get(`${API_BASE}/namespaces/${namespace}/chats/${chatName}`)
+    return response.data
+  },
+
+  // 创建聊天室
+  createChat: async (namespace: string, chatName: string, title?: string) => {
+    const response = await axios.post(`${API_BASE}/namespaces/${namespace}/chats`, {
+      name: chatName,
+      title: title || chatName,
+      type: 'group'
+    })
+    return response.data
+  }
 }

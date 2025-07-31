@@ -209,6 +209,11 @@
 
       <!-- Agent日志模态框 - 使用Teleport渲染到body -->
       <Teleport to="body">
+        <!-- 调试信息 -->
+        <div v-if="openLogWindows.length > 0" style="display: none;">
+          {{ console.log('🔍 渲染日志窗口:', openLogWindows.length, '个窗口', openLogWindows.map(w => ({ name: w.agent.name, show: w.show }))) }}
+        </div>
+        
         <AgentLogsModal
           v-for="logWindow in openLogWindows"
           :key="`log-${logWindow.agent.namespace}-${logWindow.agent.name}`"
@@ -302,17 +307,33 @@ const showAgentDetails = (agent: Agent) => {
 }
 
 const showAgentLogs = (agent: Agent) => {
-  console.log('📋 打开日志窗口:', agent.name)
+  console.log('📋 打开日志窗口:', agent.name, {
+    agent: agent,
+    namespace: agent.namespace,
+    status: agent.status,
+    currentWindowCount: openLogWindows.value.length
+  })
   
   // 检查是否已经有该实例的日志窗口
   const existingWindowIndex = openLogWindows.value.findIndex(
     window => window.agent.namespace === agent.namespace && window.agent.name === agent.name
   )
   
+  console.log('🔍 检查现有窗口:', {
+    existingWindowIndex,
+    existingWindows: openLogWindows.value.map(w => ({ name: w.agent.name, show: w.show }))
+  })
+  
   if (existingWindowIndex !== -1) {
     // 如果已存在，触发窗口重置位置
     console.log('🔄 重置现有日志窗口位置:', agent.name)
     const existingWindow = openLogWindows.value[existingWindowIndex]
+    
+    console.log('🔍 现有窗口状态:', {
+      show: existingWindow.show,
+      agent: existingWindow.agent.name,
+      resetPosition: existingWindow.resetPosition
+    })
     
     // 触发窗口重置事件
     existingWindow.resetPosition = Date.now() // 使用时间戳触发重置
@@ -332,8 +353,27 @@ const showAgentLogs = (agent: Agent) => {
     bringToFront: 0
   }
   
+  console.log('🆕 创建新日志窗口:', {
+    agent: newLogWindow.agent.name,
+    namespace: newLogWindow.agent.namespace,
+    show: newLogWindow.show,
+    agentData: newLogWindow.agent
+  })
+  
   openLogWindows.value.push(newLogWindow)
   console.log('✅ 创建新日志窗口:', agent.name, '当前窗口数:', openLogWindows.value.length)
+  
+  // 立即检查窗口是否正确添加
+  setTimeout(() => {
+    console.log('🔍 延迟检查窗口状态:', {
+      windowCount: openLogWindows.value.length,
+      windows: openLogWindows.value.map(w => ({ 
+        name: w.agent.name, 
+        show: w.show, 
+        namespace: w.agent.namespace 
+      }))
+    })
+  }, 100)
 }
 
 // 检查Agent是否已有打开的日志窗口
@@ -392,11 +432,13 @@ const getRoleType = (role: string): 'default' | 'info' | 'success' | 'warning' |
 
 const getStatusType = (status: string): 'default' | 'info' | 'success' | 'warning' | 'error' => {
   const statusMap: Record<string, 'default' | 'info' | 'success' | 'warning' | 'error'> = {
-    'running': 'success',
-    'idle': 'info',
-    'error': 'error',
-    'creating': 'warning',
-    'terminating': 'warning'
+    'idle': 'success',      // 空闲状态 - 绿色
+    'busy': 'info',         // 忙碌状态 - 蓝色  
+    'running': 'info',      // 运行状态 - 蓝色
+    'stopped': 'default',   // 停止状态 - 灰色
+    'creating': 'warning',  // 创建中状态 - 橙色
+    'error': 'error',       // 错误状态 - 红色
+    'terminating': 'warning' // 终止中状态 - 橙色
   }
   return statusMap[status.toLowerCase()] || 'default'
 }
@@ -572,35 +614,16 @@ onUnmounted(() => {
   transition: all 0.3s;
   margin-bottom: 8px;
   border: 1px solid transparent;
+  background: transparent;
   
   &:hover {
-    background: #f5f5f5;
+    background: rgba(0, 0, 0, 0.02);
+    border-color: rgba(0, 0, 0, 0.06);
   }
   
   &.active {
-    background: #e6f7ff;
-    border-color: #1890ff;
-  }
-  
-  &.status-running {
-    background: rgba(82, 196, 26, 0.1);
-    &.active {
-      background: rgba(82, 196, 26, 0.2);
-    }
-  }
-  
-  &.status-error {
-    background: rgba(245, 34, 45, 0.1);
-    &.active {
-      background: rgba(245, 34, 45, 0.2);
-    }
-  }
-  
-  &.status-idle {
-    background: rgba(250, 173, 20, 0.1);
-    &.active {
-      background: rgba(250, 173, 20, 0.2);
-    }
+    background: rgba(24, 144, 255, 0.05);
+    border-color: rgba(24, 144, 255, 0.2);
   }
   
   .instance-info {
@@ -643,6 +666,46 @@ onUnmounted(() => {
       .restart-count {
         font-size: 12px;
         color: #666;
+      }
+      
+      // 状态标签自定义颜色
+      :deep(.n-tag) {
+        font-weight: 500;
+        
+        // Idle 状态 - 绿色
+        &.n-tag--success {
+          background-color: rgba(82, 196, 26, 0.1);
+          color: #52c41a;
+          border: 1px solid rgba(82, 196, 26, 0.3);
+        }
+        
+        // Busy/Running 状态 - 蓝色
+        &.n-tag--info {
+          background-color: rgba(24, 144, 255, 0.1);
+          color: #1890ff;
+          border: 1px solid rgba(24, 144, 255, 0.3);
+        }
+        
+        // Stopped 状态 - 灰色
+        &.n-tag--default {
+          background-color: rgba(140, 140, 140, 0.1);
+          color: #8c8c8c;
+          border: 1px solid rgba(140, 140, 140, 0.3);
+        }
+        
+        // Creating 状态 - 橙色
+        &.n-tag--warning {
+          background-color: rgba(250, 173, 20, 0.1);
+          color: #faad14;
+          border: 1px solid rgba(250, 173, 20, 0.3);
+        }
+        
+        // Error 状态 - 红色
+        &.n-tag--error {
+          background-color: rgba(245, 34, 45, 0.1);
+          color: #f5222d;
+          border: 1px solid rgba(245, 34, 45, 0.3);
+        }
       }
     }
   }

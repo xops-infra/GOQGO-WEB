@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { ChatMessage } from '@/types/api'
 import { ChatSocket } from '@/utils/chatSocket'
+import { chatApi } from '@/api/chat'
 import { useUserStore } from './user'
 
 export const useChatStore = defineStore('chat', () => {
@@ -144,20 +145,50 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  // 发送消息
+  // 发送图片消息
+  const sendImageMessage = async (imageUrl: string) => {
+    try {
+      console.log('📤 发送图片消息:', imageUrl)
+
+      // 调用 HTTP API 发送图片消息
+      const response = await chatApi.sendMessage(currentNamespace.value, currentChatName.value, {
+        message: `[图片] ${imageUrl}`,
+        type: 'user'
+      })
+
+      console.log('✅ 图片消息发送成功:', response)
+      return true
+    } catch (error) {
+      console.error('❌ 发送图片消息失败:', error)
+      throw error
+    }
+  }
+
+  // 发送消息 - 使用 HTTP API
   const sendMessage = async (content: string, messageType: string = 'text') => {
-    if (!chatSocket || !chatSocket.isConnected) {
-      console.error('❌ WebSocket未连接，无法发送消息')
+    if (!content.trim()) {
+      console.warn('⚠️ 消息内容为空，跳过发送')
       return false
     }
 
     try {
-      chatSocket.sendMessage(content, messageType)
-      console.log('📤 消息发送成功')
+      console.log('📤 发送消息到聊天室:', { 
+        namespace: currentNamespace.value, 
+        chatName: currentChatName.value, 
+        content: content.substring(0, 50) + '...' 
+      })
+
+      // 调用 HTTP API 发送消息
+      const response = await chatApi.sendMessage(currentNamespace.value, currentChatName.value, {
+        message: content,
+        type: 'user'
+      })
+
+      console.log('✅ 消息发送成功:', response)
       return true
     } catch (error) {
       console.error('❌ 发送消息失败:', error)
-      return false
+      throw error
     }
   }
 
@@ -233,6 +264,7 @@ export const useChatStore = defineStore('chat', () => {
     connect,
     disconnect,
     sendMessage,
+    sendImageMessage,
     sendTyping,
     addMessage,
     loadMoreHistory,

@@ -189,8 +189,14 @@ const emit = defineEmits<{
 
 // 响应式数据
 const visible = computed({
-  get: () => props.show,
-  set: (value) => emit('update:show', value)
+  get: () => {
+    console.log('🔍 visible getter 被调用:', props.show, 'agent:', props.agent?.name)
+    return props.show
+  },
+  set: (value) => {
+    console.log('🔍 visible setter 被调用:', value, 'agent:', props.agent?.name)
+    emit('update:show', value)
+  }
 })
 
 const modalRef = ref<HTMLElement>()
@@ -221,8 +227,20 @@ const resizeStart = ref({ x: 0, y: 0, width: 0, height: 0 })
 
 // 连接WebSocket获取实时日志
 const connectLogStream = async () => {
+  console.log('🔗 connectLogStream 函数被调用:', {
+    agent: props.agent,
+    agentName: props.agent?.name,
+    namespace: props.agent?.namespace,
+    visible: visible.value,
+    timestamp: new Date().toISOString()
+  })
+  
   if (!props.agent) {
-    console.error('❌ 无法连接日志流: agent 为空')
+    console.error('❌ 无法连接日志流: agent 为空', {
+      propsAgent: props.agent,
+      propsShow: props.show,
+      visible: visible.value
+    })
     message.error('无法连接日志流: agent 信息为空')
     return
   }
@@ -517,13 +535,24 @@ const getConnectionStatus = () => {
 }
 
 // 监听agent变化
-watch(() => props.agent, (newAgent) => {
+watch(() => props.agent, (newAgent, oldAgent) => {
+  console.log('🔄 props.agent 变化:', {
+    old: oldAgent?.name,
+    new: newAgent?.name,
+    namespace: newAgent?.namespace,
+    visible: visible.value
+  })
   if (newAgent && visible.value) {
     disconnectLogStream()
     logs.value = []
     hasReachedTop.value = false
     connectLogStream()
   }
+})
+
+// 监听 show 属性变化
+watch(() => props.show, (newShow, oldShow) => {
+  console.log('🔄 props.show 变化:', { old: oldShow, new: newShow, agent: props.agent?.name })
 })
 
 // 初始化模态框位置和大小
@@ -590,7 +619,7 @@ watch(visible, async (show) => {
     console.log('🔌 断开日志流连接')
     disconnectLogStream()
   }
-})
+}, { immediate: true })
 
 // ESC键支持
 const handleKeydown = (e: KeyboardEvent) => {
@@ -625,7 +654,17 @@ watch(() => props.bringToFront, (newValue) => {
 })
 
 // 生命周期
+onMounted(() => {
+  console.log('🚀 AgentLogsModal 组件挂载:', {
+    agent: props.agent?.name,
+    namespace: props.agent?.namespace,
+    show: props.show,
+    visible: visible.value
+  })
+})
+
 onUnmounted(() => {
+  console.log('💀 AgentLogsModal 组件卸载:', props.agent?.name)
   disconnectLogStream()
   document.removeEventListener('mousemove', handleDrag)
   document.removeEventListener('mouseup', stopDrag)
@@ -637,14 +676,14 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .agent-logs-modal {
-  background: #1a1a1a;
+  background: #ffffff;
   border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
   position: fixed;
   z-index: 1001;
-  border: 1px solid #333;
+  border: 1px solid #e0e0e0;
   min-width: 400px;
   min-height: 300px;
   max-width: 95vw;
@@ -652,8 +691,8 @@ onUnmounted(() => {
 }
 
 .modal-header {
-  background: linear-gradient(135deg, #2d2d2d, #1a1a1a);
-  border-bottom: 1px solid #333;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-bottom: 1px solid #e0e0e0;
   padding: 12px 16px;
   display: flex;
   align-items: center;
@@ -670,13 +709,13 @@ onUnmounted(() => {
     .header-title {
       h3 {
         margin: 0;
-        color: #fff;
+        color: #2c3e50;
         font-size: 16px;
         font-weight: 600;
       }
       
       .header-subtitle {
-        color: #999;
+        color: #6c757d;
         font-size: 12px;
       }
     }
@@ -695,7 +734,7 @@ onUnmounted(() => {
   .logs-container {
     height: 100%;
     overflow-y: auto;
-    background: #0d1117;
+    background: #f8f9fa;
     font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
     font-size: 13px;
     line-height: 1.4;
@@ -705,15 +744,15 @@ onUnmounted(() => {
     }
     
     &::-webkit-scrollbar-track {
-      background: #1a1a1a;
+      background: #f1f3f4;
     }
     
     &::-webkit-scrollbar-thumb {
-      background: #444;
+      background: #c1c1c1;
       border-radius: 4px;
       
       &:hover {
-        background: #555;
+        background: #a8a8a8;
       }
     }
   }
@@ -731,34 +770,34 @@ onUnmounted(() => {
     padding-left: 8px;
     
     &.log-error {
-      border-left-color: #ff6b6b;
-      background: rgba(255, 107, 107, 0.1);
+      border-left-color: #dc3545;
+      background: rgba(220, 53, 69, 0.1);
     }
     
     &.log-warn {
-      border-left-color: #ffa726;
-      background: rgba(255, 167, 38, 0.1);
+      border-left-color: #fd7e14;
+      background: rgba(253, 126, 20, 0.1);
     }
     
     &.log-info {
-      border-left-color: #42a5f5;
-      background: rgba(66, 165, 245, 0.1);
+      border-left-color: #0d6efd;
+      background: rgba(13, 110, 253, 0.1);
     }
     
     &.log-debug {
-      border-left-color: #66bb6a;
-      background: rgba(102, 187, 106, 0.1);
+      border-left-color: #198754;
+      background: rgba(25, 135, 84, 0.1);
     }
     
     .log-timestamp {
-      color: #666;
+      color: #6c757d;
       font-size: 11px;
       min-width: 80px;
       flex-shrink: 0;
     }
     
     .log-level {
-      color: #fff;
+      color: #495057;
       font-weight: 600;
       min-width: 50px;
       flex-shrink: 0;
@@ -766,13 +805,13 @@ onUnmounted(() => {
     }
     
     .log-source {
-      color: #888;
+      color: #6c757d;
       font-size: 11px;
       flex-shrink: 0;
     }
     
     .log-message {
-      color: #e6e6e6;
+      color: #212529;
       flex: 1;
       word-break: break-all;
     }
@@ -784,7 +823,7 @@ onUnmounted(() => {
     align-items: center;
     justify-content: center;
     height: 200px;
-    color: #666;
+    color: #6c757d;
     
     p {
       margin: 16px 0 0 0;
@@ -798,7 +837,7 @@ onUnmounted(() => {
     align-items: center;
     justify-content: center;
     height: 200px;
-    color: #999;
+    color: #6c757d;
     
     p {
       margin: 16px 0 0 0;
@@ -811,25 +850,25 @@ onUnmounted(() => {
     top: 0;
     left: 0;
     right: 0;
-    background: rgba(13, 17, 23, 0.9);
+    background: rgba(248, 249, 250, 0.95);
     padding: 8px 16px;
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #999;
+    color: #6c757d;
     font-size: 12px;
     z-index: 10;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid #e0e0e0;
     
     span {
-      color: #999;
+      color: #6c757d;
     }
   }
 }
 
 .modal-footer {
-  background: #2d2d2d;
-  border-top: 1px solid #333;
+  background: #f8f9fa;
+  border-top: 1px solid #e0e0e0;
   padding: 8px 16px;
   display: flex;
   align-items: center;
@@ -843,18 +882,18 @@ onUnmounted(() => {
     gap: 12px;
     
     .log-count {
-      color: #999;
+      color: #6c757d;
     }
     
     .initial-lines {
-      color: #666;
+      color: #6c757d;
       font-size: 11px;
     }
   }
   
   .footer-right {
     .last-update {
-      color: #666;
+      color: #6c757d;
     }
   }
 }
@@ -878,7 +917,7 @@ onUnmounted(() => {
       width: 0;
       height: 0;
       border-left: 8px solid transparent;
-      border-bottom: 8px solid #666;
+      border-bottom: 8px solid #adb5bd;
     }
   }
 }

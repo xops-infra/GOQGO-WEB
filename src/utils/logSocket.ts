@@ -52,7 +52,12 @@ export class LogSocket {
         this.socket = new WebSocket(url)
 
         this.socket.onopen = () => {
-          console.log('✅ 日志 WebSocket 连接成功')
+          console.log('✅ 日志 WebSocket 连接成功', {
+            url: url,
+            readyState: this.socket?.readyState,
+            namespace: this.namespace,
+            agentName: this.agentName
+          })
           this.reconnectAttempts = 0
           this.startHeartbeat()
           this.callbacks.onConnect?.()
@@ -89,7 +94,13 @@ export class LogSocket {
         }
 
         this.socket.onerror = (error) => {
-          console.error('❌ 日志 WebSocket 错误:', error)
+          console.error('❌ 日志 WebSocket 错误:', {
+            error: error,
+            url: url,
+            readyState: this.socket?.readyState,
+            namespace: this.namespace,
+            agentName: this.agentName
+          })
           this.callbacks.onError?.('WebSocket 连接错误')
           reject(error)
         }
