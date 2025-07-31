@@ -7,10 +7,12 @@
 - **响应式状态管理** - 使用storeToRefs确保组件与store状态同步
 - **重复状态消除** - 移除组件内部的本地currentNamespace状态
 - **状态监听优化** - 添加watch监听器实时跟踪namespace变化
+- **下拉菜单选项结构** - 修复选项不可点击的问题（移除children属性）
+- **当前namespace高亮** - 为当前选中的namespace添加视觉高亮
 
 ### 🎯 修复详情
 
-#### 问题根因
+#### 问题1: 状态同步问题
 ```javascript
 // 修复前：组件内部维护独立状态，与store不同步
 const currentNamespace = ref('default') // ❌ 本地状态
@@ -21,45 +23,66 @@ const namespacesStore = useNamespacesStore()
 const { currentNamespace, namespaces } = storeToRefs(namespacesStore) // ✅ 响应式引用
 ```
 
-#### 技术实现
+#### 问题2: 下拉菜单选项不可点击
 ```javascript
-// 1. 使用storeToRefs确保响应式同步
-import { storeToRefs } from 'pinia'
-const { currentNamespace, namespaces } = storeToRefs(namespacesStore)
+// 修复前：有children属性，导致Naive UI将其视为子菜单
+const namespaceItems = namespaces.map(ns => ({
+  label: ns.metadata.name,
+  key: `namespace-${ns.metadata.name}`,
+  children: [  // ❌ 导致不可点击
+    { label: `${ns.status?.agentCount || 0} 个智能体`, disabled: true }
+  ]
+}))
 
-// 2. 添加状态变化监听
-watch(currentNamespace, (newValue, oldValue) => {
-  if (newValue !== oldValue) {
-    console.log('📍 Namespace变化:', oldValue, '->', newValue)
-  }
-}, { immediate: true })
+// 修复后：移除children，将信息合并到label中
+const namespaceItems = namespaces.map(ns => ({
+  label: `${ns.metadata.name} (${ns.status?.agentCount || 0} 个智能体)`, // ✅ 直接显示
+  key: `namespace-${ns.metadata.name}`
+  // ✅ 无children，可点击
+}))
+```
 
-// 3. 优化切换逻辑，避免重复切换
-const handleNamespaceChange = async (value: string) => {
-  if (!value || value === currentNamespace.value) return // 防重复
-  
-  try {
-    await namespacesStore.switchNamespace(value)
-    message.success(`已切换到命名空间: ${value}`)
-  } catch (error) {
-    message.error('切换命名空间失败')
+#### 问题3: 当前namespace无高亮显示
+```javascript
+// 修复后：为当前namespace添加高亮样式
+const namespaceItems = namespaces.map(ns => {
+  const isCurrentNamespace = ns.metadata.name === currentNamespace.value
+  return {
+    label: `${ns.metadata.name} (${ns.status?.agentCount || 0} 个智能体)`,
+    key: `namespace-${ns.metadata.name}`,
+    // ✅ 当前namespace高亮显示
+    props: isCurrentNamespace ? {
+      style: {
+        backgroundColor: 'var(--n-option-color-hover)',
+        fontWeight: 'bold'
+      }
+    } : undefined
   }
-}
+})
 ```
 
 ### 🔍 修复验证
 - ✅ Store状态与组件状态完全同步
+- ✅ 下拉菜单选项可正常点击
 - ✅ 切换操作立即反映到UI显示
+- ✅ 当前namespace在下拉菜单中高亮显示
+- ✅ Agent数量实时更新
 - ✅ 多组件间状态一致性保证
-- ✅ 下拉菜单正确显示所有namespace
-- ✅ 点击切换立即生效，当前namespace高亮显示
-- ✅ Agent数量实时更新，错误处理和用户反馈完善
+- ✅ 错误处理和用户反馈完善
 
 ### 🎨 用户体验改进
 - **即时反馈** - 切换成功/失败消息提示
 - **状态一致** - 所有组件显示统一的当前namespace
-- **操作流畅** - 无延迟的切换响应
+- **操作流畅** - 无延迟的切换响应，选项可正常点击
+- **视觉清晰** - 当前namespace高亮显示，易于识别
 - **错误友好** - 清晰的错误信息和处理
+
+### 🔧 技术亮点
+- **单一数据源** - 所有namespace状态统一由store管理
+- **响应式设计** - storeToRefs确保自动更新
+- **状态监听** - watch机制实时跟踪变化
+- **UI组件规范** - 正确使用Naive UI Dropdown组件API
+- **错误边界** - 完善的异常处理和用户提示
 
 ## [2025-07-31] - 后端服务连接检查
 
