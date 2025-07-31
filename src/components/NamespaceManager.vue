@@ -211,10 +211,12 @@ onUnmounted(() => {
     min-width: 180px;
     white-space: nowrap;
     background: var(--card-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     
     &:hover {
       background: var(--hover-color);
       border-color: var(--primary-color-hover);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     }
     
     &.loading {
@@ -280,15 +282,15 @@ onUnmounted(() => {
 :deep(.n-dropdown-menu) {
   background: var(--popover-color);
   border-radius: 8px;
-  box-shadow: var(--box-shadow-2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   border: 1px solid var(--border-color);
-  padding: 4px;
-  min-width: 200px;
+  padding: 6px;
+  min-width: 220px;
   
   .n-dropdown-option {
     border-radius: 6px;
     margin: 2px 0;
-    padding: 8px 12px;
+    padding: 10px 12px;
     transition: all 0.2s ease;
     
     &:hover {
@@ -298,10 +300,11 @@ onUnmounted(() => {
     .n-dropdown-option-body {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       
       .n-dropdown-option-body__prefix {
-        color: var(--text-color-3);
+        color: var(--text-color-2);
+        flex-shrink: 0;
         
         svg {
           width: 16px;
@@ -313,6 +316,7 @@ onUnmounted(() => {
         font-size: 14px;
         font-weight: 500;
         color: var(--text-color-base);
+        line-height: 1.4;
       }
     }
     
@@ -331,6 +335,8 @@ onUnmounted(() => {
     }
     
     &.n-dropdown-option--disabled {
+      opacity: 0.5;
+      
       .n-dropdown-option-body__label {
         color: var(--text-color-disabled);
         font-size: 12px;
@@ -340,7 +346,8 @@ onUnmounted(() => {
   }
   
   .n-dropdown-divider {
-    margin: 4px 0;
+    margin: 6px 0;
+    height: 1px;
     background-color: var(--border-color);
   }
 }

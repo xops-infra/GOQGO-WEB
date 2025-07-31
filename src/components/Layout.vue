@@ -600,7 +600,8 @@ onUnmounted(() => {
   width: 280px;
   background: var(--card-color);
   border-radius: 8px;
-  box-shadow: var(--box-shadow-1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   
@@ -617,11 +618,13 @@ onUnmounted(() => {
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid var(--border-color);
+    background: var(--card-color);
     
     h3 {
       margin: 0;
       font-size: 16px;
       color: var(--text-color-base);
+      font-weight: 600;
     }
   }
 }
@@ -633,7 +636,8 @@ onUnmounted(() => {
   overflow: hidden;
   background: var(--card-color);
   border-radius: 8px;
-  box-shadow: var(--box-shadow-1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--border-color);
   
   .chat-header {
     display: flex;
@@ -655,6 +659,7 @@ onUnmounted(() => {
   .chat-room-container {
     flex: 1; // 占据剩余空间
     overflow: hidden; // 防止溢出
+    background: var(--card-color);
   }
 }
 
@@ -662,6 +667,7 @@ onUnmounted(() => {
   flex: 1;
   overflow-y: auto;
   padding: 8px;
+  background: var(--card-color);
 }
 
 .instance-item {
@@ -670,17 +676,19 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all 0.3s;
   margin-bottom: 8px;
-  border: 1px solid transparent;
-  background: transparent;
+  border: 1px solid var(--border-color);
+  background: var(--card-color);
   
   &:hover {
     background: var(--hover-color);
-    border-color: var(--border-color);
+    border-color: var(--primary-color-hover);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   }
   
   &.active {
     background: var(--primary-color-suppl);
-    border-color: var(--primary-color-hover);
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(24, 144, 255, 0.15);
   }
   
   .instance-info {
@@ -691,8 +699,9 @@ onUnmounted(() => {
       margin-bottom: 8px;
       
       .instance-name {
-        font-weight: 500;
+        font-weight: 600;
         color: var(--text-color-base);
+        font-size: 14px;
       }
       
       .instance-actions {

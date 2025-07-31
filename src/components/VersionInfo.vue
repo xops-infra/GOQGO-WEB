@@ -3,11 +3,8 @@
     <!-- 版本显示 -->
     <span class="version-info" @click="showDetails = !showDetails">
       Version: {{ displayVersion }}
-      <n-icon v-if="hasUpdate" class="update-indicator" color="#52c41a">
-        <svg viewBox="0 0 24 24">
-          <path fill="currentColor" d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M11,16.5L6.5,12L7.91,10.59L11,13.67L16.59,8.09L18,9.5L11,16.5Z"/>
-        </svg>
-      </n-icon>
+      <!-- 小红点指示有新版本 -->
+      <span v-if="hasUpdate" class="update-dot"></span>
     </span>
 
     <!-- 详细信息弹窗 -->
@@ -134,11 +131,12 @@ const checkUpdate = async () => {
     const result = await checkForUpdates()
     updateInfo.value = result
     
-    if (result.hasUpdate) {
-      message.success(`发现新版本 ${result.remoteVersion}`)
-    } else {
-      message.info('当前已是最新版本')
-    }
+    // 移除文字提醒，只保留静默检查
+    // if (result.hasUpdate) {
+    //   message.success(`发现新版本 ${result.remoteVersion}`)
+    // } else {
+    //   message.info('当前已是最新版本')
+    // }
   } catch (error) {
     console.error('检查更新失败:', error)
     message.error('检查更新失败')
@@ -181,12 +179,20 @@ onMounted(async () => {
   gap: 4px;
   transition: color 0.3s ease;
   transform: translateY(4px); // 向下移动 4px
+  position: relative; // 添加相对定位
 
   &:hover {
     color: #1890ff;
   }
 
-  .update-indicator {
+  .update-dot {
+    position: absolute;
+    top: -2px;
+    right: -6px;
+    width: 6px;
+    height: 6px;
+    background-color: #ff4d4f;
+    border-radius: 50%;
     animation: pulse 2s infinite;
   }
 }
