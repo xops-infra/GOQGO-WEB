@@ -20,7 +20,18 @@
     </div>
 
     <!-- 消息列表 -->
-    <div class="messages-container" ref="messagesContainer">
+    <div class="messages-container" ref="messagesContainer" @scroll="handleScroll">
+      <!-- 加载更多历史消息的提示 -->
+      <div v-if="isLoadingHistory" class="loading-history">
+        <n-spin size="small" />
+        <span>加载历史消息...</span>
+      </div>
+      
+      <!-- 没有更多历史消息的提示 -->
+      <div v-else-if="!hasMoreHistory && messages.length > 0" class="no-more-history">
+        <span>已显示全部历史消息</span>
+      </div>
+
       <div class="messages-list">
         <div
           v-for="message in messages"
@@ -35,6 +46,20 @@
       </div>
     </div>
 
+    <!-- 连接状态指示器 -->
+    <div v-if="!isConnected" class="connection-status">
+      <n-alert type="warning" :show-icon="false">
+        <template #icon>
+          <n-icon>
+            <svg viewBox="0 0 24 24">
+              <path fill="currentColor" d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,9H13V7H11M11,17H13V11H11V17Z"/>
+            </svg>
+          </n-icon>
+        </template>
+        连接已断开，正在尝试重连...
+      </n-alert>
+    </div>
+
     <!-- 输入区域 -->
     <ChatInput 
       :is-connected="isConnected" 
@@ -45,7 +70,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useChatStore } from '@/stores/chat'
 import { useMessage } from 'naive-ui'
@@ -63,18 +88,22 @@ const props = withDefaults(defineProps<Props>(), {
 
 // 状态管理
 const chatStore = useChatStore()
-const { messages, onlineUsers, typingUsers, isConnected } = storeToRefs(chatStore)
+const { messages, onlineUsers, typingUsers, isConnected, isLoadingHistory, hasMoreHistory } = storeToRefs(chatStore)
 const message = useMessage()
 
 // 响应式数据
 const messagesContainer = ref<HTMLElement>()
 const isDragActive = ref(false)
 const dragCounter = ref(0)
+const isUserScrolling = ref(false)
+const shouldAutoScroll = ref(true)
 
 // 处理发送消息
 const handleSend = async (text: string) => {
   try {
     await chatStore.sendMessage(text)
+    // 发送消息后自动滚动到底部
+    shouldAutoScroll.value = true
     scrollToBottom()
   } catch (error) {
     console.error('发送消息失败:', error)
@@ -86,6 +115,8 @@ const handleSend = async (text: string) => {
 const handleSendImage = async (imageUrl: string) => {
   try {
     await chatStore.sendImageMessage(imageUrl)
+    // 发送图片后自动滚动到底部
+    shouldAutoScroll.value = true
     scrollToBottom()
   } catch (error) {
     console.error('发送图片失败:', error)
@@ -96,11 +127,63 @@ const handleSendImage = async (imageUrl: string) => {
 // 滚动到底部
 const scrollToBottom = () => {
   nextTick(() => {
-    if (messagesContainer.value) {
+    if (messagesContainer.value && shouldAutoScroll.value) {
       messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
     }
   })
 }
+
+// 处理滚动事件
+const handleScroll = () => {
+  if (!messagesContainer.value) return
+  
+  const { scrollTop, scrollHeight, clientHeight } = messagesContainer.value
+  
+  // 检查是否滚动到顶部，如果是则加载更多历史消息
+  if (scrollTop === 0 && hasMoreHistory.value && !isLoadingHistory.value) {
+    loadMoreHistory()
+  }
+  
+  // 检查用户是否在底部附近（允许一些误差）
+  const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
+  shouldAutoScroll.value = isNearBottom
+  
+  // 标记用户正在滚动
+  isUserScrolling.value = true
+  setTimeout(() => {
+    isUserScrolling.value = false
+  }, 150)
+}
+
+// 加载更多历史消息
+const loadMoreHistory = async () => {
+  if (!messagesContainer.value) return
+  
+  const previousScrollHeight = messagesContainer.value.scrollHeight
+  
+  try {
+    await chatStore.loadMoreHistory()
+    
+    // 加载完成后，保持滚动位置
+    nextTick(() => {
+      if (messagesContainer.value) {
+        const newScrollHeight = messagesContainer.value.scrollHeight
+        const scrollDiff = newScrollHeight - previousScrollHeight
+        messagesContainer.value.scrollTop = scrollDiff
+      }
+    })
+  } catch (error) {
+    console.error('加载历史消息失败:', error)
+    message.error('加载历史消息失败')
+  }
+}
+
+// 监听消息变化，自动滚动到底部（仅当用户在底部时）
+watch(messages, () => {
+  if (shouldAutoScroll.value && !isUserScrolling.value) {
+    scrollToBottom()
+  }
+}, { deep: true })
 
 // 处理拖拽相关事件
 const handleDragEnter = (e: DragEvent) => {
@@ -160,7 +243,10 @@ const handleDrop = async (e: DragEvent) => {
 onMounted(async () => {
   try {
     await chatStore.connect(props.namespace)
-    scrollToBottom()
+    // 连接成功后滚动到底部
+    nextTick(() => {
+      scrollToBottom()
+    })
   } catch (error) {
     console.error('连接聊天室失败:', error)
     message.error('连接失败')
@@ -229,12 +315,62 @@ onUnmounted(() => {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+  scroll-behavior: smooth;
+  
+  .loading-history {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px;
+    color: #666;
+    font-size: 14px;
+  }
+  
+  .no-more-history {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    color: #999;
+    font-size: 12px;
+    
+    span {
+      position: relative;
+      padding: 0 16px;
+      background: #f5f5f5;
+      
+      &::before,
+      &::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        width: 60px;
+        height: 1px;
+        background: #ddd;
+      }
+      
+      &::before {
+        left: -76px;
+      }
+      
+      &::after {
+        right: -76px;
+      }
+    }
+  }
   
   .messages-list {
     display: flex;
     flex-direction: column;
     gap: 16px;
   }
+}
+
+.connection-status {
+  padding: 8px 16px;
+  background: #fff;
+  border-top: 1px solid #e0e0e0;
 }
 
 .message-item {

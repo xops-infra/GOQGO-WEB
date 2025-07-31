@@ -2,27 +2,29 @@
   <div class="chat-input">
     <!-- 图片预览区域 -->
     <div v-if="imagePreviews.length > 0" class="image-preview-area">
-      <TransitionGroup name="image-list">
+      <div class="divider-line">
+        <div class="line"></div>
+      </div>
+      <TransitionGroup name="image-list" tag="div" class="preview-list">
         <div 
           v-for="(preview, index) in imagePreviews" 
           :key="preview.url"
           class="image-preview-item"
-          @mouseenter="hoveredIndex = index"
-          @mouseleave="hoveredIndex = -1"
         >
           <img :src="preview.url" @click="handlePreviewClick(preview)" />
-          <div v-show="hoveredIndex === index" class="image-actions">
-            <div class="delete-btn" @click="removeImage(index)">
-              <n-icon size="16">
-                <svg viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
-                </svg>
-              </n-icon>
-            </div>
+          <div class="delete-btn" @click="removeImage(index)">
+            <n-icon size="14">
+              <svg viewBox="0 0 24 24">
+                <path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+              </svg>
+            </n-icon>
           </div>
           <div class="image-size">{{ formatFileSize(preview.file.size) }}</div>
         </div>
       </TransitionGroup>
+      <div class="divider-line">
+        <div class="line"></div>
+      </div>
     </div>
 
     <!-- 输入区域 -->
@@ -41,19 +43,25 @@
         ref="inputRef"
       />
       <div class="input-actions">
-        <n-button
-          text
-          @click="handleImageUpload"
-          class="image-button"
-          :disabled="!isConnected"
-          v-tooltip="'发送图片'"
-        >
-          <n-icon size="18">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M19.5 12c.277 0 .5.223.5.5v4c0 1.375-1.125 2.5-2.5 2.5h-11c-1.375 0-2.5-1.125-2.5-2.5v-4c0-.277.223-.5.5-.5s.5.223.5.5v4c0 .825.675 1.5 1.5 1.5h11c.825 0 1.5-.675 1.5-1.5v-4c0-.277.223-.5.5-.5zM12 4c.277 0 .5.223.5.5v7.793l3.146-3.147c.196-.195.512-.195.708 0s.195.512 0 .708l-4 4c-.196.195-.512.195-.708 0l-4-4c-.195-.196-.195-.512 0-.708s.512-.195.708 0l3.146 3.147V4.5c0-.277.223-.5.5-.5z"/>
-            </svg>
-          </n-icon>
-        </n-button>
+        <n-tooltip>
+          <template #trigger>
+            <n-button
+              text
+              @click="handleImageUpload"
+              class="image-button"
+              :disabled="!isConnected"
+            >
+              <template #icon>
+                <n-icon size="18">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M19.5 12c.277 0 .5.223.5.5v4c0 1.375-1.125 2.5-2.5 2.5h-11c-1.375 0-2.5-1.125-2.5-2.5v-4c0-.277.223-.5.5-.5s.5.223.5.5v4c0 .825.675 1.5 1.5 1.5h11c.825 0 1.5-.675 1.5-1.5v-4c0-.277.223-.5.5-.5zM12 4c.277 0 .5.223.5.5v7.793l3.146-3.147c.196-.195.512-.195.708 0s.195.512 0 .708l-4 4c-.196.195-.512.195-.708 0l-4-4c-.195-.196-.195-.512 0-.708s.512-.195.708 0l3.146 3.147V4.5c0-.277.223-.5.5-.5z"/>
+                  </svg>
+                </n-icon>
+              </template>
+            </n-button>
+          </template>
+          发送图片
+        </n-tooltip>
         <n-button
           type="primary"
           :disabled="!canSendMessage"
@@ -61,11 +69,13 @@
           class="send-button"
           circle
         >
-          <n-icon size="18">
-            <svg viewBox="0 0 24 24">
-              <path fill="currentColor" d="M2,21L23,12L2,3V10L17,12L2,14V21Z"/>
-            </svg>
-          </n-icon>
+          <template #icon>
+            <n-icon size="18">
+              <svg viewBox="0 0 24 24">
+                <path fill="currentColor" d="M2,21L23,12L2,3V10L17,12L2,14V21Z"/>
+              </svg>
+            </n-icon>
+          </template>
         </n-button>
       </div>
     </div>
@@ -77,17 +87,53 @@
       style="width: auto; max-width: 90vw;"
       :mask-closable="true"
       :close-on-esc="true"
+      transform-origin="center"
+      class="image-preview-modal"
     >
-      <img :src="previewImageUrl" style="max-width: 100%; max-height: 80vh;" />
+      <div class="preview-container">
+        <!-- 左箭头 -->
+        <div 
+          v-if="imagePreviews.length > 1" 
+          class="nav-button prev"
+          @click="prevImage"
+        >
+          <n-icon size="24">
+            <svg viewBox="0 0 24 24">
+              <path fill="currentColor" d="M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z"/>
+            </svg>
+          </n-icon>
+        </div>
+
+        <!-- 图片 -->
+        <img :src="currentPreviewUrl" @click="closePreview" />
+
+        <!-- 右箭头 -->
+        <div 
+          v-if="imagePreviews.length > 1" 
+          class="nav-button next"
+          @click="nextImage"
+        >
+          <n-icon size="24">
+            <svg viewBox="0 0 24 24">
+              <path fill="currentColor" d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"/>
+            </svg>
+          </n-icon>
+        </div>
+
+        <!-- 计数器 -->
+        <div v-if="imagePreviews.length > 1" class="preview-counter">
+          {{ currentPreviewIndex + 1 }} / {{ imagePreviews.length }}
+        </div>
+      </div>
     </n-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useChatStore } from '@/stores/chat'
-import { storeToRefs } from 'pinia'
-import { useMessage, useTooltip } from 'naive-ui'
+import { useMessage } from 'naive-ui'
+import { formatFileSize, generateFileName } from '@/utils/file'
+import { uploadFile } from '@/api/upload'
 
 const props = defineProps<{
   isConnected: boolean
@@ -99,34 +145,23 @@ const emit = defineEmits<{
 }>()
 
 // 状态管理
-const chatStore = useChatStore()
 const message = useMessage()
 
 // 响应式数据
 const inputMessage = ref('')
 const inputRef = ref()
 const imagePreviews = ref<Array<{ url: string; name: string; file: File }>>([])
-const hoveredIndex = ref(-1)
 const showImagePreview = ref(false)
-const previewImageUrl = ref('')
+const currentPreviewIndex = ref(0)
 
 // 计算属性
 const canSendMessage = computed(() => {
   return (inputMessage.value.trim() || imagePreviews.value.length > 0) && props.isConnected
 })
 
-// 处理图片预览点击
-const handlePreviewClick = (preview: { url: string }) => {
-  previewImageUrl.value = preview.url
-  showImagePreview.value = true
-}
-
-// 移除图片
-const removeImage = (index: number) => {
-  const preview = imagePreviews.value[index]
-  URL.revokeObjectURL(preview.url)
-  imagePreviews.value.splice(index, 1)
-}
+const currentPreviewUrl = computed(() => {
+  return imagePreviews.value[currentPreviewIndex.value]?.url || ''
+})
 
 // 处理图片粘贴
 const handlePaste = async (e: ClipboardEvent) => {
@@ -152,11 +187,13 @@ const handlePaste = async (e: ClipboardEvent) => {
       if (file) {
         console.log('📄 获取到图片文件:', file.name, file.type, file.size)
         
-        // 创建预览URL
+        // 创建本地预览URL
         const url = URL.createObjectURL(file)
+        const fileName = generateFileName(file)
+        
         imagePreviews.value.push({
           url,
-          name: file.name || `image_${Date.now()}.${getFileExtension(file.type)}`,
+          name: fileName,
           file
         })
         
@@ -169,6 +206,34 @@ const handlePaste = async (e: ClipboardEvent) => {
   }
 }
 
+// 处理图片上传按钮点击
+const handleImageUpload = () => {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.multiple = true
+  input.onchange = async (e) => {
+    const files = Array.from((e.target as HTMLInputElement).files || [])
+    for (const file of files) {
+      try {
+        // 创建本地预览URL
+        const url = URL.createObjectURL(file)
+        const fileName = generateFileName(file)
+        
+        imagePreviews.value.push({
+          url,
+          name: fileName,
+          file
+        })
+      } catch (error) {
+        console.error('处理图片失败:', error)
+        message.error('处理图片失败')
+      }
+    }
+  }
+  input.click()
+}
+
 // 发送消息
 const handleSendMessage = async () => {
   if (!props.isConnected) return
@@ -176,26 +241,20 @@ const handleSendMessage = async () => {
   try {
     // 处理所有图片
     for (const preview of imagePreviews.value) {
-      const formData = new FormData()
-      formData.append('file', preview.file)
-      
-      const response = await fetch('http://localhost:8080/api/v1/upload', {
-        method: 'POST',
-        body: formData
-      })
-      
-      if (!response.ok) {
-        throw new Error('上传失败')
+      try {
+        // 上传图片
+        const url = await uploadFile(preview.file)
+        emit('send-image', url)
+        
+        // 释放本地预览URL
+        URL.revokeObjectURL(preview.url)
+      } catch (error) {
+        console.error('上传图片失败:', error)
+        message.error('上传图片失败')
       }
-      
-      const data = await response.json()
-      emit('send-image', data.url)
     }
     
     // 清理所有预览
-    imagePreviews.value.forEach(preview => {
-      URL.revokeObjectURL(preview.url)
-    })
     imagePreviews.value = []
     
     // 发送文本消息
@@ -207,6 +266,45 @@ const handleSendMessage = async () => {
     console.error('发送消息失败:', error)
     message.error('发送失败')
   }
+}
+
+// 处理图片预览点击
+const handlePreviewClick = (preview: { url: string }) => {
+  const index = imagePreviews.value.findIndex(p => p.url === preview.url)
+  if (index !== -1) {
+    currentPreviewIndex.value = index
+    showImagePreview.value = true
+  }
+}
+
+// 关闭预览
+const closePreview = () => {
+  showImagePreview.value = false
+}
+
+// 上一张图片
+const prevImage = () => {
+  if (currentPreviewIndex.value > 0) {
+    currentPreviewIndex.value--
+  } else {
+    currentPreviewIndex.value = imagePreviews.value.length - 1
+  }
+}
+
+// 下一张图片
+const nextImage = () => {
+  if (currentPreviewIndex.value < imagePreviews.value.length - 1) {
+    currentPreviewIndex.value++
+  } else {
+    currentPreviewIndex.value = 0
+  }
+}
+
+// 移除图片
+const removeImage = (index: number) => {
+  const preview = imagePreviews.value[index]
+  URL.revokeObjectURL(preview.url)
+  imagePreviews.value.splice(index, 1)
 }
 
 // 处理按键事件
@@ -226,46 +324,6 @@ const handleInput = () => {
 const handleInputBlur = () => {
   // 可以添加失焦时的处理逻辑
 }
-
-// 处理图片上传按钮点击
-const handleImageUpload = () => {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = 'image/*'
-  input.multiple = true
-  input.onchange = async (e) => {
-    const files = Array.from((e.target as HTMLInputElement).files || [])
-    files.forEach(file => {
-      const url = URL.createObjectURL(file)
-      imagePreviews.value.push({
-        url,
-        name: file.name,
-        file
-      })
-    })
-  }
-  input.click()
-}
-
-// 获取文件扩展名
-const getFileExtension = (mimeType: string): string => {
-  const mimeMap: Record<string, string> = {
-    'image/jpeg': 'jpg',
-    'image/jpg': 'jpg', 
-    'image/png': 'png',
-    'image/gif': 'gif',
-    'image/webp': 'webp',
-    'image/bmp': 'bmp'
-  }
-  return mimeMap[mimeType] || 'png'
-}
-
-// 格式化文件大小
-const formatFileSize = (bytes: number): string => {
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-}
 </script>
 
 <style scoped lang="scss">
@@ -275,11 +333,42 @@ const formatFileSize = (bytes: number): string => {
 }
 
 .image-preview-area {
-  padding: 12px;
-  border-bottom: 1px solid #eee;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  padding: 12px 16px;
+  position: relative;
+  
+  .divider-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    padding: 0 16px;
+    
+    &:first-child {
+      top: 0;
+    }
+    
+    &:last-child {
+      bottom: 0;
+    }
+    
+    .line {
+      height: 100%;
+      background: linear-gradient(
+        to right,
+        transparent,
+        rgba(0, 0, 0, 0.1) 20%,
+        rgba(0, 0, 0, 0.1) 80%,
+        transparent
+      );
+    }
+  }
+  
+  .preview-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 0;
+  }
 }
 
 .image-preview-item {
@@ -295,47 +384,37 @@ const formatFileSize = (bytes: number): string => {
     height: 100%;
     object-fit: cover;
     transition: transform 0.2s;
-    cursor: pointer;
+    cursor: zoom-in;
     
     &:hover {
       transform: scale(1.05);
     }
   }
   
-  .image-actions {
+  .delete-btn {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    top: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
     background: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
     opacity: 0;
-    transition: opacity 0.2s;
     
     &:hover {
-      opacity: 1;
+      background: rgba(0, 0, 0, 0.7);
+      transform: scale(1.1);
     }
-    
-    .delete-btn {
-      width: 24px;
-      height: 24px;
-      background: rgba(255, 255, 255, 0.9);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #ff4d4f;
-      cursor: pointer;
-      transition: all 0.2s;
-      
-      &:hover {
-        transform: scale(1.1);
-        background: white;
-      }
-    }
+  }
+  
+  &:hover .delete-btn {
+    opacity: 1;
   }
   
   .image-size {
@@ -346,8 +425,9 @@ const formatFileSize = (bytes: number): string => {
     padding: 4px;
     background: rgba(0, 0, 0, 0.5);
     color: white;
-    font-size: 10px;
+    font-size: 12px;
     text-align: center;
+    backdrop-filter: blur(4px);
   }
 }
 
@@ -426,5 +506,79 @@ const formatFileSize = (bytes: number): string => {
 
 .image-list-move {
   transition: transform 0.3s ease;
+}
+
+// 图片预览弹窗
+.image-preview-modal {
+  :deep(.n-card) {
+    background: transparent;
+    border: none;
+    
+    .n-card__content {
+      padding: 0;
+    }
+  }
+}
+
+.preview-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  img {
+    max-width: 100%;
+    max-height: 80vh;
+    cursor: zoom-out;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  .nav-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    backdrop-filter: blur(4px);
+    
+    &:hover {
+      background: rgba(0, 0, 0, 0.7);
+      transform: translateY(-50%) scale(1.1);
+    }
+    
+    &:active {
+      transform: translateY(-50%) scale(0.95);
+    }
+    
+    &.prev {
+      left: -60px;
+    }
+    
+    &.next {
+      right: -60px;
+    }
+  }
+  
+  .preview-counter {
+    position: absolute;
+    bottom: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    backdrop-filter: blur(4px);
+  }
 }
 </style>

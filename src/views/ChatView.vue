@@ -5,7 +5,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import ChatRoom from '@/components/ChatRoom.vue'
 import { useNamespacesStore } from '@/stores/namespaces'
 import { storeToRefs } from 'pinia'
@@ -13,6 +12,7 @@ import { storeToRefs } from 'pinia'
 // 获取当前命名空间
 const namespacesStore = useNamespacesStore()
 const { currentNamespace } = storeToRefs(namespacesStore)
+console.log("currentNamespace", currentNamespace.value)
 </script>
 
 <style scoped lang="scss">

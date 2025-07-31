@@ -50,6 +50,7 @@ export const useAgentsStore = defineStore('agents', () => {
       // 尝试调用真实API
       const data = await agentApi.getList(targetNamespace)
       // API返回的是 { items: Agent[] } 格式
+      console.log("agentApi.getList", data)
       agents.value = data.items || []
       console.log(`获取到 ${targetNamespace} 命名空间下的 ${agents.value.length} 个agents`)
       
@@ -148,6 +149,45 @@ export const useAgentsStore = defineStore('agents', () => {
       console.log(`🎯 自动选择新创建的模拟agent: ${newAgent.name}`)
       
       return newAgent
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const restartAgent = async (namespace: string, name: string) => {
+    loading.value = true
+    try {
+      // 尝试调用真实API
+      await agentApi.restart(namespace, name)
+      
+      // 更新本地状态
+      const agent = agents.value.find(a => a.name === name)
+      if (agent) {
+        agent.status = 'Creating'
+        agent.restartCount = (agent.restartCount || 0) + 1
+      }
+      
+      // 等待一段时间后刷新状态
+      setTimeout(async () => {
+        await fetchAgents()
+      }, 2000)
+      
+      console.log(`Agent ${name} 重启成功`)
+    } catch (error) {
+      console.error('重启Agent失败:', error)
+      
+      // Fallback到模拟重启
+      const agent = agents.value.find(a => a.name === name)
+      if (agent) {
+        agent.status = 'Creating'
+        agent.restartCount = (agent.restartCount || 0) + 1
+        
+        // 模拟重启过程
+        setTimeout(() => {
+          agent.status = 'running'
+          console.log(`Agent ${name} 重启完成 (模拟)`)
+        }, 2000)
+      }
     } finally {
       loading.value = false
     }
@@ -261,6 +301,7 @@ export const useAgentsStore = defineStore('agents', () => {
     fetchAgents,
     createAgent,
     deleteAgent,
+    restartAgent,
     sendMessage,
     getLogs,
     selectAgent,
