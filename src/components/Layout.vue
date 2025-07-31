@@ -163,7 +163,11 @@
               统计
             </n-button>
           </div>
-          <ChatRoom :namespace="currentNamespace" :show-stats="showStatsPanel" />
+          <ChatRoom 
+            :namespace="currentNamespace" 
+            :show-stats="showStatsPanel" 
+            class="chat-room-container"
+          />
         </div>
       </div>
 
@@ -591,6 +595,7 @@ onUnmounted(() => {
     padding: 12px 16px;
     border-bottom: 1px solid #f0f0f0;
     background: #fafafa;
+    flex-shrink: 0; // 头部不收缩
     
     h3 {
       margin: 0;
@@ -598,6 +603,11 @@ onUnmounted(() => {
       color: #333;
       font-weight: 600;
     }
+  }
+  
+  .chat-room-container {
+    flex: 1; // 占据剩余空间
+    overflow: hidden; // 防止溢出
   }
 }
 

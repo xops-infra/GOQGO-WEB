@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Layout from '@/components/Layout.vue'
 import ChatView from '@/views/ChatView.vue'
+import DebugView from '@/views/DebugView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -16,6 +17,12 @@ const router = createRouter({
       name: 'chat',
       component: ChatView,
       meta: { title: '聊天室' }
+    },
+    {
+      path: '/debug',
+      name: 'debug',
+      component: DebugView,
+      meta: { title: 'WebSocket调试' }
     }
   ]
 })

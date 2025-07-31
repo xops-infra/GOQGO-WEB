@@ -12,9 +12,9 @@ export const useChatStore = defineStore('chat', () => {
   const typingUsers = ref<Set<string>>(new Set())
   const isConnected = ref(false)
   const currentNamespace = ref('default')
-  const currentChatName = ref('default')
   const isLoadingHistory = ref(false)
   const hasMoreHistory = ref(true)
+  const sessionStartTime = ref<string>('') // 会话开始时间，用于区分历史消息和当前消息
   
   // WebSocket实例
   let chatSocket: ChatSocket | null = null
@@ -32,17 +32,17 @@ export const useChatStore = defineStore('chat', () => {
   const typingUsersList = computed(() => Array.from(typingUsers.value))
 
   // 连接聊天室
-  const connect = async (namespace: string, chatName: string = 'default') => {
+  const connect = async (namespace: string) => {
     currentNamespace.value = namespace
-    currentChatName.value = chatName
     
-    console.log('🔌 连接聊天室:', { namespace, chatName, username: userStore.currentUser.username })
+    console.log('🔌 连接聊天室:', { namespace, username: userStore.currentUser.username })
     
     // 清空之前的数据
     messages.value = []
     onlineUsers.value = []
     typingUsers.value.clear()
     hasMoreHistory.value = true
+    sessionStartTime.value = new Date().toISOString() // 记录会话开始时间
     
     // 断开现有连接
     if (chatSocket) {
@@ -52,17 +52,18 @@ export const useChatStore = defineStore('chat', () => {
     // 创建新的WebSocket连接，使用当前用户名
     chatSocket = new ChatSocket(userStore.currentUser.username)
     
-    // 连接到指定的命名空间和聊天室
-    chatSocket.connect(namespace, chatName, {
+    // 连接到指定的命名空间聊天室
+    chatSocket.connect(namespace, {
       onMessage: (message) => {
         console.log('📨 收到新消息:', message)
         addMessage(message)
       },
       
       onHistoryLoaded: (historyMessages) => {
-        console.log('📜 加载历史消息:', historyMessages.length, '条')
+        console.log('📜 加载历史消息:', historyMessages?.length || 0, '条')
         
-        if (historyMessages.length === 0) {
+        if (!Array.isArray(historyMessages) || historyMessages.length === 0) {
+          console.log('📜 历史消息为空，设置hasMoreHistory为false')
           hasMoreHistory.value = false
           isLoadingHistory.value = false
           return
@@ -70,12 +71,20 @@ export const useChatStore = defineStore('chat', () => {
         
         // 合并历史消息，避免重复
         const existingIds = new Set(messages.value.map(m => m.id))
-        const newMessages = historyMessages.filter(m => !existingIds.has(m.id))
+        const newMessages = historyMessages.filter(m => m && m.id && !existingIds.has(m.id))
+        
+        console.log('📜 消息去重结果:', {
+          existing: messages.value.length,
+          received: historyMessages.length,
+          new: newMessages.length
+        })
         
         if (newMessages.length > 0) {
           // 将历史消息添加到开头（保持时间顺序）
           messages.value = [...newMessages, ...messages.value]
-          console.log('✅ 添加了', newMessages.length, '条新的历史消息')
+          console.log('✅ 添加了', newMessages.length, '条新的历史消息，总计:', messages.value.length, '条')
+        } else {
+          console.log('⚠️ 没有新的历史消息需要添加')
         }
         
         isLoadingHistory.value = false
@@ -83,7 +92,14 @@ export const useChatStore = defineStore('chat', () => {
         // 如果返回的消息数量少于请求数量，说明没有更多了
         if (historyMessages.length < 20) {
           hasMoreHistory.value = false
+          console.log('📜 历史消息数量少于20条，设置hasMoreHistory为false')
         }
+      },
+      
+      onHistoryInfo: (info) => {
+        console.log('📜 收到历史消息元信息:', info)
+        hasMoreHistory.value = info.hasMore
+        isLoadingHistory.value = false
       },
       
       onUserJoin: (username) => {
@@ -151,7 +167,7 @@ export const useChatStore = defineStore('chat', () => {
       console.log('📤 发送图片消息:', imageUrl)
 
       // 调用 HTTP API 发送图片消息
-      const response = await chatApi.sendMessage(currentNamespace.value, currentChatName.value, {
+      const response = await chatApi.sendMessage(currentNamespace.value, {
         message: `[图片] ${imageUrl}`,
         type: 'user'
       })
@@ -164,27 +180,28 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  // 发送消息 - 使用 HTTP API
+  // 发送消息 - 使用WebSocket直接发送
   const sendMessage = async (content: string, messageType: string = 'text') => {
     if (!content.trim()) {
       console.warn('⚠️ 消息内容为空，跳过发送')
       return false
     }
 
+    if (!chatSocket || !chatSocket.isConnected) {
+      console.error('❌ WebSocket未连接，无法发送消息')
+      throw new Error('WebSocket未连接')
+    }
+
     try {
-      console.log('📤 发送消息到聊天室:', { 
+      console.log('📤 通过WebSocket发送消息:', { 
         namespace: currentNamespace.value, 
         chatName: currentChatName.value, 
         content: content.substring(0, 50) + '...' 
       })
 
-      // 调用 HTTP API 发送消息
-      const response = await chatApi.sendMessage(currentNamespace.value, currentChatName.value, {
-        message: content,
-        type: 'user'
-      })
-
-      console.log('✅ 消息发送成功:', response)
+      // 直接通过WebSocket发送消息
+      chatSocket.sendMessage(content, messageType)
+      console.log('✅ 消息发送成功')
       return true
     } catch (error) {
       console.error('❌ 发送消息失败:', error)
@@ -240,7 +257,6 @@ export const useChatStore = defineStore('chat', () => {
   const getConnectionInfo = () => {
     return chatSocket?.getConnectionInfo() || {
       namespace: currentNamespace.value,
-      chatName: currentChatName.value,
       username: userStore.currentUser.username,
       connected: false,
       wsUrl: ''
@@ -256,9 +272,9 @@ export const useChatStore = defineStore('chat', () => {
     typingUsersList,
     isConnected,
     currentNamespace,
-    currentChatName,
     isLoadingHistory,
     hasMoreHistory,
+    sessionStartTime,
     
     // 方法
     connect,

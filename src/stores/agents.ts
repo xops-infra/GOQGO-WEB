@@ -278,6 +278,43 @@ export const useAgentsStore = defineStore('agents', () => {
     selectedAgent.value = agent
   }
 
+  // 事件监听器引用
+  let namespaceChangeHandler: ((event: CustomEvent) => void) | null = null
+
+  // 设置事件监听器
+  const setupEventListeners = () => {
+    // 监听namespace变化事件
+    namespaceChangeHandler = async (event: CustomEvent) => {
+      const { namespace } = event.detail
+      console.log('🔄 Agents store收到namespace变化事件:', namespace)
+      
+      try {
+        // 清空当前agents列表
+        agents.value = []
+        selectedAgent.value = null
+        
+        // 重新获取新namespace下的agents
+        await fetchAgents()
+        console.log('✅ 已更新agents列表')
+      } catch (error) {
+        console.error('❌ 更新agents列表失败:', error)
+      }
+    }
+
+    // 添加事件监听器
+    window.addEventListener('namespace-changed', namespaceChangeHandler as EventListener)
+    console.log('✅ Agents store事件监听器已设置')
+  }
+
+  // 清理事件监听器
+  const cleanupEventListeners = () => {
+    if (namespaceChangeHandler) {
+      window.removeEventListener('namespace-changed', namespaceChangeHandler as EventListener)
+      namespaceChangeHandler = null
+      console.log('🧹 Agents store事件监听器已清理')
+    }
+  }
+
   const clearSelection = () => {
     selectedAgent.value = null
   }
@@ -285,16 +322,6 @@ export const useAgentsStore = defineStore('agents', () => {
   // 刷新agents列表
   const refreshAgents = async () => {
     await fetchAgents()
-  }
-
-  // 设置事件监听器
-  const setupEventListeners = () => {
-    window.addEventListener('namespace-changed', handleNamespaceChange as EventListener)
-  }
-
-  // 清理事件监听器
-  const cleanupEventListeners = () => {
-    window.removeEventListener('namespace-changed', handleNamespaceChange as EventListener)
   }
 
   return {

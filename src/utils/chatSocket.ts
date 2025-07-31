@@ -3,6 +3,7 @@ import type { ChatMessage } from '@/types/api'
 export interface SocketCallbacks {
   onMessage?: (message: ChatMessage) => void
   onHistoryLoaded?: (messages: ChatMessage[]) => void
+  onHistoryInfo?: (info: { hasMore: boolean; count: number }) => void
   onUserJoin?: (user: string) => void
   onUserLeave?: (user: string) => void
   onTyping?: (user: string, isTyping: boolean) => void
@@ -13,7 +14,6 @@ export interface SocketCallbacks {
 export class ChatSocket {
   private ws: WebSocket | null = null
   private namespace: string
-  private chatName: string
   private username: string
   private callbacks: SocketCallbacks = {}
   private reconnectTimer: number | null = null
@@ -23,13 +23,11 @@ export class ChatSocket {
   
   constructor(username: string = 'xops') {
     this.namespace = 'default'
-    this.chatName = 'default'
     this.username = username
   }
   
-  connect(namespace: string, chatName: string = 'default', callbacks: SocketCallbacks = {}) {
+  connect(namespace: string, callbacks: SocketCallbacks = {}) {
     this.namespace = namespace
-    this.chatName = chatName
     this.callbacks = callbacks
     this.reconnectAttempts = 0
     
@@ -41,7 +39,7 @@ export class ChatSocket {
       this.ws.close()
     }
     
-    // 修复WebSocket连接URL，添加用户名参数
+    // 使用新的WebSocket连接URL格式（移除chatName）
     const wsUrl = `ws://localhost:8080/ws/namespaces/${this.namespace}/chat?username=${this.username}`
     console.log('🔌 连接WebSocket:', wsUrl)
     
@@ -87,27 +85,49 @@ export class ChatSocket {
     console.log('📨 收到WebSocket消息:', data.type, data)
     
     switch (data.type) {
-      case 'message':
-        this.callbacks.onMessage?.(data.payload)
+      case 'chat':
+        // 处理聊天消息，转换字段格式
+        const chatMessage = this.normalizeMessage(data.data)
+        this.callbacks.onMessage?.(chatMessage)
         break
         
       case 'history':
-        console.log('📜 收到历史消息:', data.payload?.length || 0, '条')
-        this.callbacks.onHistoryLoaded?.(data.payload || [])
+        console.log('📜 收到历史消息原始数据:', data.data)
+        // 服务器返回格式: {"data": {"messages": [...], "hasMore": false}}
+        const historyData = data.data
+        const rawMessages = historyData?.messages || []
+        const hasMore = historyData?.hasMore || false
+        
+        // 转换消息格式
+        const normalizedMessages = rawMessages.map(msg => this.normalizeMessage(msg))
+        
+        console.log('📜 解析历史消息:', {
+          messagesCount: normalizedMessages.length,
+          hasMore: hasMore,
+          firstMessage: normalizedMessages[0] || null
+        })
+        
+        // 传递消息数组给回调
+        this.callbacks.onHistoryLoaded?.(normalizedMessages)
+        
+        // 如果有hasMore信息，也可以传递给回调（需要扩展接口）
+        if (this.callbacks.onHistoryInfo) {
+          this.callbacks.onHistoryInfo({ hasMore, count: normalizedMessages.length })
+        }
         break
         
       case 'user_join':
-        console.log('👤 用户加入:', data.payload?.user || data.payload)
-        this.callbacks.onUserJoin?.(data.payload?.user || data.payload)
+        console.log('👤 用户加入:', data.data?.username || data.data)
+        this.callbacks.onUserJoin?.(data.data?.username || data.data)
         break
         
       case 'user_leave':
-        console.log('👤 用户离开:', data.payload?.user || data.payload)
-        this.callbacks.onUserLeave?.(data.payload?.user || data.payload)
+        console.log('👤 用户离开:', data.data?.username || data.data)
+        this.callbacks.onUserLeave?.(data.data?.username || data.data)
         break
         
       case 'typing':
-        this.callbacks.onTyping?.(data.payload.user, data.payload.isTyping)
+        this.callbacks.onTyping?.(data.data.username, data.data.isTyping)
         break
         
       case 'pong':
@@ -116,8 +136,8 @@ export class ChatSocket {
         break
         
       case 'error':
-        console.error('❌ 服务器错误:', data.payload)
-        this.callbacks.onError?.(data.payload)
+        console.error('❌ 服务器错误:', data.data)
+        this.callbacks.onError?.(data.data)
         break
         
       default:
@@ -128,8 +148,8 @@ export class ChatSocket {
   private requestHistory(limit: number = 50, before?: string) {
     console.log('📜 请求历史消息, limit:', limit, 'before:', before)
     this.send({
-      type: 'get_history',
-      payload: { limit, before }
+      type: 'history_request',
+      data: { limit, before }
     })
   }
   
@@ -140,12 +160,10 @@ export class ChatSocket {
   
   sendMessage(content: string, messageType: string = 'text') {
     const message = {
-      type: 'send_message',
-      payload: {
+      type: 'chat',
+      data: {
         content,
-        messageType,
-        timestamp: new Date().toISOString(),
-        username: this.username
+        type: messageType
       }
     }
     
@@ -156,11 +174,39 @@ export class ChatSocket {
   sendTyping(isTyping: boolean) {
     this.send({
       type: 'typing',
-      payload: { 
+      data: { 
         isTyping,
         username: this.username
       }
     })
+  }
+  
+  // 转换服务器消息格式为前端格式
+  private normalizeMessage(serverMessage: any): ChatMessage {
+    return {
+      id: serverMessage.id,
+      senderId: serverMessage.username || serverMessage.senderId || 'unknown',
+      senderName: serverMessage.username || serverMessage.senderName || 'Unknown User',
+      senderAvatar: serverMessage.senderAvatar,
+      content: serverMessage.content || '',
+      timestamp: serverMessage.timestamp || new Date().toISOString(),
+      type: serverMessage.type || 'user',
+      status: 'sent',
+      messageType: this.detectMessageType(serverMessage.content || ''),
+      imageUrl: serverMessage.imageUrl,
+      imagePath: serverMessage.imagePath
+    }
+  }
+  
+  // 检测消息类型
+  private detectMessageType(content: string): 'text' | 'image' | 'file' {
+    if (content.includes('[图片]') || content.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+      return 'image'
+    }
+    if (content.includes('[文件]') || content.match(/\.(pdf|doc|docx|txt|zip|rar)$/i)) {
+      return 'file'
+    }
+    return 'text'
   }
   
   private send(data: any) {
@@ -220,7 +266,6 @@ export class ChatSocket {
   getConnectionInfo() {
     return {
       namespace: this.namespace,
-      chatName: this.chatName,
       username: this.username,
       connected: this.isConnected,
       wsUrl: `ws://localhost:8080/ws/namespaces/${this.namespace}/chat?username=${this.username}`

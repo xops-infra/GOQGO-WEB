@@ -1,5 +1,40 @@
 <template>
-  <div class="chat-input">
+  <div class="chat-input-wrapper">
+    <!-- @mention 选择框 - 显示在输入框上方 -->
+    <div v-if="showMentionDropdown" class="mention-selector">
+      <!-- 调试信息 -->
+      <div style="background: #f0f0f0; padding: 4px 8px; font-size: 12px; border-bottom: 1px solid #ddd;">
+        调试: 选中索引 {{ selectedMentionIndex }}, 总数 {{ filteredAgents.length }}
+      </div>
+      
+      <div class="mention-list">
+        <div 
+          v-for="(agent, index) in filteredAgents" 
+          :key="agent.name"
+          class="mention-item"
+          :class="{ 'mention-item-selected': index === selectedMentionIndex }"
+          @click="selectMention(agent)"
+          @mouseenter="selectedMentionIndex = index"
+          :style="{ 
+            backgroundColor: index === selectedMentionIndex ? '#1890ff' : 'transparent',
+            color: index === selectedMentionIndex ? 'white' : 'inherit'
+          }"
+        >
+          <div class="mention-info">
+            <span class="mention-name">@{{ agent.name }}</span>
+            <span class="mention-role">{{ agent.role }}</span>
+          </div>
+          <kbd v-if="index < 9" class="mention-key">{{ index + 1 }}</kbd>
+          <span style="margin-left: 8px; font-size: 10px;">{{ index === selectedMentionIndex ? '✓' : '' }}</span>
+        </div>
+        
+        <div v-if="filteredAgents.length === 0" class="mention-empty">
+          没有找到匹配的 Agent
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-input">
     <!-- 图片预览区域 -->
     <div v-if="imagePreviews.length > 0" class="image-preview-area">
       <div class="divider-line">
@@ -151,6 +186,7 @@
       </div>
     </n-modal>
   </div>
+</div>
 </template>
 
 <script setup lang="ts">
@@ -158,6 +194,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useMessage } from 'naive-ui'
 import { formatFileSize, generateFileName } from '@/utils/file'
 import { uploadFile } from '@/api/upload'
+import { useAgentsStore } from '@/stores/agents'
 
 const props = defineProps<{
   isConnected: boolean
@@ -171,12 +208,45 @@ const emit = defineEmits<{
 
 // 状态管理
 const message = useMessage()
+const agentsStore = useAgentsStore()
 
 // 响应式数据
 const inputMessage = ref('')
 const inputRef = ref()
 const imagePreviews = ref<Array<{ url: string; name: string; file: File }>>([])
 const showImagePreview = ref(false)
+
+// @mention 相关数据
+const showMentionDropdown = ref(false)
+const mentionQuery = ref('')
+const mentionStartPos = ref(0)
+const selectedMentionIndex = ref(0)
+const mentionAgents = ref<Array<{ name: string; role: string }>>([])
+
+// 计算属性 - 过滤匹配的 agents
+const filteredAgents = computed(() => {
+  console.log('🔍 过滤 Agents:', {
+    query: mentionQuery.value,
+    allAgents: agentsStore.agents.length,
+    showDropdown: showMentionDropdown.value
+  })
+  
+  if (!mentionQuery.value) {
+    const result = agentsStore.agents.slice(0, 5) // 显示前5个
+    console.log('📋 无查询，返回前5个:', result.map(a => a.name))
+    return result
+  }
+  
+  const filtered = agentsStore.agents
+    .filter(agent => 
+      agent.name.toLowerCase().includes(mentionQuery.value.toLowerCase()) ||
+      agent.role.toLowerCase().includes(mentionQuery.value.toLowerCase())
+    )
+    .slice(0, 5)
+    
+  console.log('🔎 过滤结果:', filtered.map(a => ({ name: a.name, role: a.role })))
+  return filtered
+})
 const currentPreviewIndex = ref(0)
 
 // 草稿保存功能
@@ -243,7 +313,7 @@ const handleDragOver = (e: DragEvent) => {
 const handleDragLeave = (e: DragEvent) => {
   e.preventDefault()
   // 只有当离开整个容器时才设置为false
-  if (!e.currentTarget?.contains(e.relatedTarget as Node)) {
+  if (!(e.currentTarget as Element)?.contains(e.relatedTarget as Node)) {
     isDragOver.value = false
   }
 }
@@ -382,8 +452,132 @@ const removeImage = (index: number) => {
 
 // 处理输入事件
 const handleInput = () => {
+  // 检测 @mention
+  checkMentionTrigger()
+  
   // 保存草稿
   saveDraft()
+}
+
+// 获取 Agent 状态类型
+const getAgentStatusType = (status: string) => {
+  const statusMap: Record<string, 'default' | 'info' | 'success' | 'warning' | 'error'> = {
+    'idle': 'success',      // 空闲状态 - 绿色
+    'busy': 'info',         // 忙碌状态 - 蓝色  
+    'running': 'info',      // 运行状态 - 蓝色
+    'stopped': 'default',   // 停止状态 - 灰色
+    'creating': 'warning',  // 创建中状态 - 橙色
+    'error': 'error',       // 错误状态 - 红色
+    'terminating': 'warning' // 终止中状态 - 橙色
+  }
+  return statusMap[status.toLowerCase()] || 'default'
+}
+
+// 选择 mention
+const selectMention = (agent: { name: string; role: string }) => {
+  console.log('🎯 选择 Agent:', agent)
+  
+  const input = inputRef.value?.textareaElRef
+  if (!input) {
+    console.log('❌ 无法获取输入框引用')
+    return
+  }
+
+  const text = inputMessage.value
+  const beforeMention = text.substring(0, mentionStartPos.value)
+  const afterMention = text.substring(input.selectionStart)
+  
+  console.log('📝 文本替换:', {
+    original: text,
+    beforeMention,
+    afterMention,
+    mentionStartPos: mentionStartPos.value,
+    cursorPos: input.selectionStart
+  })
+  
+  // 构建新的文本
+  const newText = beforeMention + `@${agent.name} ` + afterMention
+  inputMessage.value = newText
+  
+  console.log('✅ 新文本:', newText)
+  
+  // 设置光标位置
+  const newCursorPos = mentionStartPos.value + agent.name.length + 2 // @ + name + space
+  setTimeout(() => {
+    input.focus()
+    input.setSelectionRange(newCursorPos, newCursorPos)
+    console.log('📍 光标位置设置为:', newCursorPos)
+  }, 0)
+  
+  // 隐藏下拉框
+  showMentionDropdown.value = false
+  console.log('❌ 隐藏下拉框')
+  
+  // 保存草稿
+  saveDraft()
+}
+
+// 隐藏 mention 下拉框
+const hideMentionDropdown = () => {
+  showMentionDropdown.value = false
+}
+
+// 检测 @mention 触发
+const checkMentionTrigger = () => {
+  console.log('🔍 检测 @mention 触发')
+  
+  const input = inputRef.value?.textareaElRef
+  if (!input) {
+    console.log('❌ 无法获取输入框引用')
+    return
+  }
+
+  const cursorPos = input.selectionStart
+  const text = inputMessage.value
+  
+  console.log('📝 当前输入:', { text, cursorPos })
+  
+  // 查找最近的 @ 符号
+  let atPos = -1
+  for (let i = cursorPos - 1; i >= 0; i--) {
+    if (text[i] === '@') {
+      atPos = i
+      break
+    }
+    if (text[i] === ' ' || text[i] === '\n') {
+      break
+    }
+  }
+  
+  console.log('🎯 @ 符号位置:', atPos)
+  
+  if (atPos !== -1) {
+    // 提取 @ 后的查询文本
+    const query = text.substring(atPos + 1, cursorPos)
+    console.log('🔎 查询文本:', query)
+    
+    // 检查是否是有效的 mention（不包含空格和换行）
+    if (!query.includes(' ') && !query.includes('\n')) {
+      mentionStartPos.value = atPos
+      mentionQuery.value = query
+      selectedMentionIndex.value = 0
+      showMentionDropdown.value = true
+      
+      console.log('✅ 显示 @mention 下拉框:', {
+        startPos: atPos,
+        query,
+        agentsCount: filteredAgents.value.length,
+        showDropdown: showMentionDropdown.value
+      })
+      return
+    }
+  }
+  
+  // 隐藏下拉框
+  if (showMentionDropdown.value) {
+    console.log('❌ 隐藏 @mention 下拉框')
+    showMentionDropdown.value = false
+  }
 }
 
 // 草稿保存功能
@@ -419,6 +613,77 @@ const clearDraft = () => {
 
 // 增强的按键处理
 const handleKeyDown = (e: KeyboardEvent) => {
+  console.log('⌨️ 按键事件:', { key: e.key, showMentionDropdown: showMentionDropdown.value })
+  
+  // 处理 @mention 下拉框的键盘导航
+  if (showMentionDropdown.value) {
+    console.log('🎯 处理 @mention 键盘导航:', { 
+      key: e.key, 
+      selectedIndex: selectedMentionIndex.value,
+      agentsCount: filteredAgents.value.length 
+    })
+    
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      const newIndex = Math.min(selectedMentionIndex.value + 1, filteredAgents.value.length - 1)
+      selectedMentionIndex.value = newIndex
+      console.log('⬇️ 向下选择:', newIndex)
+      console.log('🔄 响应式状态检查:', {
+        selectedMentionIndex: selectedMentionIndex.value,
+        filteredAgentsLength: filteredAgents.value.length,
+        showDropdown: showMentionDropdown.value
+      })
+      return
+    }
+    
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      const newIndex = Math.max(selectedMentionIndex.value - 1, 0)
+      selectedMentionIndex.value = newIndex
+      console.log('⬆️ 向上选择:', newIndex)
+      console.log('🔄 响应式状态检查:', {
+        selectedMentionIndex: selectedMentionIndex.value,
+        filteredAgentsLength: filteredAgents.value.length,
+        showDropdown: showMentionDropdown.value
+      })
+      return
+    }
+    
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault()
+      const selectedAgent = filteredAgents.value[selectedMentionIndex.value]
+      if (selectedAgent) {
+        console.log('✅ 确认选择 Agent:', selectedAgent.name)
+        selectMention(selectedAgent)
+      } else {
+        console.log('❌ 没有选中的 Agent')
+      }
+      return
+    }
+    
+    // 数字键快速选择 (1-9)
+    if (e.key >= '1' && e.key <= '9') {
+      e.preventDefault()
+      const index = parseInt(e.key) - 1
+      const selectedAgent = filteredAgents.value[index]
+      if (selectedAgent) {
+        console.log('🔢 数字键选择 Agent:', { key: e.key, index, agent: selectedAgent.name })
+        selectedMentionIndex.value = index
+        selectMention(selectedAgent)
+      } else {
+        console.log('❌ 数字键选择无效:', { key: e.key, index, agentsCount: filteredAgents.value.length })
+      }
+      return
+    }
+    
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      console.log('🚫 Escape 取消选择')
+      showMentionDropdown.value = false
+      return
+    }
+  }
+  
   // 更新快捷键状态
   isCtrlPressed.value = e.ctrlKey || e.metaKey
   isShiftPressed.value = e.shiftKey
@@ -515,6 +780,18 @@ const addFile = async (file: File) => {
   }
 }
 
+// 处理多个文件添加（供外部调用）
+const addFiles = async (files: File[]) => {
+  for (const file of files) {
+    await addFile(file)
+  }
+}
+
+// 暴露方法给父组件
+defineExpose({
+  addFiles
+})
+
 // 输入法状态处理
 const handleCompositionStart = () => {
   isComposing.value = true
@@ -526,12 +803,23 @@ const handleCompositionEnd = () => {
 
 // 处理失焦事件
 const handleInputBlur = () => {
+  // 延迟隐藏 mention 下拉框，允许点击选项
+  setTimeout(() => {
+    showMentionDropdown.value = false
+  }, 150)
+  
   // 失焦时保存草稿
   saveDraft()
 }
 
 // 生命周期
 onMounted(() => {
+  console.log('🚀 ChatInput 组件挂载')
+  console.log('📊 Agents Store 状态:', {
+    agentsCount: agentsStore.agents.length,
+    agents: agentsStore.agents.map(a => ({ name: a.name, role: a.role }))
+  })
+  
   // 组件挂载时加载草稿
   loadDraft()
 })
@@ -548,6 +836,10 @@ onUnmounted(() => {
 .chat-input {
   border-top: 1px solid #eee;
   background: white;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .image-preview-area {
@@ -846,3 +1138,110 @@ onUnmounted(() => {
   }
 }
 </style>
+/* 简化的 @mention 样式 - 确保基本功能 */
+.chat-input-wrapper {
+  position: relative;
+}
+
+.mention-selector {
+  position: absolute !important;
+  bottom: 100% !important;
+  left: 0 !important;
+  right: 0 !important;
+  background: white !important;
+  border: 2px solid #1890ff !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  z-index: 9999 !important;
+  margin-bottom: 8px !important;
+  max-height: 300px !important;
+  overflow: hidden !important;
+}
+
+.mention-list {
+  max-height: 240px !important;
+  overflow-y: auto !important;
+  padding: 4px !important;
+}
+
+.mention-item {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 12px !important;
+  cursor: pointer !important;
+  border-radius: 4px !important;
+  margin: 2px 0 !important;
+  transition: all 0.2s ease !important;
+  border: 1px solid transparent !important;
+}
+
+.mention-item:hover {
+  background-color: #f0f8ff !important;
+  border-color: #1890ff !important;
+}
+
+.mention-item.mention-item-selected {
+  background-color: #1890ff !important;
+  color: white !important;
+  border-color: #1890ff !important;
+}
+
+.mention-item.mention-item-selected .mention-name {
+  color: white !important;
+  font-weight: bold !important;
+}
+
+.mention-item.mention-item-selected .mention-role {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.mention-item.mention-item-selected .mention-key {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.mention-info {
+  flex: 1 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.mention-name {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #1890ff !important;
+}
+
+.mention-role {
+  font-size: 12px !important;
+  color: #666 !important;
+  background: #f5f5f5 !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+}
+
+.mention-key {
+  background: #f5f5f5 !important;
+  border: 1px solid #ddd !important;
+  border-radius: 4px !important;
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+  color: #666 !important;
+  font-family: monospace !important;
+  min-width: 24px !important;
+  text-align: center !important;
+}
+
+.mention-empty {
+  padding: 20px !important;
+  text-align: center !important;
+  color: #999 !important;
+  font-size: 14px !important;
+}
+
+/* 原有的 chat-input 样式保持不变 */
+.chat-input {
