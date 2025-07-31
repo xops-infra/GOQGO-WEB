@@ -224,7 +224,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, Teleport } from 'vue'
+import { ref, computed, onMounted, onUnmounted, Teleport } from 'vue'
 import { storeToRefs } from 'pinia'
 import { 
   AddOutline as AddIcon,
@@ -420,10 +420,20 @@ const formatUptime = (uptime: string | undefined): string => {
 // 生命周期
 onMounted(async () => {
   try {
+    // 设置agents store的事件监听器
+    agentsStore.setupEventListeners()
+    console.log('✅ Agents store事件监听器已设置')
+    
     await agentsStore.fetchAgents()
   } catch (error) {
     console.error('获取实例列表失败:', error)
   }
+})
+
+onUnmounted(() => {
+  // 清理agents store的事件监听器
+  agentsStore.cleanupEventListeners()
+  console.log('🧹 Agents store事件监听器已清理')
 })
 </script>
 

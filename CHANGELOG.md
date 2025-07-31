@@ -9,6 +9,7 @@
 - **状态监听优化** - 添加watch监听器实时跟踪namespace变化
 - **下拉菜单选项结构** - 修复选项不可点击的问题（移除children属性）
 - **当前namespace高亮** - 为当前选中的namespace添加视觉高亮
+- **Agent列表namespace同步** - 修复切换namespace时左边agent列表不更新的问题
 
 ### 🎯 修复详情
 
@@ -42,7 +43,25 @@ const namespaceItems = namespaces.map(ns => ({
 }))
 ```
 
-#### 问题3: 当前namespace无高亮显示
+#### 问题3: Agent列表不随namespace切换更新
+```javascript
+// 修复前：Layout组件没有设置agents store的事件监听器
+onMounted(async () => {
+  await agentsStore.fetchAgents() // ❌ 只获取一次，不监听变化
+})
+
+// 修复后：设置事件监听器，自动响应namespace变化
+onMounted(async () => {
+  agentsStore.setupEventListeners() // ✅ 设置事件监听器
+  await agentsStore.fetchAgents()
+})
+
+onUnmounted(() => {
+  agentsStore.cleanupEventListeners() // ✅ 清理事件监听器
+})
+```
+
+#### 问题4: 当前namespace无高亮显示
 ```javascript
 // 修复后：为当前namespace添加高亮样式
 const namespaceItems = namespaces.map(ns => {
@@ -66,6 +85,8 @@ const namespaceItems = namespaces.map(ns => {
 - ✅ 下拉菜单选项可正常点击
 - ✅ 切换操作立即反映到UI显示
 - ✅ 当前namespace在下拉菜单中高亮显示
+- ✅ **Agent列表随namespace切换自动更新**
+- ✅ **左边agent列表显示对应namespace的agents**
 - ✅ Agent数量实时更新
 - ✅ 多组件间状态一致性保证
 - ✅ 错误处理和用户反馈完善
@@ -75,13 +96,16 @@ const namespaceItems = namespaces.map(ns => {
 - **状态一致** - 所有组件显示统一的当前namespace
 - **操作流畅** - 无延迟的切换响应，选项可正常点击
 - **视觉清晰** - 当前namespace高亮显示，易于识别
+- **数据同步** - **左边agent列表自动更新为对应namespace的agents**
 - **错误友好** - 清晰的错误信息和处理
 
 ### 🔧 技术亮点
 - **单一数据源** - 所有namespace状态统一由store管理
 - **响应式设计** - storeToRefs确保自动更新
+- **事件驱动架构** - **namespace切换触发CustomEvent，agents store自动响应**
 - **状态监听** - watch机制实时跟踪变化
 - **UI组件规范** - 正确使用Naive UI Dropdown组件API
+- **生命周期管理** - **组件挂载时设置监听器，卸载时清理，防止内存泄漏**
 - **错误边界** - 完善的异常处理和用户提示
 
 ## [2025-07-31] - 后端服务连接检查
