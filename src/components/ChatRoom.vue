@@ -21,6 +21,19 @@
 
     <!-- 消息列表 -->
     <div class="messages-container" ref="messagesContainer" @scroll="handleScroll">
+      <!-- 消息工具栏 -->
+      <div class="messages-toolbar">
+        <div class="toolbar-left">
+          <span class="message-count">{{ messages.length }} 条消息</span>
+        </div>
+        <div class="toolbar-right">
+          <MessageSearch 
+            :messages="messages" 
+            @scroll-to-message="scrollToMessage"
+          />
+        </div>
+      </div>
+      
       <!-- 加载更多历史消息的提示 -->
       <div v-if="isLoadingHistory" class="loading-history">
         <n-spin size="small" />
@@ -77,6 +90,7 @@ import { useUserStore } from '@/stores/user'
 import { useMessage } from 'naive-ui'
 import MessageItem from './MessageItem.vue'
 import ChatInput from './ChatInput.vue'
+import MessageSearch from './MessageSearch.vue'
 
 // Props
 interface Props {
@@ -242,6 +256,23 @@ const handleDrop = async (e: DragEvent) => {
   }
 }
 
+// 滚动到指定消息
+const scrollToMessage = (messageId: string) => {
+  const messageElement = document.querySelector(`[data-message-id="${messageId}"]`)
+  if (messageElement && messagesContainer.value) {
+    messageElement.scrollIntoView({ 
+      behavior: 'smooth', 
+      block: 'center' 
+    })
+    
+    // 高亮显示目标消息
+    messageElement.classList.add('message-highlight')
+    setTimeout(() => {
+      messageElement.classList.remove('message-highlight')
+    }, 2000)
+  }
+}
+
 // 生命周期
 onMounted(async () => {
   try {
@@ -318,8 +349,35 @@ onUnmounted(() => {
 .messages-container {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 0;
   scroll-behavior: smooth;
+  
+  .messages-toolbar {
+    position: sticky;
+    top: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 10;
+    
+    .toolbar-left {
+      .message-count {
+        font-size: 12px;
+        color: #6c757d;
+        font-weight: 500;
+      }
+    }
+    
+    .toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
   
   .loading-history {
     display: flex;
@@ -368,6 +426,26 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     gap: 16px;
+    padding: 16px;
+  }
+}
+
+// 消息高亮效果
+:deep(.message-highlight) {
+  animation: messageHighlight 2s ease-in-out;
+  
+  @keyframes messageHighlight {
+    0% {
+      background-color: rgba(24, 144, 255, 0.2);
+      transform: scale(1.02);
+    }
+    50% {
+      background-color: rgba(24, 144, 255, 0.1);
+    }
+    100% {
+      background-color: transparent;
+      transform: scale(1);
+    }
   }
 }
 

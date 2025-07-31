@@ -12,7 +12,7 @@
             </div>
           </div>
           <div class="header-right">
-            <n-space>
+            <n-space :size="16" align="center">
               <NamespaceManager />
               <UserInfo />
               <div class="theme-toggle">
@@ -456,6 +456,21 @@ onMounted(async () => {
       }
     }
   }
+  
+  .header-right {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    min-width: 0;
+    
+    :deep(.n-space) {
+      flex-wrap: nowrap;
+      
+      .n-space-item {
+        flex-shrink: 0;
+      }
+    }
+  }
 }
 
 .content-area {
@@ -617,6 +632,8 @@ onMounted(async () => {
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid transparent;
+    min-width: 140px;
+    white-space: nowrap;
     
     &:hover {
       background-color: rgba(255, 255, 255, 0.08);

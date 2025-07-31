@@ -1,45 +1,5 @@
 <template>
   <div class="namespace-manager">
-    <div class="namespace-container">
-      <!-- 命名空间图标 -->
-      <div class="namespace-icon">
-        <n-icon size="18">
-          <svg viewBox="0 0 24 24">
-            <path fill="currentColor" d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M7.5,13A2.5,2.5 0 0,0 5,15.5A2.5,2.5 0 0,0 7.5,18A2.5,2.5 0 0,0 10,15.5A2.5,2.5 0 0,0 7.5,13M16.5,13A2.5,2.5 0 0,0 14,15.5A2.5,2.5 0 0,0 16.5,18A2.5,2.5 0 0,0 19,15.5A2.5,2.5 0 0,0 16.5,13Z"/>
-          </svg>
-        </n-icon>
-      </div>
-      
-      <!-- 命名空间信息 -->
-      <div class="namespace-info">
-        <div class="namespace-name">{{ currentNamespaceDisplay }}</div>
-        <div class="namespace-stats">
-          <n-tag size="small" round type="info">
-            {{ agentCount }} 个智能体
-          </n-tag>
-        </div>
-      </div>
-      
-      <!-- 下拉箭头 -->
-      <n-icon class="dropdown-icon" size="16">
-        <svg viewBox="0 0 24 24">
-          <path fill="currentColor" d="M7,10L12,15L17,10H7Z"/>
-        </svg>
-      </n-icon>
-    </div>
-    
-    <!-- 隐藏的选择器 -->
-    <n-select
-      ref="selectRef"
-      v-model:value="currentNamespace"
-      :options="namespaceOptions"
-      :loading="loading"
-      size="small"
-      style="display: none;"
-      placeholder="选择命名空间"
-      @update:value="handleNamespaceChange"
-    />
-    
     <!-- 下拉菜单 -->
     <n-dropdown
       :options="dropdownOptions"
@@ -48,34 +8,32 @@
       trigger="click"
       :show-arrow="true"
     >
-      <div class="namespace-trigger" @click="handleContainerClick">
-        <div class="namespace-container">
-          <!-- 命名空间图标 -->
-          <div class="namespace-icon">
-            <n-icon size="18">
-              <svg viewBox="0 0 24 24">
-                <path fill="currentColor" d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M7.5,13A2.5,2.5 0 0,0 5,15.5A2.5,2.5 0 0,0 7.5,18A2.5,2.5 0 0,0 10,15.5A2.5,2.5 0 0,0 7.5,13M16.5,13A2.5,2.5 0 0,0 14,15.5A2.5,2.5 0 0,0 16.5,18A2.5,2.5 0 0,0 19,15.5A2.5,2.5 0 0,0 16.5,13Z"/>
-              </svg>
-            </n-icon>
-          </div>
-          
-          <!-- 命名空间信息 -->
-          <div class="namespace-info">
-            <div class="namespace-name">{{ currentNamespaceDisplay }}</div>
-            <div class="namespace-stats">
-              <n-tag size="small" round type="info">
-                {{ agentCount }} 个智能体
-              </n-tag>
-            </div>
-          </div>
-          
-          <!-- 下拉箭头 -->
-          <n-icon class="dropdown-icon" size="16">
+      <div class="namespace-container">
+        <!-- 命名空间图标 -->
+        <div class="namespace-icon">
+          <n-icon size="18">
             <svg viewBox="0 0 24 24">
-              <path fill="currentColor" d="M7,10L12,15L17,10H7Z"/>
+              <path fill="currentColor" d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M7.5,13A2.5,2.5 0 0,0 5,15.5A2.5,2.5 0 0,0 7.5,18A2.5,2.5 0 0,0 10,15.5A2.5,2.5 0 0,0 7.5,13M16.5,13A2.5,2.5 0 0,0 14,15.5A2.5,2.5 0 0,0 16.5,18A2.5,2.5 0 0,0 19,15.5A2.5,2.5 0 0,0 16.5,13Z"/>
             </svg>
           </n-icon>
         </div>
+        
+        <!-- 命名空间信息 -->
+        <div class="namespace-info">
+          <div class="namespace-name">{{ currentNamespaceDisplay }}</div>
+          <div class="namespace-stats">
+            <n-tag size="small" round type="info">
+              {{ agentCount }} 个智能体
+            </n-tag>
+          </div>
+        </div>
+        
+        <!-- 下拉箭头 -->
+        <n-icon class="dropdown-icon" size="16">
+          <svg viewBox="0 0 24 24">
+            <path fill="currentColor" d="M7,10L12,15L17,10H7Z"/>
+          </svg>
+        </n-icon>
       </div>
     </n-dropdown>
   </div>
@@ -96,7 +54,6 @@ const message = useMessage()
 // 本地状态
 const loading = ref(false)
 const currentNamespace = ref('default')
-const selectRef = ref()
 
 // 计算属性
 const namespaceOptions = computed(() => {
@@ -160,10 +117,6 @@ const dropdownOptions = computed(() => {
 })
 
 // 方法
-const handleContainerClick = () => {
-  // 点击容器时不做任何操作，由下拉菜单处理
-}
-
 const handleMenuSelect = (key: string) => {
   console.log('🔄 菜单选择:', key)
   
@@ -246,10 +199,6 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .namespace-manager {
-  .namespace-trigger {
-    cursor: pointer;
-  }
-  
   .namespace-container {
     display: flex;
     align-items: center;
@@ -259,6 +208,8 @@ onUnmounted(() => {
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid transparent;
+    min-width: 180px;
+    white-space: nowrap;
     
     &:hover {
       background-color: rgba(255, 255, 255, 0.08);

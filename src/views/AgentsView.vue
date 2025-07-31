@@ -111,6 +111,12 @@
         </n-space>
       </template>
     </n-modal>
+
+    <!-- Agent创建模态框 -->
+    <AgentCreateModal
+      v-model:show="showCreateModal"
+      @created="handleAgentCreated"
+    />
   </div>
 </template>
 
@@ -119,6 +125,7 @@ import { ref, computed, onMounted, h } from 'vue'
 import { NButton, NTag, NSpace } from 'naive-ui'
 import { AddOutline, RefreshOutline, TrashOutline, SendOutline } from '@vicons/ionicons5'
 import { useAgentsStore } from '@/stores/agents'
+import AgentCreateModal from '@/components/AgentCreateModal.vue'
 import type { Agent, CreateAgentRequest } from '@/types/api'
 import type { DataTableColumns } from 'naive-ui'
 
@@ -296,6 +303,12 @@ const handleSendMessage = (agent: Agent) => {
     console.log(`向 ${agent.name} 发送消息: ${message}`)
     // 这里可以调用实际的发送消息API
   }
+}
+
+const handleAgentCreated = (agent: any) => {
+  console.log('✅ Agent创建成功:', agent)
+  // 刷新agents列表
+  refreshAgents()
 }
 
 // 生命周期

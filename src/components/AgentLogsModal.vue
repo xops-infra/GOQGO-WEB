@@ -37,6 +37,7 @@
                   quaternary
                   :type="isFollowing ? 'primary' : 'default'"
                   @click="toggleFollow"
+                  :disabled="!isConnected"
                 >
                   <template #icon>
                     <n-icon>
@@ -48,6 +49,26 @@
                 </n-button>
               </template>
               {{ isFollowing ? '停止跟随' : '跟随日志' }}
+            </n-tooltip>
+            <n-tooltip>
+              <template #trigger>
+                <n-button 
+                  size="small" 
+                  quaternary 
+                  @click="loadHistoryLogs"
+                  :loading="isLoadingHistory"
+                  :disabled="!isConnected || hasReachedTop"
+                >
+                  <template #icon>
+                    <n-icon>
+                      <svg viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M11,8H13V12L16.2,14.2L15.2,15.8L11,13V8Z"/>
+                      </svg>
+                    </n-icon>
+                  </template>
+                </n-button>
+              </template>
+              {{ hasReachedTop ? '已到顶部' : '加载历史' }}
             </n-tooltip>
             <n-tooltip>
               <template #trigger>
@@ -78,6 +99,12 @@
 
       <!-- 日志内容区域 -->
       <div class="modal-body">
+        <!-- 加载历史日志提示 -->
+        <div v-if="isLoadingHistory" class="loading-history">
+          <n-spin size="small" />
+          <span>加载历史日志中...</span>
+        </div>
+        
         <div
           ref="logsContainerRef"
           class="logs-container"
@@ -86,7 +113,7 @@
           <div class="logs-content">
             <div
               v-for="(log, index) in logs"
-              :key="index"
+              :key="`${log.timestamp}-${index}`"
               :class="['log-line', `log-${log.level}`]"
             >
               <span class="log-timestamp">{{ formatTimestamp(log.timestamp) }}</span>
@@ -96,13 +123,19 @@
             </div>
             
             <!-- 空状态 -->
-            <div v-if="logs.length === 0" class="empty-logs">
+            <div v-if="logs.length === 0 && !isConnecting" class="empty-logs">
               <n-icon size="48" color="#ccc">
                 <svg viewBox="0 0 24 24">
                   <path fill="currentColor" d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,19H5V5H19V19Z"/>
                 </svg>
               </n-icon>
               <p>暂无日志数据</p>
+            </div>
+            
+            <!-- 连接中状态 -->
+            <div v-if="isConnecting" class="connecting-logs">
+              <n-spin size="large" />
+              <p>正在连接日志流...</p>
             </div>
           </div>
         </div>
@@ -115,6 +148,7 @@
             {{ getConnectionStatus().text }}
           </n-tag>
           <span class="log-count">共 {{ logs.length }} 条日志</span>
+          <span v-if="initialLines" class="initial-lines">初始加载: {{ initialLines }} 行</span>
         </div>
         <div class="footer-right">
           <span class="last-update" v-if="lastUpdateTime">
@@ -134,7 +168,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useMessage } from 'naive-ui'
-import { agentApi, type Agent, type LogEntry } from '@/api/agents'
+import { type Agent, type LogEntry } from '@/api/agents'
+import { LogSocket } from '@/utils/logSocket'
 
 // Props
 interface Props {
@@ -167,8 +202,12 @@ const message = useMessage()
 const logs = ref<LogEntry[]>([])
 const isFollowing = ref(true)
 const isConnected = ref(false)
+const isConnecting = ref(false)
+const isLoadingHistory = ref(false)
+const hasReachedTop = ref(false)
 const lastUpdateTime = ref<string>()
-const logSocket = ref<WebSocket | null>(null)
+const initialLines = ref<number>(100)
+const logSocket = ref<LogSocket | null>(null)
 
 // 模态框位置和大小
 const modalPosition = ref({ x: 0, y: 0 })
@@ -181,61 +220,123 @@ const dragStart = ref({ x: 0, y: 0 })
 const resizeStart = ref({ x: 0, y: 0, width: 0, height: 0 })
 
 // 连接WebSocket获取实时日志
-const connectLogStream = () => {
-  if (!props.agent) return
+const connectLogStream = async () => {
+  if (!props.agent) {
+    console.error('❌ 无法连接日志流: agent 为空')
+    return
+  }
+  
+  console.log('🚀 开始连接日志流:', props.agent.name, props.agent.namespace)
   
   try {
-    logSocket.value = agentApi.createLogStream(
-      props.agent.namespace,
-      props.agent.name,
-      { lines: 100, follow: true }
-    )
+    isConnecting.value = true
     
-    logSocket.value.onopen = () => {
-      console.log('📡 日志流连接成功')
-      isConnected.value = true
+    // 断开现有连接
+    if (logSocket.value) {
+      console.log('🔄 断开现有连接')
+      logSocket.value.disconnect()
     }
     
-    logSocket.value.onmessage = (event) => {
-      try {
-        const logEntry: LogEntry = JSON.parse(event.data)
-        logs.value.push(logEntry)
-        lastUpdateTime.value = new Date().toISOString()
-        
-        // 如果正在跟随，自动滚动到底部
-        if (isFollowing.value) {
+    // 创建新的日志连接
+    logSocket.value = new LogSocket(
+      props.agent.namespace,
+      props.agent.name,
+      { lines: initialLines.value, follow: true },
+      {
+        onConnect: () => {
+          console.log('📡 日志流连接成功')
+          isConnected.value = true
+          isConnecting.value = false
+        },
+        onDisconnect: () => {
+          console.log('📡 日志流连接断开')
+          isConnected.value = false
+          isConnecting.value = false
+        },
+        onInitial: (initialLogs) => {
+          console.log('📋 收到初始日志:', initialLogs.length, '条')
+          logs.value = [...initialLogs]
+          lastUpdateTime.value = new Date().toISOString()
+          
+          // 滚动到底部
           nextTick(() => {
             scrollToBottom()
           })
+        },
+        onAppend: (newLog) => {
+          console.log('➕ 收到新日志:', newLog.message.substring(0, 50))
+          logs.value.push(newLog)
+          lastUpdateTime.value = new Date().toISOString()
+          
+          // 如果正在跟随，自动滚动到底部
+          if (isFollowing.value) {
+            nextTick(() => {
+              scrollToBottom()
+            })
+          }
+        },
+        onHistory: (historyLogs, hasMore) => {
+          console.log('📜 收到历史日志:', historyLogs.length, '条, hasMore:', hasMore)
+          
+          // 保存当前滚动位置
+          const container = logsContainerRef.value
+          const oldScrollHeight = container?.scrollHeight || 0
+          const oldScrollTop = container?.scrollTop || 0
+          
+          // 将历史日志添加到开头
+          logs.value = [...historyLogs, ...logs.value]
+          hasReachedTop.value = !hasMore
+          isLoadingHistory.value = false
+          
+          // 恢复滚动位置
+          nextTick(() => {
+            if (container) {
+              const newScrollHeight = container.scrollHeight
+              const heightDiff = newScrollHeight - oldScrollHeight
+              container.scrollTop = oldScrollTop + heightDiff
+            }
+          })
+        },
+        onError: (error) => {
+          console.error('📡 日志流错误:', error)
+          message.error(`日志连接错误: ${error}`)
+          isConnected.value = false
+          isConnecting.value = false
+          isLoadingHistory.value = false
         }
-      } catch (error) {
-        console.error('解析日志数据失败:', error)
       }
-    }
+    )
     
-    logSocket.value.onclose = () => {
-      console.log('📡 日志流连接关闭')
-      isConnected.value = false
-    }
-    
-    logSocket.value.onerror = (error) => {
-      console.error('📡 日志流连接错误:', error)
-      isConnected.value = false
-      message.error('日志连接失败')
-    }
+    console.log('🔗 尝试连接 WebSocket...')
+    await logSocket.value.connect()
+    console.log('✅ WebSocket 连接完成')
   } catch (error) {
-    console.error('创建日志流失败:', error)
-    message.error('无法连接日志流')
+    console.error('❌ 创建日志流失败:', error)
+    message.error('无法连接日志流: ' + error.message)
+    isConnected.value = false
+    isConnecting.value = false
   }
 }
 
 // 断开日志流
 const disconnectLogStream = () => {
   if (logSocket.value) {
-    logSocket.value.close()
+    logSocket.value.disconnect()
     logSocket.value = null
   }
   isConnected.value = false
+  isConnecting.value = false
+}
+
+// 加载历史日志
+const loadHistoryLogs = () => {
+  if (!logSocket.value || !isConnected.value || isLoadingHistory.value || hasReachedTop.value) {
+    return
+  }
+  
+  console.log('📜 请求加载历史日志')
+  isLoadingHistory.value = true
+  logSocket.value.loadHistory()
 }
 
 // 切换跟随模式
@@ -249,6 +350,7 @@ const toggleFollow = () => {
 // 清空日志
 const clearLogs = () => {
   logs.value = []
+  hasReachedTop.value = false
 }
 
 // 滚动到底部
@@ -264,10 +366,16 @@ const handleScroll = () => {
   
   const { scrollTop, scrollHeight, clientHeight } = logsContainerRef.value
   const isAtBottom = scrollHeight - scrollTop - clientHeight < 10
+  const isAtTop = scrollTop < 10
   
   // 如果用户手动滚动到非底部位置，停止自动跟随
   if (!isAtBottom && isFollowing.value) {
     isFollowing.value = false
+  }
+  
+  // 如果滚动到顶部且有更多历史日志，自动加载
+  if (isAtTop && !isLoadingHistory.value && !hasReachedTop.value && isConnected.value) {
+    loadHistoryLogs()
   }
 }
 
@@ -382,7 +490,9 @@ const formatTimestamp = (timestamp: string) => {
 
 // 获取连接状态
 const getConnectionStatus = () => {
-  if (isConnected.value) {
+  if (isConnecting.value) {
+    return { type: 'warning' as const, text: '连接中' }
+  } else if (isConnected.value) {
     return { type: 'success' as const, text: '已连接' }
   } else {
     return { type: 'error' as const, text: '未连接' }
@@ -394,6 +504,7 @@ watch(() => props.agent, (newAgent) => {
   if (newAgent && visible.value) {
     disconnectLogStream()
     logs.value = []
+    hasReachedTop.value = false
     connectLogStream()
   }
 })
@@ -444,6 +555,7 @@ watch(visible, (show) => {
     // 重置日志相关状态
     logs.value = []
     isFollowing.value = true
+    hasReachedTop.value = false
     lastUpdateTime.value = undefined
     
     // 连接日志流
@@ -652,6 +764,40 @@ onUnmounted(() => {
       font-size: 14px;
     }
   }
+  
+  .connecting-logs {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: #999;
+    
+    p {
+      margin: 16px 0 0 0;
+      font-size: 14px;
+    }
+  }
+  
+  .loading-history {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(13, 17, 23, 0.9);
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #999;
+    font-size: 12px;
+    z-index: 10;
+    border-bottom: 1px solid #333;
+    
+    span {
+      color: #999;
+    }
+  }
 }
 
 .modal-footer {
@@ -671,6 +817,11 @@ onUnmounted(() => {
     
     .log-count {
       color: #999;
+    }
+    
+    .initial-lines {
+      color: #666;
+      font-size: 11px;
     }
   }
   

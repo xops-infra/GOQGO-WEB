@@ -30,6 +30,13 @@ export interface LogEntry {
   source?: string
 }
 
+export interface LogMessage {
+  type: 'initial' | 'append' | 'history' | 'pong' | 'error'
+  data?: LogEntry[]
+  message?: string
+  hasMore?: boolean
+}
+
 export const agentApi = {
   // 获取Agent列表
   getList: (namespace: string = 'default') => 
@@ -78,7 +85,7 @@ export const agentApi = {
     if (options?.lines) params.append('lines', options.lines.toString())
     if (options?.follow !== false) params.append('follow', 'true')
     
-    const url = `ws://localhost:8080/api/v1/namespaces/${namespace}/agents/${name}/logs/stream?${params}`
+    const url = `ws://localhost:8080/ws/namespaces/${namespace}/agents/${name}/logs?${params}`
     return new WebSocket(url)
   },
   

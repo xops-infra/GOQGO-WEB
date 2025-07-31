@@ -112,11 +112,21 @@ export const useAgentsStore = defineStore('agents', () => {
     }
   }
 
-  const createAgent = async (data: CreateAgentRequest) => {
+  const createAgent = async (namespace: string, data: any) => {
     loading.value = true
     try {
+      console.log('🚀 创建Agent:', { namespace, data })
+      
+      // 构建创建请求数据
+      const createRequest = {
+        name: data.name || `agent-${Date.now()}`,
+        role: data.role || 'general-assistant',
+        workingDirectory: data.workingDirectory,
+        namespace: namespace
+      }
+      
       // 尝试调用真实API
-      const newAgent = await agentApi.create(data.namespace, data)
+      const newAgent = await agentApi.create(namespace, createRequest)
       agents.value.push(newAgent)
       
       // 自动选择新创建的agent
@@ -132,12 +142,12 @@ export const useAgentsStore = defineStore('agents', () => {
       
       // Fallback到模拟创建
       const newAgent: Agent = {
-        name: data.name,
-        namespace: data.namespace,
+        name: data.name || `agent-${Date.now()}`,
+        namespace: namespace,
         status: 'running',
-        role: data.role,
+        role: data.role || 'general-assistant',
         age: '0s',
-        workDir: data.workDir || './',
+        workDir: data.workingDirectory?.path || './',
         sessionName: '',
         restartCount: 0
       }

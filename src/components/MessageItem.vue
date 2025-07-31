@@ -1,5 +1,5 @@
 <template>
-  <div class="message-item">
+  <div class="message-item" :data-message-id="message.id">
     <div class="message-content">
       <!-- 文本消息 -->
       <template v-if="message.type === 'text'">

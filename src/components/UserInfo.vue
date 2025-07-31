@@ -343,6 +343,8 @@ onMounted(async () => {
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid transparent;
+    min-width: 160px;
+    white-space: nowrap;
     
     &:hover {
       background-color: rgba(255, 255, 255, 0.08);
