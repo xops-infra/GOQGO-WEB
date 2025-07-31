@@ -32,13 +32,16 @@
       <n-input
         v-model:value="inputMessage"
         type="textarea"
-        :placeholder="isConnected ? '输入消息... (支持粘贴图片 Ctrl+V 或拖拽文件)' : '连接中...'"
+        :placeholder="placeholderText"
         :disabled="!isConnected"
         :autosize="{ minRows: 1, maxRows: 4 }"
         @keydown="handleKeyDown"
+        @keyup="handleKeyUp"
         @paste="handlePaste"
         @input="handleInput"
         @blur="handleInputBlur"
+        @compositionstart="handleCompositionStart"
+        @compositionend="handleCompositionEnd"
         class="message-input"
         ref="inputRef"
       />
@@ -130,13 +133,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useMessage } from 'naive-ui'
 import { formatFileSize, generateFileName } from '@/utils/file'
 import { uploadFile } from '@/api/upload'
 
 const props = defineProps<{
   isConnected: boolean
+  namespace?: string
 }>()
 
 const emit = defineEmits<{
@@ -154,6 +158,14 @@ const imagePreviews = ref<Array<{ url: string; name: string; file: File }>>([])
 const showImagePreview = ref(false)
 const currentPreviewIndex = ref(0)
 
+// 草稿保存功能
+const draftKey = computed(() => `chat-draft-${props.namespace || 'default'}`)
+const draftSaveTimer = ref<NodeJS.Timeout>()
+
+// 快捷键状态
+const isCtrlPressed = ref(false)
+const isShiftPressed = ref(false)
+
 // 计算属性
 const canSendMessage = computed(() => {
   return (inputMessage.value.trim() || imagePreviews.value.length > 0) && props.isConnected
@@ -161,6 +173,11 @@ const canSendMessage = computed(() => {
 
 const currentPreviewUrl = computed(() => {
   return imagePreviews.value[currentPreviewIndex.value]?.url || ''
+})
+
+const placeholderText = computed(() => {
+  if (!props.isConnected) return '连接中...'
+  return '输入消息... (Enter发送, Shift+Enter换行, Ctrl+Enter强制发送, Esc清空, 支持粘贴图片)'
 })
 
 // 处理图片粘贴
@@ -261,6 +278,7 @@ const handleSendMessage = async () => {
     if (inputMessage.value.trim()) {
       emit('send', inputMessage.value)
       inputMessage.value = ''
+      clearDraft() // 发送成功后清除草稿
     }
   } catch (error) {
     console.error('发送消息失败:', error)
@@ -307,23 +325,117 @@ const removeImage = (index: number) => {
   imagePreviews.value.splice(index, 1)
 }
 
-// 处理按键事件
-const handleKeyDown = (e: KeyboardEvent) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault()
-    handleSendMessage()
+// 处理输入事件
+const handleInput = () => {
+  // 保存草稿
+  saveDraft()
+}
+
+// 草稿保存功能
+const saveDraft = () => {
+  if (draftSaveTimer.value) {
+    clearTimeout(draftSaveTimer.value)
+  }
+  
+  draftSaveTimer.value = setTimeout(() => {
+    if (inputMessage.value.trim()) {
+      localStorage.setItem(draftKey.value, inputMessage.value)
+    } else {
+      localStorage.removeItem(draftKey.value)
+    }
+  }, 500) // 500ms防抖
+}
+
+// 加载草稿
+const loadDraft = () => {
+  const draft = localStorage.getItem(draftKey.value)
+  if (draft) {
+    inputMessage.value = draft
   }
 }
 
-// 处理输入事件
-const handleInput = () => {
-  // 可以添加输入时的处理逻辑
+// 清除草稿
+const clearDraft = () => {
+  localStorage.removeItem(draftKey.value)
+  if (draftSaveTimer.value) {
+    clearTimeout(draftSaveTimer.value)
+  }
+}
+
+// 增强的按键处理
+const handleKeyDown = (e: KeyboardEvent) => {
+  // 更新快捷键状态
+  isCtrlPressed.value = e.ctrlKey || e.metaKey
+  isShiftPressed.value = e.shiftKey
+  
+  // Enter发送消息
+  if (e.key === 'Enter' && !e.shiftKey && !isComposing.value) {
+    e.preventDefault()
+    handleSendMessage()
+    return
+  }
+  
+  // Ctrl/Cmd + Enter 强制发送（即使在输入法状态）
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault()
+    handleSendMessage()
+    return
+  }
+  
+  // Escape 清空输入
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    inputMessage.value = ''
+    clearDraft()
+    return
+  }
+  
+  // Ctrl/Cmd + A 全选
+  if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+    // 让浏览器处理默认的全选行为
+    return
+  }
+  
+  // Ctrl/Cmd + V 粘贴（已有handlePaste处理）
+  if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+    // 让浏览器处理默认的粘贴行为，handlePaste会处理图片
+    return
+  }
+}
+
+// 按键释放处理
+const handleKeyUp = (e: KeyboardEvent) => {
+  isCtrlPressed.value = e.ctrlKey || e.metaKey
+  isShiftPressed.value = e.shiftKey
+}
+
+// 输入法状态处理
+const handleCompositionStart = () => {
+  isComposing.value = true
+}
+
+const handleCompositionEnd = () => {
+  isComposing.value = false
 }
 
 // 处理失焦事件
 const handleInputBlur = () => {
-  // 可以添加失焦时的处理逻辑
+  // 失焦时保存草稿
+  saveDraft()
 }
+
+// 生命周期
+onMounted(() => {
+  // 组件挂载时加载草稿
+  loadDraft()
+})
+
+onUnmounted(() => {
+  // 组件卸载时清理定时器
+  if (draftSaveTimer.value) {
+    clearTimeout(draftSaveTimer.value)
+  }
+})
 </script>
 
 <style scoped lang="scss">

@@ -62,21 +62,19 @@ export class LogSocket {
         this.socket.onmessage = (event) => {
           console.log('📨 收到 WebSocket 消息:', event.data)
           try {
-            // 尝试解析为 JSON
             const message = JSON.parse(event.data)
             console.log('📨 解析后的消息:', message)
-            
-            // 检查是否是标准的 LogMessage 格式
-            if (message.type) {
-              this.handleMessage(message)
-            } else {
-              // 处理后端直接返回的日志格式
-              this.handleBackendLogFormat(message)
-            }
+            this.handleMessage(message)
           } catch (error) {
             console.error('❌ 解析日志消息失败:', error, event.data)
             // 如果不是 JSON，尝试作为纯文本处理
-            this.handleTextMessage(event.data)
+            const logEntry: LogEntry = {
+              timestamp: new Date().toISOString(),
+              level: 'info',
+              message: event.data,
+              source: 'websocket'
+            }
+            this.callbacks.onAppend?.(logEntry)
           }
         }
 
@@ -126,41 +124,42 @@ export class LogSocket {
     
     switch (message.type) {
       case 'initial':
-        if (message.data && Array.isArray(message.data)) {
-          console.log('📋 收到初始日志:', message.data.length, '条')
-          this.callbacks.onInitial?.(message.data)
+        if (message.data) {
+          console.log('📋 收到初始日志数据:', message.data)
+          const logEntries = this.parseLogContent(message.data)
+          console.log('📋 解析出初始日志:', logEntries.length, '条')
+          this.callbacks.onInitial?.(logEntries)
         } else {
-          console.warn('⚠️ 初始日志数据格式错误:', message.data)
+          console.warn('⚠️ 初始日志数据为空:', message.data)
         }
         break
 
       case 'append':
-        if (message.data && Array.isArray(message.data)) {
-          console.log('➕ 收到新日志:', message.data.length, '条')
-          message.data.forEach(log => {
+        if (message.data) {
+          console.log('➕ 收到新日志数据:', message.data)
+          const logEntries = this.parseLogContent(message.data)
+          console.log('➕ 解析出新日志:', logEntries.length, '条')
+          logEntries.forEach(log => {
             this.callbacks.onAppend?.(log)
           })
-        } else if (message.data && !Array.isArray(message.data)) {
-          // 处理单条日志的情况
-          console.log('➕ 收到新日志: 1 条')
-          this.callbacks.onAppend?.(message.data as LogEntry)
         } else {
-          console.warn('⚠️ 新日志数据格式错误:', message.data)
+          console.warn('⚠️ 新日志数据为空:', message.data)
         }
         break
 
       case 'history':
-        if (message.data && Array.isArray(message.data)) {
-          console.log('📜 收到历史日志:', message.data.length, '条, hasMore:', message.hasMore)
-          this.callbacks.onHistory?.(message.data, message.hasMore || false)
+        if (message.data) {
+          console.log('📜 收到历史日志数据:', message.data)
+          const logEntries = this.parseLogContent(message.data)
+          console.log('📜 解析出历史日志:', logEntries.length, '条, hasMore:', message.hasMore)
+          this.callbacks.onHistory?.(logEntries, message.hasMore || false)
         } else {
-          console.warn('⚠️ 历史日志数据格式错误:', message.data)
+          console.warn('⚠️ 历史日志数据为空:', message.data)
         }
         break
 
       case 'pong':
         console.log('💓 收到心跳响应')
-        // 心跳响应，无需处理
         break
 
       case 'error':
@@ -170,12 +169,53 @@ export class LogSocket {
 
       default:
         console.warn('⚠️ 未知日志消息类型:', message.type, message)
-        // 尝试作为日志条目处理
-        if (message.timestamp && message.level && message.message) {
-          console.log('🔄 尝试作为日志条目处理')
-          this.callbacks.onAppend?.(message as unknown as LogEntry)
-        }
     }
+  }
+
+  private parseLogContent(data: any): LogEntry[] {
+    console.log('🔄 解析日志内容:', data)
+    
+    // 如果 data 已经是 LogEntry 数组，直接返回
+    if (Array.isArray(data)) {
+      return data
+    }
+    
+    // 处理后端返回的格式
+    if (data.content && typeof data.content === 'string') {
+      const logLines = data.content.split('\n').filter(line => line.trim())
+      return logLines.map(line => {
+        // 尝试解析时间戳和消息
+        const match = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}):\s*(.+)$/)
+        if (match) {
+          return {
+            timestamp: new Date(match[1]).toISOString(),
+            level: 'info',
+            message: match[2],
+            source: data.agent || data.source || 'unknown'
+          }
+        } else {
+          return {
+            timestamp: data.timestamp ? new Date(data.timestamp * 1000).toISOString() : new Date().toISOString(),
+            level: 'info',
+            message: line,
+            source: data.agent || data.source || 'unknown'
+          }
+        }
+      })
+    }
+    
+    // 处理单条日志的情况
+    if (data.message || data.content) {
+      return [{
+        timestamp: data.timestamp ? new Date(data.timestamp * 1000).toISOString() : new Date().toISOString(),
+        level: data.level || 'info',
+        message: data.message || data.content,
+        source: data.agent || data.source || 'unknown'
+      }]
+    }
+    
+    console.warn('⚠️ 无法解析日志内容:', data)
+    return []
   }
 
   private startHeartbeat(): void {
@@ -211,68 +251,6 @@ export class LogSocket {
       clearTimeout(this.reconnectTimer)
       this.reconnectTimer = null
     }
-  }
-
-  private handleBackendLogFormat(data: any): void {
-    console.log('🔄 处理后端日志格式:', data)
-    
-    // 处理后端返回的日志格式
-    if (data.logs && typeof data.logs === 'string') {
-      // 解析日志字符串为日志条目
-      const logLines = data.logs.split('\n').filter(line => line.trim())
-      const logEntries: LogEntry[] = logLines.map(line => {
-        // 尝试解析时间戳和消息
-        const match = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}):\s*(.+)$/)
-        if (match) {
-          return {
-            timestamp: new Date(match[1]).toISOString(),
-            level: 'info',
-            message: match[2],
-            source: data.agent || 'unknown'
-          }
-        } else {
-          return {
-            timestamp: new Date().toISOString(),
-            level: 'info',
-            message: line,
-            source: data.agent || 'unknown'
-          }
-        }
-      })
-      
-      console.log('📋 解析出日志条目:', logEntries.length, '条')
-      
-      // 根据是否是初始数据决定回调
-      if (data.source === 'log_file' || logEntries.length > 1) {
-        this.callbacks.onInitial?.(logEntries)
-      } else {
-        logEntries.forEach(entry => {
-          this.callbacks.onAppend?.(entry)
-        })
-      }
-    } else if (data.message) {
-      // 处理单条消息
-      const logEntry: LogEntry = {
-        timestamp: new Date().toISOString(),
-        level: data.level || 'info',
-        message: data.message,
-        source: data.source || 'unknown'
-      }
-      this.callbacks.onAppend?.(logEntry)
-    }
-  }
-
-  private handleTextMessage(text: string): void {
-    console.log('🔄 处理文本消息:', text)
-    
-    // 处理纯文本消息
-    const logEntry: LogEntry = {
-      timestamp: new Date().toISOString(),
-      level: 'info',
-      message: text,
-      source: 'websocket'
-    }
-    this.callbacks.onAppend?.(logEntry)
   }
 
   get isConnected(): boolean {

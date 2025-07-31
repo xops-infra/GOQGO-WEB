@@ -545,9 +545,9 @@ const initializeModal = () => {
 }
 
 // 监听模态框显示状态
-watch(visible, (show) => {
+watch(visible, async (show) => {
   if (show && props.agent) {
-    console.log('🔄 重置日志窗口位置和状态:', props.agent.name)
+    console.log('🔄 重置日志窗口位置和状态:', props.agent.name, props.agent.namespace)
     
     // 每次打开都重置位置和大小
     initializeModal()
@@ -559,7 +559,12 @@ watch(visible, (show) => {
     lastUpdateTime.value = undefined
     
     // 连接日志流
-    connectLogStream()
+    try {
+      await connectLogStream()
+    } catch (error) {
+      console.error('❌ 连接日志流失败:', error)
+      message.error('连接日志流失败: ' + (error as Error).message)
+    }
   } else {
     disconnectLogStream()
   }

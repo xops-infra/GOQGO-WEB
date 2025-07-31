@@ -146,7 +146,24 @@
 
         <!-- 右侧聊天区域 -->
         <div class="right-panel">
-          <ChatRoom :namespace="currentNamespace" />
+          <div class="chat-header">
+            <h3>{{ currentNamespace }} 聊天室</h3>
+            <n-button 
+              size="small" 
+              :type="showStatsPanel ? 'primary' : 'default'"
+              @click="showStatsPanel = !showStatsPanel"
+            >
+              <template #icon>
+                <n-icon>
+                  <svg viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M22,21H2V3H4V19H6V17H10V19H12V16H16V19H18V17H22V21Z"/>
+                  </svg>
+                </n-icon>
+              </template>
+              统计
+            </n-button>
+          </div>
+          <ChatRoom :namespace="currentNamespace" :show-stats="showStatsPanel" />
         </div>
       </div>
 
@@ -258,6 +275,7 @@ interface LogWindow {
 const showDetailsModal = ref(false)
 const selectedDetails = ref<Agent | null>(null)
 const openLogWindows = ref<LogWindow[]>([])
+const showStatsPanel = ref(false)
 const showCreateModal = ref(false)
 const creating = ref(false)
 const createFormRef = ref()
@@ -513,6 +531,22 @@ onMounted(async () => {
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  
+  .chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fafafa;
+    
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      color: #333;
+      font-weight: 600;
+    }
+  }
 }
 
 .instances-list {

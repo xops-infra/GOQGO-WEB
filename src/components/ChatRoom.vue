@@ -73,9 +73,15 @@
       </n-alert>
     </div>
 
+    <!-- 统计面板 -->
+    <div v-if="props.showStats" class="stats-panel">
+      <MessageStats :namespace="props.namespace" />
+    </div>
+
     <!-- 输入区域 -->
     <ChatInput 
       :is-connected="isConnected" 
+      :namespace="props.namespace"
       @send="handleSend"
       @send-image="handleSendImage"
     />
@@ -91,14 +97,17 @@ import { useMessage } from 'naive-ui'
 import MessageItem from './MessageItem.vue'
 import ChatInput from './ChatInput.vue'
 import MessageSearch from './MessageSearch.vue'
+import MessageStats from './MessageStats.vue'
 
 // Props
 interface Props {
   namespace: string
+  showStats?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  namespace: 'default'
+  namespace: 'default',
+  showStats: false
 })
 
 // 状态管理
@@ -114,6 +123,8 @@ const isDragActive = ref(false)
 const dragCounter = ref(0)
 const isUserScrolling = ref(false)
 const shouldAutoScroll = ref(true)
+const showSearch = ref(false)
+const showStats = ref(false)
 
 // 处理发送消息
 const handleSend = async (text: string) => {
@@ -463,5 +474,12 @@ onUnmounted(() => {
   &.message-other {
     align-self: flex-start;
   }
+}
+
+.stats-panel {
+  border-top: 1px solid #f0f0f0;
+  background: #fafafa;
+  max-height: 400px;
+  overflow-y: auto;
 }
 </style>
