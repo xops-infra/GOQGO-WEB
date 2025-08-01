@@ -19,7 +19,7 @@
         </n-avatar>
         
         <div class="user-basic-info">
-          <div class="user-name">{{ currentUser?.displayName || currentUser?.username || '用户' }}</div>
+          <div class="user-name">{{ userStore.displayName || '用户' }}</div>
           <div class="user-status">
             <n-tag
               :type="statusType"
@@ -43,14 +43,14 @@
     <n-modal
       v-model:show="showUserDetails"
       preset="card"
-      :title="`${currentUser?.displayName || currentUser?.username || '用户'} 的详细信息`"
+      :title="`${userStore.displayName || '用户'} 的详细信息`"
       style="width: 700px; max-width: 90vw"
       :bordered="false"
       size="huge"
       role="dialog"
       aria-labelledby="user-details-title"
     >
-      <div v-if="currentUserData" class="user-details">
+      <div v-if="currentUser" class="user-details">
         <!-- 基本信息 -->
         <n-descriptions
           title="基本信息"
@@ -59,71 +59,24 @@
           size="small"
         >
           <n-descriptions-item label="用户名">
-            {{ currentUserData.metadata.name }}
+            {{ currentUser.metadata.name }}
           </n-descriptions-item>
           <n-descriptions-item label="显示名称">
-            {{ currentUserData.spec.displayName }}
+            {{ currentUser.spec.displayName }}
           </n-descriptions-item>
           <n-descriptions-item label="邮箱">
-            {{ currentUserData.spec.email }}
-          </n-descriptions-item>
-          <n-descriptions-item label="部门">
-            {{ currentUserData.metadata.labels.department || '-' }}
+            {{ currentUser.spec.email }}
           </n-descriptions-item>
           <n-descriptions-item label="角色">
-            {{ currentUserData.metadata.labels.role || '-' }}
+            {{ currentUser.spec.roles.join(', ') }}
           </n-descriptions-item>
-          <n-descriptions-item label="团队">
-            {{ currentUserData.metadata.labels.team || '-' }}
-          </n-descriptions-item>
-          <n-descriptions-item label="时区">
-            {{ currentUserData.spec.preferences.timezone }}
-          </n-descriptions-item>
-          <n-descriptions-item label="默认命名空间">
-            {{ currentUserData.spec.preferences.defaultNamespace }}
-          </n-descriptions-item>
-        </n-descriptions>
-
-        <!-- 状态信息 -->
-        <n-descriptions
-          title="状态信息"
-          :column="2"
-          bordered
-          size="small"
-          style="margin-top: 16px"
-        >
           <n-descriptions-item label="状态">
             <n-tag :type="statusType" size="small">
-              {{ currentUserData.status.phase }}
+              {{ statusText }}
             </n-tag>
           </n-descriptions-item>
           <n-descriptions-item label="最后登录">
-            {{ formatTime(currentUserData.status.lastLoginTime) }}
-          </n-descriptions-item>
-          <n-descriptions-item label="创建时间">
-            {{ formatTime(currentUserData.metadata.creationTimestamp) }}
-          </n-descriptions-item>
-          <n-descriptions-item label="Token过期时间">
-            {{ formatTime(currentUserData.spec.tokenExpiry) }}
-          </n-descriptions-item>
-        </n-descriptions>
-
-        <!-- 资源统计 -->
-        <n-descriptions
-          title="资源统计"
-          :column="3"
-          bordered
-          size="small"
-          style="margin-top: 16px"
-        >
-          <n-descriptions-item label="智能体数量">
-            {{ realTimeAgentCount }} / {{ currentUserData.spec.quotas.maxAgents }}
-          </n-descriptions-item>
-          <n-descriptions-item label="命名空间数量">
-            {{ currentUserData.status.namespaceCount }} / {{ currentUserData.spec.quotas.maxNamespaces }}
-          </n-descriptions-item>
-          <n-descriptions-item label="工作流数量">
-            {{ currentUserData.status.dagCount }} / {{ currentUserData.spec.quotas.maxDags }}
+            {{ formatTime(currentUser.status.lastLoginTime) }}
           </n-descriptions-item>
         </n-descriptions>
 
@@ -133,38 +86,36 @@
           :column="1"
           bordered
           size="small"
-          style="margin-top: 16px"
+          style="margin-top: 16px;"
         >
           <n-descriptions-item label="智能体权限">
             <n-space>
-              <n-tag v-if="currentUserData.spec.permissions.agents.create" type="success" size="small">创建</n-tag>
-              <n-tag v-if="currentUserData.spec.permissions.agents.delete" type="error" size="small">删除</n-tag>
-              <n-tag v-if="currentUserData.spec.permissions.agents.restart" type="warning" size="small">重启</n-tag>
-              <n-tag v-if="currentUserData.spec.permissions.agents.send" type="info" size="small">发送消息</n-tag>
-              <n-tag v-if="currentUserData.spec.permissions.agents.logs" type="default" size="small">查看日志</n-tag>
-              <span v-if="!hasAnyAgentPermission" class="no-permission">无权限</span>
-            </n-space>
-          </n-descriptions-item>
-          <n-descriptions-item label="工作流权限">
-            <n-space>
-              <n-tag v-if="currentUserData.spec.permissions.dags.create" type="success" size="small">创建</n-tag>
-              <n-tag v-if="currentUserData.spec.permissions.dags.run" type="info" size="small">运行</n-tag>
-              <n-tag v-if="currentUserData.spec.permissions.dags.delete" type="error" size="small">删除</n-tag>
-              <span v-if="!hasAnyDagPermission" class="no-permission">无权限</span>
+              <n-tag v-if="currentUser.spec.permissions.agents.create" type="success" size="small">创建</n-tag>
+              <n-tag v-if="currentUser.spec.permissions.agents.restart" type="warning" size="small">重启</n-tag>
+              <n-tag v-if="currentUser.spec.permissions.agents.send" type="info" size="small">发送消息</n-tag>
+              <n-tag v-if="currentUser.spec.permissions.agents.logs" type="default" size="small">查看日志</n-tag>
             </n-space>
           </n-descriptions-item>
         </n-descriptions>
 
-        <!-- 描述信息 -->
-        <div v-if="currentUserData.metadata.annotations.description" style="margin-top: 16px">
-          <h4>描述</h4>
-          <p class="user-description">{{ currentUserData.metadata.annotations.description }}</p>
-        </div>
-      </div>
-      
-      <div v-else class="loading-placeholder">
-        <n-spin size="large" />
-        <p>加载用户信息中...</p>
+        <!-- 配额信息 -->
+        <n-descriptions
+          title="配额信息"
+          :column="3"
+          bordered
+          size="small"
+          style="margin-top: 16px;"
+        >
+          <n-descriptions-item label="智能体数量">
+            {{ currentUser.status.agentCount }} / {{ currentUser.spec.quotas.maxAgents }}
+          </n-descriptions-item>
+          <n-descriptions-item label="命名空间数量">
+            {{ currentUser.status.namespaceCount }} / {{ currentUser.spec.quotas.maxNamespaces }}
+          </n-descriptions-item>
+          <n-descriptions-item label="DAG数量">
+            {{ currentUser.status.dagCount }} / {{ currentUser.spec.quotas.maxDags }}
+          </n-descriptions-item>
+        </n-descriptions>
       </div>
     </n-modal>
   </div>
@@ -182,7 +133,7 @@ import { useMessage, useDialog } from 'naive-ui'
 const router = useRouter()
 const userStore = useUserStore()
 const agentsStore = useAgentsStore()
-const { currentUser, currentUserData } = storeToRefs(userStore)
+const { currentUser } = storeToRefs(userStore)
 const { agents } = storeToRefs(agentsStore)
 const message = useMessage()
 const dialog = useDialog()
@@ -193,28 +144,28 @@ const showUserDetails = ref(false)
 // 计算属性
 const userAvatar = computed(() => {
   // 可以从用户数据中获取头像URL
-  return currentUserData.value?.metadata.annotations?.avatar || ''
+  return currentUser.value?.metadata?.annotations?.avatar || ''
 })
 
 const defaultAvatar = computed(() => {
   if (!currentUser.value) return ''
   
   // 生成默认头像URL，使用更好的默认头像服务
-  const displayName = currentUser.value.displayName || currentUser.value.username || '用户'
+  const displayName = userStore.displayName || '用户'
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&size=128&background=007bff&color=ffffff&bold=true&format=svg`
 })
 
 const userInitials = computed(() => {
   if (!currentUser.value) return 'U'
   
-  const displayName = currentUser.value.displayName || currentUser.value.username || '用户'
+  const displayName = userStore.displayName || '用户'
   return displayName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
 })
 
 const statusType = computed(() => {
-  if (!currentUserData.value || !currentUserData.value.status) return 'default'
+  if (!currentUser.value || !currentUser.value.status) return 'default'
   
-  switch (currentUserData.value.status.phase) {
+  switch (currentUser.value.status.phase) {
     case 'Active':
       return 'success'
     case 'Inactive':
@@ -227,9 +178,9 @@ const statusType = computed(() => {
 })
 
 const statusText = computed(() => {
-  if (!currentUserData.value || !currentUserData.value.status) return '在线'
+  if (!currentUser.value || !currentUser.value.status) return '在线'
   
-  switch (currentUserData.value.status.phase) {
+  switch (currentUser.value.status.phase) {
     case 'Active':
       return '活跃'
     case 'Inactive':
@@ -242,21 +193,10 @@ const statusText = computed(() => {
 })
 
 const hasAnyAgentPermission = computed(() => {
-  if (!currentUserData.value) return false
-  const perms = currentUserData.value.spec.permissions.agents
-  return perms.create || perms.delete || perms.restart || perms.send || perms.logs
-})
-
-const hasAnyDagPermission = computed(() => {
-  if (!currentUserData.value) return false
-  const perms = currentUserData.value.spec.permissions.dags
-  return perms.create || perms.run || perms.delete
-})
-
-// 实时智能体数量统计
-const realTimeAgentCount = computed(() => {
-  if (!agents.value) return 0
-  return agents.value.length
+  if (!currentUser.value) return false
+  
+  const permissions = currentUser.value.spec.permissions.agents
+  return permissions.create || permissions.delete || permissions.restart || permissions.send || permissions.logs
 })
 
 // 下拉菜单选项
@@ -294,7 +234,7 @@ const dropdownOptions = computed(() => [
   }
 ])
 
-// 方法
+// 菜单选择处理
 const handleMenuSelect = (key: string) => {
   switch (key) {
     case 'details':
@@ -314,12 +254,10 @@ const handleMenuSelect = (key: string) => {
 
 const refreshUserInfo = async () => {
   try {
-    await userStore.fetchCurrentUser(currentUser.value.username)
-    if (userStore.error) {
-      message.warning(`刷新用户信息时遇到问题: ${userStore.error}，已使用缓存数据`)
-    } else {
-      message.success('用户信息已刷新')
+    if (currentUser.value?.metadata.name) {
+      await userStore.fetchCurrentUser(currentUser.value.metadata.name)
     }
+    message.success('用户信息已刷新')
   } catch (error) {
     console.error('刷新用户信息失败:', error)
     message.error('刷新用户信息失败，请检查网络连接')
@@ -357,9 +295,9 @@ const formatTime = (timeString: string) => {
 // 生命周期
 onMounted(async () => {
   // 只有在用户已登录时才获取用户详细信息
-  if (currentUser.value && currentUser.value.username) {
+  if (currentUser.value && currentUser.value.metadata.name) {
     try {
-      await userStore.fetchCurrentUser(currentUser.value.username)
+      await userStore.fetchCurrentUser(currentUser.value.metadata.name)
     } catch (error) {
       console.error('UserInfo组件初始化失败:', error)
       // 不显示错误消息，因为store已经处理了fallback
@@ -373,253 +311,147 @@ onMounted(async () => {
   .user-avatar-container {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 6px 12px;
+    gap: 12px;
+    padding: 8px 12px;
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
-    min-width: 160px;
-    white-space: nowrap;
+    transition: all 0.3s ease;
+    position: relative;
     
     &:hover {
-      background-color: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.12);
+      background: var(--bg-hover);
+      
+      .dropdown-icon {
+        opacity: 1;
+        transform: translateY(-50%) rotate(180deg);
+      }
     }
     
     &.loading {
       opacity: 0.7;
-      cursor: not-allowed;
+      pointer-events: none;
+      
+      .user-avatar {
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
     }
   }
   
   .user-avatar {
     flex-shrink: 0;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    transition: border-color 0.2s ease;
+    border: 2px solid var(--border-primary);
+    transition: all 0.3s ease;
     
     .user-avatar-container:hover & {
-      border-color: rgba(255, 255, 255, 0.2);
+      border-color: var(--color-primary);
+      transform: scale(1.05);
     }
   }
   
   .user-basic-info {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    min-width: 0;
-    flex: 1;
+    gap: 4px;
+  }
+  
+  .user-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+  }
+  
+  .user-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     
-    .user-name {
-      font-size: 14px;
-      font-weight: 600;
-      color: #ffffff;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      line-height: 1.2;
-    }
-    
-    .user-status {
-      display: flex;
-      align-items: center;
+    .n-tag {
+      font-size: 11px;
+      height: 18px;
+      line-height: 16px;
+      padding: 0 6px;
+      border-radius: 9px;
+      font-weight: 500;
       
-      :deep(.n-tag) {
-        font-size: 11px;
-        height: 18px;
-        padding: 0 6px;
-        font-weight: 500;
-        
-        &.n-tag--success {
-          background-color: rgba(82, 196, 26, 0.15);
-          color: #52c41a;
-          border: 1px solid rgba(82, 196, 26, 0.3);
-        }
-        
-        &.n-tag--warning {
-          background-color: rgba(250, 173, 20, 0.15);
-          color: #faad14;
-          border: 1px solid rgba(250, 173, 20, 0.3);
-        }
-        
-        &.n-tag--error {
-          background-color: rgba(245, 34, 45, 0.15);
-          color: #f5222d;
-          border: 1px solid rgba(245, 34, 45, 0.3);
-        }
+      .user-avatar-container:hover & {
+        transform: scale(1.05);
       }
     }
   }
   
   .dropdown-icon {
-    flex-shrink: 0;
-    color: rgba(255, 255, 255, 0.5);
-    transition: all 0.2s ease;
-    
-    .user-avatar-container:hover & {
-      color: rgba(255, 255, 255, 0.8);
-      transform: rotate(180deg);
-    }
+    opacity: 0.6;
+    transition: all 0.3s ease;
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
   }
 }
 
 .user-details {
   .user-description {
     margin: 8px 0 0 0;
-    padding: 16px;
-    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
-    border-radius: 8px;
-    color: var(--text-secondary);
-    line-height: 1.6;
-    transition: all 0.3s ease;
-    border-left: 4px solid #007bff;
-    font-style: italic;
-  }
-  
-  .no-permission {
-    color: #6c757d;
-    font-style: italic;
-    font-size: 12px;
-  }
-  
-  // 优化描述信息的样式
-  :deep(.n-descriptions) {
-    .n-descriptions-header {
-      margin-bottom: 12px;
-      
-      .n-descriptions-header__title {
-        font-size: 16px;
-        font-weight: 600;
-        color: #212529;
-      }
-    }
-    
-    .n-descriptions-item {
-      .n-descriptions-item-label {
-        font-weight: 500;
-        color: #495057;
-        min-width: 100px;
-      }
-      
-      .n-descriptions-item-content {
-        color: #212529;
-      }
-    }
-  }
-  
-  // 优化标签样式
-  :deep(.n-tag) {
-    font-size: 12px;
-    font-weight: 500;
-    border-radius: 4px;
-    
-    &.n-tag--success {
-      background-color: rgba(82, 196, 26, 0.1);
-      color: #389e0d;
-      border: 1px solid rgba(82, 196, 26, 0.2);
-    }
-    
-    &.n-tag--error {
-      background-color: rgba(245, 34, 45, 0.1);
-      color: #cf1322;
-      border: 1px solid rgba(245, 34, 45, 0.2);
-    }
-    
-    &.n-tag--warning {
-      background-color: rgba(250, 173, 20, 0.1);
-      color: #d48806;
-      border: 1px solid rgba(250, 173, 20, 0.2);
-    }
-    
-    &.n-tag--info {
-      background-color: rgba(24, 144, 255, 0.1);
-      color: #096dd9;
-      border: 1px solid rgba(24, 144, 255, 0.2);
-    }
-    
-    &.n-tag--default {
-      background-color: rgba(0, 0, 0, 0.05);
-      color: #595959;
-      border: 1px solid rgba(0, 0, 0, 0.1);
-    }
-  }
-}
-
-.loading-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 40px;
-  
-  :deep(.n-spin) {
-    .n-spin-body {
-      color: #007bff;
-    }
-  }
-  
-  p {
-    margin-top: 20px;
-    color: #6c757d;
-    font-size: 14px;
-    font-weight: 500;
-  }
-}
-
-// 优化下拉菜单样式
-:deep(.n-dropdown-menu) {
-  background-color: var(--bg-primary);
-  border-radius: 8px;
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--border-primary);
-  transition: all 0.3s ease;
-  padding: 4px;
-  
-  .n-dropdown-option {
+    padding: 12px;
+    background: var(--bg-tertiary);
     border-radius: 6px;
-    margin: 2px 0;
-    padding: 8px 12px;
-    transition: all 0.2s ease;
-    
-    &:hover {
-      background-color: #f8f9fa;
-    }
-    
-    .n-dropdown-option-body {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      
-      .n-dropdown-option-body__prefix {
-        color: #6c757d;
-        
-        svg {
-          width: 16px;
-          height: 16px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.5;
+    border-left: 3px solid var(--color-primary);
+  }
+}
+
+// 深色模式适配
+:deep(.n-descriptions) {
+  .n-descriptions-table-wrapper {
+    .n-descriptions-table {
+      .n-descriptions-table-header {
+        .n-descriptions-table-header__title {
+          color: var(--text-primary);
+          font-weight: 600;
         }
       }
       
-      .n-dropdown-option-body__label {
-        font-size: 14px;
-        font-weight: 500;
-        color: #212529;
-      }
-    }
-    
-    &.n-dropdown-option--show-arrow {
-      &:hover {
-        background-color: #e3f2fd;
-        
-        .n-dropdown-option-body__prefix {
-          color: #1976d2;
+      .n-descriptions-table-content {
+        .n-descriptions-item {
+          .n-descriptions-item__label {
+            color: var(--text-secondary);
+            font-weight: 500;
+          }
+          
+          .n-descriptions-item__content {
+            color: var(--text-primary);
+          }
         }
       }
     }
   }
-  
-  .n-dropdown-divider {
-    margin: 4px 0;
-    background-color: rgba(0, 0, 0, 0.06);
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .user-info {
+    .user-avatar-container {
+      padding: 6px 8px;
+      gap: 8px;
+    }
+    
+    .user-name {
+      font-size: 13px;
+    }
   }
 }
 </style>

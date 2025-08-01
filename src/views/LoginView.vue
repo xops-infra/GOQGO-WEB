@@ -68,6 +68,13 @@
           <div class="login-tabs">
             <button 
               class="tab-button"
+              :class="{ active: loginType === 'password' }"
+              @click="loginType = 'password'"
+            >
+              密码登录
+            </button>
+            <button 
+              class="tab-button"
               :class="{ active: loginType === 'token' }"
               @click="loginType = 'token'"
             >
@@ -84,6 +91,64 @@
             </button>
           </div>
           
+          <!-- 密码登录表单 -->
+          <div v-if="loginType === 'password'" class="login-form">
+            <n-form
+              ref="passwordFormRef"
+              :model="passwordForm"
+              :rules="passwordRules"
+              size="large"
+            >
+              <n-form-item path="username" label="用户名">
+                <n-input
+                  v-model:value="passwordForm.username"
+                  placeholder="请输入用户名"
+                  :input-props="{ autocomplete: 'username' }"
+                  @keyup.enter="handlePasswordLogin"
+                >
+                  <template #prefix>
+                    <n-icon>
+                      <svg viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+                      </svg>
+                    </n-icon>
+                  </template>
+                </n-input>
+              </n-form-item>
+              
+              <n-form-item path="password" label="密码">
+                <n-input
+                  v-model:value="passwordForm.password"
+                  type="password"
+                  placeholder="请输入密码"
+                  show-password-on="mousedown"
+                  :input-props="{ autocomplete: 'current-password' }"
+                  @keyup.enter="handlePasswordLogin"
+                >
+                  <template #prefix>
+                    <n-icon>
+                      <svg viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"/>
+                      </svg>
+                    </n-icon>
+                  </template>
+                </n-input>
+              </n-form-item>
+              
+              <n-form-item>
+                <n-button
+                  type="primary"
+                  size="large"
+                  block
+                  :loading="isLoading"
+                  @click="handlePasswordLogin"
+                >
+                  {{ isLoading ? '登录中...' : '登录' }}
+                </n-button>
+              </n-form-item>
+            </n-form>
+          </div>
+          
           <!-- Token登录表单 -->
           <div v-if="loginType === 'token'" class="login-form">
             <n-form
@@ -92,6 +157,23 @@
               :rules="tokenRules"
               size="large"
             >
+              <n-form-item path="username" label="用户名">
+                <n-input
+                  v-model:value="tokenForm.username"
+                  placeholder="请输入用户名"
+                  :input-props="{ autocomplete: 'username' }"
+                  @keyup.enter="handleTokenLogin"
+                >
+                  <template #prefix>
+                    <n-icon>
+                      <svg viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+                      </svg>
+                    </n-icon>
+                  </template>
+                </n-input>
+              </n-form-item>
+              
               <n-form-item path="token" label="访问令牌">
                 <n-input
                   v-model:value="tokenForm.token"
@@ -176,19 +258,56 @@ const userStore = useUserStore()
 const version = ref('v0.1.1')
 
 // 登录类型
-const loginType = ref<'token' | 'ad'>('token')
+const loginType = ref<'password' | 'token' | 'ad'>('password')
 
 // 加载状态
 const isLoading = ref(false)
 
+// 密码登录表单
+const passwordFormRef = ref<FormInst | null>(null)
+const passwordForm = reactive({
+  username: 'xops',
+  password: ''
+})
+
 // Token登录表单
 const tokenFormRef = ref<FormInst | null>(null)
 const tokenForm = reactive({
+  username: 'xops',
   token: ''
 })
 
 // 表单验证规则
+const passwordRules: FormRules = {
+  username: [
+    {
+      required: true,
+      message: '请输入用户名',
+      trigger: ['input', 'blur']
+    }
+  ],
+  password: [
+    {
+      required: true,
+      message: '请输入密码',
+      trigger: ['input', 'blur']
+    },
+    {
+      min: 6,
+      message: '密码长度至少6个字符',
+      trigger: ['input', 'blur']
+    }
+  ]
+}
+
 const tokenRules: FormRules = {
+  username: [
+    {
+      required: true,
+      message: '请输入用户名',
+      trigger: ['input', 'blur']
+    }
+  ],
   token: [
     {
       required: true,
@@ -203,6 +322,37 @@ const tokenRules: FormRules = {
   ]
 }
 
+// 密码登录处理
+const handlePasswordLogin = async () => {
+  if (!passwordFormRef.value) return
+  
+  try {
+    await passwordFormRef.value.validate()
+    isLoading.value = true
+    
+    // 调用用户store的密码登录方法
+    await userStore.loginWithPassword(passwordForm.username, passwordForm.password)
+    
+    message.success('登录成功！')
+    
+    // 跳转到主页面
+    router.push('/')
+    
+  } catch (error: any) {
+    console.error('密码登录失败:', error)
+    
+    if (error?.message) {
+      message.error(error.message)
+    } else if (typeof error === 'string') {
+      message.error(error)
+    } else {
+      message.error('登录失败，请检查用户名和密码')
+    }
+  } finally {
+    isLoading.value = false
+  }
+}
+
 // Token登录处理
 const handleTokenLogin = async () => {
   if (!tokenFormRef.value) return
@@ -211,8 +361,8 @@ const handleTokenLogin = async () => {
     await tokenFormRef.value.validate()
     isLoading.value = true
     
-    // 调用用户store的登录方法
-    await userStore.loginWithToken(tokenForm.token)
+    // 调用用户store的token登录方法
+    await userStore.loginWithToken(tokenForm.token, tokenForm.username)
     
     message.success('登录成功！')
     
@@ -220,7 +370,7 @@ const handleTokenLogin = async () => {
     router.push('/')
     
   } catch (error: any) {
-    console.error('登录失败:', error)
+    console.error('Token登录失败:', error)
     
     if (error?.message) {
       message.error(error.message)
