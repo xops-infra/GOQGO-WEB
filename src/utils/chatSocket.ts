@@ -1,4 +1,5 @@
 import type { ChatMessage } from '@/types/api'
+import { authManager } from './auth'
 
 export interface SocketCallbacks {
   onMessage?: (message: ChatMessage) => void
@@ -42,12 +43,23 @@ export class ChatSocket {
       this.ws.close()
     }
     
-    // 获取token用于WebSocket认证
-    const token = localStorage.getItem('goqgo_token')
+    // 使用认证管理器获取token
+    const token = authManager.getToken()
     if (!token) {
       console.error('❌ 未找到认证token，无法连接WebSocket')
       this.callbacks.onError?.({ message: '未找到认证token，请先登录' })
+      // 跳转到登录页
+      authManager.redirectToLogin('WebSocket连接需要认证')
       return
+    }
+    
+    // 验证token格式
+    if (!authManager.validateTokenFormat(token)) {
+      console.error('❌ Token格式无效，无法连接WebSocket')
+      this.callbacks.onError?.({ message: 'Token格式无效，请重新登录' })
+      authManager.redirectToLogin('Token格式无效')
+      return
+    }
     }
     
     // 使用token认证的WebSocket连接URL

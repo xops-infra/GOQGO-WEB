@@ -16,6 +16,7 @@ import LoginStatusTest from '@/views/LoginStatusTest.vue'
 import LoginErrorTest from '@/views/LoginErrorTest.vue'
 import ApiAuthTest from '@/views/ApiAuthTest.vue'
 import WebSocketAuthTest from '@/views/WebSocketAuthTest.vue'
+import AuthTest from '@/views/AuthTest.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -54,6 +55,15 @@ const router = createRouter({
       component: DebugView,
       meta: { 
         title: 'WebSocket调试',
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/test/auth',
+      name: 'auth-test',
+      component: AuthTest,
+      meta: { 
+        title: '认证系统测试',
         requiresAuth: true
       }
     },

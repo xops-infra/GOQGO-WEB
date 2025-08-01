@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from 'axios'
+import { authManager } from '@/utils/auth'
 
 export interface User {
   displayName: string
@@ -40,27 +41,25 @@ export const useUserStore = defineStore('user', () => {
       const savedToken = localStorage.getItem('goqgo_token')
       const savedUser = localStorage.getItem('goqgo_user')
       
-      if (savedToken && savedUser) {
+      if (savedToken && savedUser && authManager.validateTokenFormat(savedToken)) {
         token.value = savedToken
         currentUser.value = JSON.parse(savedUser)
         isAuthenticated.value = true
         
-        // 设置axios默认header
-        setAuthHeader(savedToken)
-        
         console.log('✅ 恢复登录状态:', currentUser.value?.displayName)
         return true
+      } else {
+        // Token格式无效，清除认证信息
+        if (savedToken && !authManager.validateTokenFormat(savedToken)) {
+          console.warn('🔑 Token格式无效，清除认证信息')
+          clearAuth()
+        }
       }
     } catch (error) {
       console.error('恢复登录状态失败:', error)
       clearAuth()
     }
     return false
-  }
-
-  // 设置认证头
-  const setAuthHeader = (authToken: string) => {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${authToken}`
   }
 
   // Token登录
@@ -71,7 +70,7 @@ export const useUserStore = defineStore('user', () => {
     
     try {
       // 验证token格式
-      if (!userToken || userToken.length < 10) {
+      if (!authManager.validateTokenFormat(userToken)) {
         throw new Error('令牌格式不正确')
       }
 
@@ -99,9 +98,6 @@ export const useUserStore = defineStore('user', () => {
       // 持久化存储
       localStorage.setItem('goqgo_token', response.data.bearer_token)
       localStorage.setItem('goqgo_user', JSON.stringify(user))
-      
-      // 设置认证头（虽然axios拦截器会自动处理，但保持兼容性）
-      setAuthHeader(response.data.bearer_token)
       
       console.log('✅ Token登录成功:', response.data.displayName)
       
@@ -159,9 +155,6 @@ export const useUserStore = defineStore('user', () => {
       // 持久化存储
       localStorage.setItem('goqgo_token', response.data.bearer_token)
       localStorage.setItem('goqgo_user', JSON.stringify(user))
-      
-      // 设置认证头（虽然axios拦截器会自动处理，但保持兼容性）
-      setAuthHeader(response.data.bearer_token)
       
       console.log('✅ 密码登录成功:', response.data.displayName)
       
@@ -248,12 +241,8 @@ export const useUserStore = defineStore('user', () => {
     isAuthenticated.value = false
     error.value = null
     
-    // 清除本地存储
-    localStorage.removeItem('goqgo_token')
-    localStorage.removeItem('goqgo_user')
-    
-    // 清除认证头
-    delete axios.defaults.headers.common['Authorization']
+    // 使用认证管理器清除认证信息
+    authManager.clearAuth()
   }
 
   // 检查token是否过期
