@@ -188,19 +188,33 @@ onMounted(async () => {
 .image-message {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  max-width: 100%;
 }
 
 .image-container {
   position: relative;
   display: inline-block;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.2s ease;
-
+  transition: all 0.3s ease;
+  background: var(--bg-card, #ffffff);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  
   &:hover {
-    transform: scale(1.02);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  }
+  
+  // 暗色主题适配
+  @media (prefers-color-scheme: dark) {
+    background: var(--bg-card, #2c2c2c);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+    
+    &:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
   }
 }
 
@@ -208,8 +222,17 @@ onMounted(async () => {
   display: block;
   max-width: 100%;
   height: auto;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  transition: opacity 0.3s ease;
+  
+  // 确保图片不会过大
+  max-height: 300px;
+  object-fit: cover;
+  
+  // 加载时的占位效果
+  &[src=""] {
+    opacity: 0;
+  }
 }
 
 .image-loading {
@@ -217,9 +240,17 @@ onMounted(async () => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(255, 255, 255, 0.9);
-  padding: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 16px;
   border-radius: 50%;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  
+  // 暗色主题适配
+  @media (prefers-color-scheme: dark) {
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+  }
 }
 
 .image-error {
@@ -227,30 +258,62 @@ onMounted(async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 20px;
-  background: #f5f5f5;
-  border: 2px dashed #ddd;
-  border-radius: 8px;
-  color: #666;
-  font-size: 12px;
-  min-width: 120px;
-  min-height: 80px;
+  gap: 12px;
+  padding: 24px;
+  background: var(--bg-error, #fafafa);
+  border: 2px dashed var(--border-error, #e0e0e0);
+  border-radius: 12px;
+  color: var(--text-error, #666);
+  font-size: 13px;
+  min-width: 160px;
+  min-height: 100px;
+  transition: all 0.3s ease;
+  
+  // 暗色主题适配
+  @media (prefers-color-scheme: dark) {
+    background: var(--bg-error, #2a2a2a);
+    border-color: var(--border-error, #404040);
+    color: var(--text-error, #999);
+  }
+  
+  // 错误图标样式
+  .n-icon {
+    opacity: 0.6;
+  }
+  
+  span {
+    font-weight: 500;
+    text-align: center;
+  }
 }
 
 .image-path {
   font-size: 11px;
-  color: #999;
-  font-family: 'JetBrains Mono', 'Consolas', monospace;
-  background: rgba(0, 0, 0, 0.05);
-  padding: 2px 6px;
-  border-radius: 4px;
+  color: var(--text-tertiary, #999);
+  font-family: 'JetBrains Mono', 'SF Mono', 'Monaco', 'Consolas', monospace;
+  background: var(--bg-code, rgba(0, 0, 0, 0.05));
+  padding: 4px 8px;
+  border-radius: 6px;
   word-break: break-all;
+  line-height: 1.4;
+  border: 1px solid var(--border-light, rgba(0, 0, 0, 0.06));
+  
+  // 暗色主题适配
+  @media (prefers-color-scheme: dark) {
+    background: var(--bg-code, rgba(255, 255, 255, 0.08));
+    border-color: var(--border-light, rgba(255, 255, 255, 0.1));
+    color: var(--text-tertiary, #aaa);
+  }
 }
 
 // 全局样式（用于预览覆盖层）
 :global(.image-preview-overlay) {
-  animation: fadeIn 0.2s ease;
+  animation: fadeIn 0.3s ease;
+  backdrop-filter: blur(8px);
+  
+  img {
+    animation: scaleIn 0.3s ease;
+  }
 }
 
 @keyframes fadeIn {
@@ -259,6 +322,39 @@ onMounted(async () => {
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .image-container {
+    border-radius: 8px;
+    
+    &:hover {
+      transform: none;
+    }
+  }
+  
+  .message-image {
+    border-radius: 8px;
+    max-height: 250px;
+  }
+  
+  .image-error {
+    padding: 20px;
+    min-width: 140px;
+    min-height: 80px;
   }
 }
 </style>

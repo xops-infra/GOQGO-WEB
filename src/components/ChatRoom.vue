@@ -50,6 +50,16 @@
           <span>加载历史消息...</span>
         </div>
 
+        <!-- 历史消息分割线 -->
+        <div
+          v-if="shouldShowDivider"
+          class="history-divider"
+        >
+          <div class="divider-content">
+            <span class="divider-text">{{ hiddenHistoryCount }}条历史消息</span>
+          </div>
+        </div>
+
         <template v-for="(message, index) in visibleMessages" :key="message.id || message.tempId || `msg-${index}`">
           <div
             v-if="message && message.content"
@@ -64,18 +74,6 @@
             <MessageItem :message="message" />
           </div>
         </template>
-
-        <!-- 历史消息分割线 -->
-        <div
-          v-if="messages.length > 0 && shouldShowDivider && hiddenHistoryCount > 0"
-          class="history-divider"
-        >
-          <div class="divider-content">
-            <span class="divider-text"
-              >{{ getDividerText }} · {{ hiddenHistoryCount }}条历史消息</span
-            >
-          </div>
-        </div>
       </div>
     </div>
 
@@ -161,37 +159,6 @@ const isInitialLoad = ref(true) // 标记是否为初始加载
 
 // 默认显示的消息条数
 const DEFAULT_VISIBLE_MESSAGES = 50
-
-// 查找历史消息的结束位置（基于条数分割）
-const getHistoryMessageEndIndex = () => {
-  if (messages.value.length <= DEFAULT_VISIBLE_MESSAGES) {
-    // 如果总消息数不超过默认显示数，不显示分割线
-    return -1
-  }
-
-  // 返回第50条消息的索引（从后往前数）
-  const endIndex = messages.value.length - DEFAULT_VISIBLE_MESSAGES - 1
-  console.log(
-    `📊 按条数分割: 总消息${messages.value.length}条，分割点索引${endIndex}，显示最新${DEFAULT_VISIBLE_MESSAGES}条`
-  )
-  return endIndex
-}
-
-// 计算分割线显示文本
-const getDividerText = computed(() => {
-  const endIndex = getHistoryMessageEndIndex()
-  if (endIndex === -1 || messages.value.length === 0) {
-    return '1小时前'
-  }
-
-  if (endIndex === -1) {
-    return '最近消息'
-  }
-
-  // 获取历史消息数量
-  const historyCount = endIndex + 1
-  return `${historyCount}条历史消息`
-})
 
 // 检查是否应该显示分割线
 const shouldShowDivider = computed(() => {
@@ -735,8 +702,8 @@ onUnmounted(() => {
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 16px 0;
-      margin: 12px 0;
+      padding: 20px 0;
+      margin: 16px 0;
       position: relative;
 
       .divider-content {
@@ -744,20 +711,27 @@ onUnmounted(() => {
         align-items: center;
         gap: 8px;
         position: relative;
-        padding: 8px 16px;
+        padding: 6px 16px;
         background-color: var(--bg-secondary);
         color: var(--text-tertiary);
         border: 1px solid var(--border-primary);
-        border-radius: 20px;
+        border-radius: 16px;
         font-size: 12px;
+        font-weight: 500;
         z-index: 2;
+        backdrop-filter: blur(8px);
+        transition: all 0.3s ease;
 
         .divider-text {
           white-space: nowrap;
         }
-        font-size: 14px;
-        opacity: 0.7;
-        transition: all 0.3s ease;
+
+        &:hover {
+          background-color: var(--bg-tertiary);
+          color: var(--text-secondary);
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
       }
 
       // 分割线效果
@@ -765,36 +739,18 @@ onUnmounted(() => {
         content: '';
         position: absolute;
         top: 50%;
-        left: -200px;
-        right: -200px;
+        left: 0;
+        right: 0;
         height: 1px;
         background: linear-gradient(
-          to right,
-          transparent,
+          90deg,
+          transparent 0%,
           var(--border-primary) 20%,
           var(--border-primary) 80%,
-          transparent
+          transparent 100%
         );
         z-index: 1;
       }
-    }
-
-    // 分割线效果
-    &::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 0;
-      right: 0;
-      height: 1px;
-      background: linear-gradient(
-        90deg,
-        transparent 0%,
-        var(--border-primary) 20%,
-        var(--border-primary) 80%,
-        transparent 100%
-      );
-      z-index: 1;
     }
   }
 

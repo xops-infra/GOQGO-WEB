@@ -31,12 +31,26 @@ export interface ParsedFile {
 }
 
 /**
+ * 内容块类型
+ */
+export interface ContentBlock {
+  type: 'text' | 'image' | 'file'
+  content: string
+  url?: string
+  extension?: string
+  filename?: string
+  icon?: string
+  label?: string
+}
+
+/**
  * 解析的消息内容
  */
 export interface ParsedMessage {
   text: string
   files: ParsedFile[]
   hasFiles: boolean
+  contentBlocks: ContentBlock[] // 按顺序排列的内容块
 }
 
 /**
@@ -108,47 +122,85 @@ function getFileLabel(type: ParsedFile['type']): string {
   return labels[type]
 }
 
+// 动态获取 API 服务器 baseURL
+import axiosInstance from './axios'
+
+// 优先使用 VITE_API_BASE_URL，否则 fallback 到 axios 默认 baseURL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || axiosInstance.defaults.baseURL || 'http://localhost:8080'
+// 去除末尾斜杠
+const baseUrl = API_BASE_URL.replace(/\/$/, '')
+// 动态生成正则，支持任意 API 服务器
+const fileUrlRegex = new RegExp(`(${baseUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^\s]+)`, 'g')
+
 /**
- * 检查URL是否为本地服务器文件
+ * 检查URL是否为本地服务器文件（现在基于 baseUrl 判断）
  */
 function isLocalServerFile(url: string): boolean {
-  return url.includes('localhost:8080') || url.includes('127.0.0.1:8080')
+  return url.startsWith(baseUrl)
 }
 
 /**
- * 解析消息内容，识别文件链接
+ * 解析消息内容，按空格分割并按顺序排列
  */
 export function parseMessage(content: string): ParsedMessage {
   const files: ParsedFile[] = []
-  const textContent = content
-
-  // 正则表达式匹配 http://localhost:8080 开头的文件链接
-  const fileUrlRegex = /(https?:\/\/(?:localhost|127\.0\.0\.1):8080[^\s]+)/g
-
-  let match
-  while ((match = fileUrlRegex.exec(content)) !== null) {
-    const url = match[1]
-    const extension = getFileExtension(url)
-    const filename = getFilename(url)
-    const type = getFileType(extension)
-
-    // 只处理本地服务器的文件
-    if (isLocalServerFile(url)) {
-      files.push({
+  const contentBlocks: ContentBlock[] = []
+  
+  // 按空格分割内容
+  const parts = content.split(/\s+/)
+  
+  for (const part of parts) {
+    if (!part.trim()) continue
+    
+    // 检查是否是URL
+    if (part.startsWith(baseUrl)) {
+      const extension = getFileExtension(part)
+      const filename = getFilename(part)
+      const type = getFileType(extension)
+      
+      // 创建文件对象
+      const file: ParsedFile = {
         type,
-        url,
+        url: part,
+        extension,
+        filename,
+        icon: getFileIcon(type),
+        label: getFileLabel(type)
+      }
+      
+      files.push(file)
+      
+      // 创建内容块
+      const blockType = type === 'image' ? 'image' : 'file'
+      contentBlocks.push({
+        type: blockType,
+        content: part,
+        url: part,
         extension,
         filename,
         icon: getFileIcon(type),
         label: getFileLabel(type)
       })
+    } else {
+      // 普通文本
+      contentBlocks.push({
+        type: 'text',
+        content: part
+      })
     }
   }
+  
+  // 重新组合文本内容（不包含URL的部分）
+  const textContent = parts
+    .filter(part => !part.startsWith(baseUrl))
+    .join(' ')
+    .trim()
 
   return {
     text: textContent,
     files,
-    hasFiles: files.length > 0
+    hasFiles: files.length > 0,
+    contentBlocks
   }
 }
 

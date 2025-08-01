@@ -421,6 +421,7 @@ const handleDrop = async (e: DragEvent) => {
   align-items: flex-end;
   gap: 12px;
   padding: 12px 16px;
+  background-color: var(--bg-primary);
 }
 
 .toolbar {
@@ -434,13 +435,16 @@ const handleDrop = async (e: DragEvent) => {
     height: 36px;
     border-radius: 6px;
     transition: all 0.2s ease;
+    color: var(--text-secondary);
 
     &:hover {
       background-color: var(--bg-hover);
+      color: var(--text-primary);
     }
 
     &:disabled {
       opacity: 0.5;
+      color: var(--text-disabled);
     }
   }
 }
@@ -448,40 +452,70 @@ const handleDrop = async (e: DragEvent) => {
 .message-input {
   flex: 1;
 
+  // 重写Naive UI输入框样式以适配主题
   :deep(.n-input) {
     background-color: var(--bg-secondary) !important;
-    border-color: var(--border-primary) !important;
+    border: 1px solid var(--border-primary) !important;
+    border-radius: 8px !important;
+    transition: all 0.3s ease !important;
 
+    // 输入框内部元素
     .n-input__input-el,
     .n-input__textarea-el {
-      background-color: var(--bg-secondary) !important;
+      background-color: transparent !important;
       color: var(--text-primary) !important;
       border: none !important;
+      font-size: 14px !important;
+      line-height: 1.5 !important;
+      padding: 8px 12px !important;
 
       &::placeholder {
         color: var(--text-tertiary) !important;
+        opacity: 1 !important;
+      }
+
+      &:focus {
+        outline: none !important;
       }
     }
 
+    // 边框状态
     .n-input__border,
     .n-input__state-border {
-      border-color: var(--border-primary) !important;
+      border: none !important;
     }
 
-    &:hover .n-input__state-border {
+    // 悬停状态
+    &:hover {
       border-color: var(--border-focus) !important;
+      background-color: var(--bg-hover) !important;
     }
 
-    &.n-input--focus .n-input__state-border {
+    // 聚焦状态
+    &.n-input--focus {
       border-color: var(--color-primary) !important;
-      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+      background-color: var(--bg-secondary) !important;
+      box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.1) !important;
+    }
+
+    // 禁用状态
+    &.n-input--disabled {
+      background-color: var(--bg-tertiary) !important;
+      border-color: var(--border-secondary) !important;
+      opacity: 0.6 !important;
+
+      .n-input__input-el,
+      .n-input__textarea-el {
+        color: var(--text-disabled) !important;
+      }
     }
   }
 
+  // textarea特殊处理
   :deep(.n-input__textarea-el) {
-    resize: none;
-    font-size: 14px;
-    line-height: 1.5;
+    resize: none !important;
+    min-height: 36px !important;
+    max-height: 144px !important;
   }
 }
 
@@ -490,9 +524,94 @@ const handleDrop = async (e: DragEvent) => {
   padding: 0 16px;
   border-radius: 6px;
   font-weight: 500;
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background-color: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
 
   &:disabled {
     opacity: 0.5;
+    background-color: var(--bg-tertiary);
+    border-color: var(--border-primary);
+    color: var(--text-disabled);
+    cursor: not-allowed;
+  }
+}
+
+// Terminal主题特殊样式
+[data-theme='terminal'] {
+  .chat-input {
+    background-color: var(--terminal-bg);
+    border-top-color: var(--terminal-border);
+  }
+
+  .input-area {
+    background-color: var(--terminal-bg);
+  }
+
+  .message-input {
+    :deep(.n-input) {
+      background-color: var(--terminal-bg-secondary) !important;
+      border-color: var(--terminal-border) !important;
+      
+      .n-input__input-el,
+      .n-input__textarea-el {
+        color: var(--terminal-text) !important;
+        font-family: var(--font-mono) !important;
+        
+        &::placeholder {
+          color: var(--terminal-text-tertiary) !important;
+        }
+      }
+
+      &:hover {
+        border-color: var(--terminal-border-active) !important;
+        background-color: var(--terminal-bg-tertiary) !important;
+      }
+
+      &.n-input--focus {
+        border-color: var(--pixel-green) !important;
+        box-shadow: 0 0 0 2px rgba(0, 255, 65, 0.1) !important;
+      }
+    }
+  }
+
+  .send-button {
+    background-color: var(--pixel-green);
+    border-color: var(--pixel-green);
+    color: var(--terminal-bg);
+    font-family: var(--font-display);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+
+    &:hover:not(:disabled) {
+      background-color: var(--pixel-cyan);
+      border-color: var(--pixel-cyan);
+      box-shadow: var(--neon-glow-cyan);
+    }
+  }
+
+  .toolbar {
+    .attachment-button,
+    .image-button {
+      color: var(--terminal-text-secondary);
+      
+      &:hover {
+        background-color: var(--terminal-surface);
+        color: var(--pixel-green);
+      }
+    }
   }
 }
 
@@ -515,6 +634,40 @@ const handleDrop = async (e: DragEvent) => {
     height: 32px;
     padding: 0 12px;
     font-size: 13px;
+  }
+
+  .message-input {
+    :deep(.n-input) {
+      .n-input__input-el,
+      .n-input__textarea-el {
+        font-size: 13px !important;
+        padding: 6px 10px !important;
+      }
+    }
+
+    :deep(.n-input__textarea-el) {
+      min-height: 32px !important;
+      max-height: 120px !important;
+    }
+  }
+}
+
+// 暗色主题特殊处理
+@media (prefers-color-scheme: dark) {
+  .message-input {
+    :deep(.n-input) {
+      // 确保在系统暗色模式下也有正确的样式
+      background-color: var(--bg-secondary) !important;
+      
+      .n-input__input-el,
+      .n-input__textarea-el {
+        color: var(--text-primary) !important;
+        
+        &::placeholder {
+          color: var(--text-tertiary) !important;
+        }
+      }
+    }
   }
 }
 </style>

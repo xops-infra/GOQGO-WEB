@@ -57,22 +57,57 @@
 
       <!-- 消息内容框 -->
       <div class="message-content-box">
-        <!-- 文本消息 -->
-        <div 
-          v-if="isTextMessage" 
-          class="text-content" 
-          v-html="formattedContent"
-        ></div>
+        <!-- 按顺序渲染内容块 -->
+        <div v-if="parsedMessage.contentBlocks.length > 0" class="content-blocks">
+          <div 
+            v-for="(block, index) in parsedMessage.contentBlocks" 
+            :key="index" 
+            class="content-block"
+            :class="`content-block-${block.type}`"
+          >
+            <!-- 文本内容 -->
+            <div v-if="block.type === 'text'" class="text-content">
+              {{ block.content }}
+            </div>
+            
+            <!-- 图片内容 -->
+            <div v-else-if="block.type === 'image'" class="image-content">
+              <ImageMessage
+                :image-path="block.url || ''"
+                :alt-text="block.filename || '图片'"
+                :max-width="280"
+                :max-height="200"
+              />
+            </div>
+            
+            <!-- 文件内容 -->
+            <div v-else-if="block.type === 'file'" class="file-content">
+              <a :href="block.url || '#'" target="_blank" class="file-link">
+                <span class="file-icon">{{ block.icon }}</span>
+                <span class="file-name">{{ block.filename }}</span>
+                <span class="file-type">({{ block.label }})</span>
+              </a>
+            </div>
+          </div>
+        </div>
 
-        <!-- 图片消息 -->
+        <!-- 纯文本消息（兼容旧逻辑） -->
+        <div v-else-if="isTextMessage" class="text-content">
+          <div v-html="formattedContent"></div>
+        </div>
+
+        <!-- 纯图片消息（兼容旧逻辑） -->
         <div v-else-if="isImageMessage" class="image-content">
-          <img
-            :src="imageUrl"
-            :alt="altText"
-            class="message-image"
-            @click="handleImageClick"
-            @error="handleImageError"
+          <ImageMessage
+            :image-path="imageUrl"
+            :alt-text="altText"
+            :max-width="280"
+            :max-height="200"
           />
+          <!-- 显示图片后的文本内容 -->
+          <div v-if="imageText" class="image-text-content">
+            {{ imageText }}
+          </div>
         </div>
 
         <!-- 其他类型消息 -->
@@ -89,8 +124,10 @@ import { computed, h } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useChatStore } from '@/stores/chat'
 import { formatRelativeTime } from '@/utils/timeManager'
-import { formatMessageContent } from '@/utils/messageParser'
+import { formatMessageContent, parseMessage } from '@/utils/messageParser'
+import ImageMessage from './ImageMessage.vue'
 import type { ChatMessage } from '@/types/api'
+import { useUserStore } from '@/stores/user'
 
 // Props定义
 interface Props {
@@ -102,6 +139,9 @@ const props = defineProps<Props>()
 // 获取聊天store中的在线用户列表
 const chatStore = useChatStore()
 const { onlineUsers } = storeToRefs(chatStore)
+
+// 获取用户store中的当前用户名
+const userStore = useUserStore()
 
 // 基础验证
 const isValidMessage = computed(() => {
@@ -137,25 +177,36 @@ const isImageMessage = computed(() => {
   return props.message?.messageType === 'image'
 })
 
-// 图片URL
+// 解析消息内容
+const parsedMessage = computed(() => {
+  const content = props.message?.content || ''
+  return parseMessage(content)
+})
+
+// 图片URL（用于纯图片消息）
 const imageUrl = computed(() => {
   if (!isImageMessage.value) return ''
-  return props.message?.imageUrl || props.message?.content || ''
+  
+  const content = props.message?.imageUrl || props.message?.content || ''
+  
+  // 使用 parsedMessage 中的图片文件
+  const imageFile = parsedMessage.value.files.find(file => file.type === 'image')
+  if (imageFile) {
+    return imageFile.url
+  }
+  
+  return content
+})
+
+// 图片文本内容（去除URL后的文本）
+const imageText = computed(() => {
+  if (!isImageMessage.value) return ''
+  
+  return parsedMessage.value.text.trim()
 })
 
 const altText = computed(() => {
   return `${displayName.value}发送的图片`
-})
-
-// 在线状态
-const isOnline = computed(() => {
-  const senderName = props.message?.senderName
-  return senderName ? onlineUsers.value.includes(senderName) : false
-})
-
-const showOnlineStatus = computed(() => {
-  const type = messageType.value
-  return type === 'user' || type === 'agent'
 })
 
 // 头像相关
@@ -174,11 +225,32 @@ const avatarText = computed(() => {
   return name.charAt(0).toUpperCase()
 })
 
+// 在线状态
+const isOnline = computed(() => {
+  const senderName = props.message?.senderName
+  return senderName ? onlineUsers.value.includes(senderName) : false
+})
+
+const showOnlineStatus = computed(() => {
+  const type = messageType.value
+  return type === 'user' || type === 'agent'
+})
+
+// 检查是否为当前用户的消息
+const isCurrentUser = computed(() => {
+  const currentUsername = userStore.username?.toLowerCase()
+  const senderId = props.message?.senderId?.toLowerCase() || ''
+  const senderName = props.message?.senderName?.toLowerCase() || ''
+  
+  return senderId === currentUsername || senderName === currentUsername
+})
+
 // 样式类
 const messageClasses = computed(() => ({
   'message-user': messageType.value === 'user',
   'message-agent': messageType.value === 'agent',
-  'message-system': messageType.value === 'system'
+  'message-system': messageType.value === 'system',
+  'message-current-user': isCurrentUser.value
 }))
 
 const senderNameClass = computed(() => ({
@@ -459,6 +531,114 @@ const handleImageError = (event: Event) => {
   color: var(--text-primary);
   transition: all 0.3s ease;
 
+  .content-blocks {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .content-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    &.content-block-text {
+      .text-content {
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--text-primary);
+        word-wrap: break-word;
+        white-space: pre-wrap;
+        margin: 0;
+
+        // @mention 样式
+        :deep(.mention) {
+          color: var(--color-primary);
+          background-color: rgba(59, 130, 246, 0.1);
+          padding: 2px 4px;
+          margin-right: 4px;
+          border-radius: 4px;
+          font-weight: 500;
+          text-decoration: none;
+          display: inline-block;
+        }
+
+        // 代码块样式
+        :deep(code) {
+          background-color: var(--bg-tertiary);
+          color: var(--text-primary);
+          padding: 2px 4px;
+          border-radius: 3px;
+          font-family: 'JetBrains Mono', 'Consolas', monospace;
+          font-size: 13px;
+        }
+
+        :deep(pre) {
+          background-color: var(--bg-tertiary);
+          color: var(--text-primary);
+          padding: 12px;
+          border-radius: 6px;
+          overflow-x: auto;
+          margin: 8px 0;
+
+          code {
+            background: none;
+            padding: 0;
+          }
+        }
+      }
+    }
+
+    &.content-block-image {
+      .image-content {
+        margin-top: 0; // Remove top margin for image blocks
+        display: flex;
+        justify-content: flex-start;
+        
+        // 确保ImageMessage组件有合适的最大宽度
+        :deep(.image-message) {
+          max-width: 100%;
+        }
+      }
+    }
+
+    &.content-block-file {
+      .file-content {
+        .file-link {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-secondary);
+          border-radius: 8px;
+          text-decoration: none;
+          color: var(--text-primary);
+          transition: all 0.2s ease;
+          
+          &:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--color-primary);
+          }
+          
+          .file-icon {
+            font-size: 16px;
+          }
+          
+          .file-name {
+            font-weight: 500;
+            flex: 1;
+          }
+          
+          .file-type {
+            color: var(--text-secondary);
+            font-size: 12px;
+          }
+        }
+      }
+    }
+  }
+
   .text-content {
     font-size: 14px;
     line-height: 1.6;
@@ -505,19 +685,77 @@ const handleImageError = (event: Event) => {
   }
 
   .image-content {
-    margin-top: 4px;
+    margin-top: 8px;
+    display: flex;
+    justify-content: flex-start;
+    
+    // 确保ImageMessage组件有合适的最大宽度
+    :deep(.image-message) {
+      max-width: 100%;
+    }
+    
+    // 移除旧的message-image样式，因为现在使用ImageMessage组件
+  }
+}
 
-    .message-image {
-      max-width: 300px;
-      max-height: 200px;
-      border-radius: 8px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-      transition: all 0.3s ease;
-      cursor: pointer;
-
-      &:hover {
-        transform: scale(1.02);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+.mixed-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  
+  .text-content {
+    padding: 8px 0;
+    line-height: 1.5;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+  }
+  
+  .images-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    
+    .image-item {
+      display: inline-block;
+    }
+  }
+  
+  .files-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    
+    .file-item {
+      .file-link {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-secondary);
+        border-radius: 8px;
+        text-decoration: none;
+        color: var(--text-primary);
+        transition: all 0.2s ease;
+        
+        &:hover {
+          background: var(--bg-tertiary);
+          border-color: var(--color-primary);
+        }
+        
+        .file-icon {
+          font-size: 16px;
+        }
+        
+        .file-name {
+          font-weight: 500;
+          flex: 1;
+        }
+        
+        .file-type {
+          color: var(--text-secondary);
+          font-size: 12px;
+        }
       }
     }
   }
