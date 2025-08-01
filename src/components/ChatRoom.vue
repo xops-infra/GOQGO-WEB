@@ -62,7 +62,7 @@
         
         <!-- 历史消息分割线 -->
         <div 
-          v-if="shouldShowDivider && hiddenHistoryCount > 0"
+          v-if="messages.length > 0 && shouldShowDivider && hiddenHistoryCount > 0"
           class="history-divider"
         >
           <div class="divider-content">
@@ -176,7 +176,8 @@ const getDividerText = computed(() => {
 
 // 检查是否应该显示分割线
 const shouldShowDivider = computed(() => {
-  return messages.value.length > DEFAULT_VISIBLE_MESSAGES
+  // 只有当消息数量大于默认显示数量且确实有消息时才显示分割线
+  return messages.value.length > 0 && messages.value.length > DEFAULT_VISIBLE_MESSAGES
 })
 
 // 获取要显示的消息列表（默认显示最新50条）
@@ -191,7 +192,8 @@ const visibleMessages = computed(() => {
 
 // 获取隐藏的历史消息数量
 const hiddenHistoryCount = computed(() => {
-  if (messages.value.length <= DEFAULT_VISIBLE_MESSAGES) {
+  // 确保有消息且超过默认显示数量时才计算隐藏数量
+  if (messages.value.length === 0 || messages.value.length <= DEFAULT_VISIBLE_MESSAGES) {
     return 0
   }
   

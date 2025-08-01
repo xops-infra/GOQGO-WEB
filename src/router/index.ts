@@ -9,6 +9,7 @@ import MessageConfirmTest from '@/views/MessageConfirmTest.vue'
 import MessageConfirmDebug from '@/views/MessageConfirmDebug.vue'
 import MessageTimeoutTest from '@/views/MessageTimeoutTest.vue'
 import DividerTest from '@/views/DividerTest.vue'
+import EmptyMessageTest from '@/views/EmptyMessageTest.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -72,6 +73,12 @@ const router = createRouter({
       name: 'divider-test',
       component: DividerTest,
       meta: { title: '分割线测试' }
+    },
+    {
+      path: '/test/empty-message',
+      name: 'empty-message-test',
+      component: EmptyMessageTest,
+      meta: { title: '空消息状态测试' }
     }
   ]
 })
