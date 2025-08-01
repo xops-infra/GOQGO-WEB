@@ -1,5 +1,5 @@
 <template>
-  <div class="user-info">
+  <div v-if="currentUser" class="user-info">
     <n-dropdown
       :options="dropdownOptions"
       @select="handleMenuSelect"
@@ -19,7 +19,7 @@
         </n-avatar>
         
         <div class="user-basic-info">
-          <div class="user-name">{{ currentUser.displayName }}</div>
+          <div class="user-name">{{ currentUser?.displayName || currentUser?.username || '用户' }}</div>
           <div class="user-status">
             <n-tag
               :type="statusType"
@@ -43,7 +43,7 @@
     <n-modal
       v-model:show="showUserDetails"
       preset="card"
-      :title="`${currentUser.displayName} 的详细信息`"
+      :title="`${currentUser?.displayName || currentUser?.username || '用户'} 的详细信息`"
       style="width: 700px; max-width: 90vw"
       :bordered="false"
       size="huge"
@@ -197,14 +197,17 @@ const userAvatar = computed(() => {
 })
 
 const defaultAvatar = computed(() => {
+  if (!currentUser.value) return ''
+  
   // 生成默认头像URL，使用更好的默认头像服务
-  const email = currentUserData.value?.spec.email || 'xops@patsnap.com'
-  const hash = btoa(email).replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.value.displayName)}&size=128&background=007bff&color=ffffff&bold=true&format=svg`
+  const displayName = currentUser.value.displayName || currentUser.value.username || '用户'
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&size=128&background=007bff&color=ffffff&bold=true&format=svg`
 })
 
 const userInitials = computed(() => {
-  const displayName = currentUser.value.displayName
+  if (!currentUser.value) return 'U'
+  
+  const displayName = currentUser.value.displayName || currentUser.value.username || '用户'
   return displayName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
 })
 
@@ -353,12 +356,14 @@ const formatTime = (timeString: string) => {
 
 // 生命周期
 onMounted(async () => {
-  // 初始化时获取用户信息
-  try {
-    await userStore.fetchCurrentUser('xops')
-  } catch (error) {
-    console.error('UserInfo组件初始化失败:', error)
-    // 不显示错误消息，因为store已经处理了fallback
+  // 只有在用户已登录时才获取用户详细信息
+  if (currentUser.value && currentUser.value.username) {
+    try {
+      await userStore.fetchCurrentUser(currentUser.value.username)
+    } catch (error) {
+      console.error('UserInfo组件初始化失败:', error)
+      // 不显示错误消息，因为store已经处理了fallback
+    }
   }
 })
 </script>

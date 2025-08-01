@@ -12,6 +12,7 @@ import MessageConfirmDebug from '@/views/MessageConfirmDebug.vue'
 import MessageTimeoutTest from '@/views/MessageTimeoutTest.vue'
 import DividerTest from '@/views/DividerTest.vue'
 import EmptyMessageTest from '@/views/EmptyMessageTest.vue'
+import LoginStatusTest from '@/views/LoginStatusTest.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -122,6 +123,15 @@ const router = createRouter({
       component: EmptyMessageTest,
       meta: { 
         title: '空消息状态测试',
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/test/login-status',
+      name: 'login-status-test',
+      component: LoginStatusTest,
+      meta: { 
+        title: '登录状态测试',
         requiresAuth: true
       }
     },
