@@ -212,7 +212,7 @@ const userInitials = computed(() => {
 })
 
 const statusType = computed(() => {
-  if (!currentUserData.value) return 'default'
+  if (!currentUserData.value || !currentUserData.value.status) return 'default'
   
   switch (currentUserData.value.status.phase) {
     case 'Active':
@@ -227,7 +227,7 @@ const statusType = computed(() => {
 })
 
 const statusText = computed(() => {
-  if (!currentUserData.value) return '在线'
+  if (!currentUserData.value || !currentUserData.value.status) return '在线'
   
   switch (currentUserData.value.status.phase) {
     case 'Active':

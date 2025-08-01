@@ -22,6 +22,9 @@ export interface UserData {
   spec: {
     tokenExpiry: string
   }
+  status: {
+    phase: 'Active' | 'Inactive' | 'Suspended'
+  }
 }
 
 export interface LoginResponse {
@@ -165,6 +168,9 @@ export const useUserStore = defineStore('user', () => {
         },
         spec: {
           tokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        },
+        status: {
+          phase: 'Active'
         }
       }
       
@@ -185,6 +191,9 @@ export const useUserStore = defineStore('user', () => {
         },
         spec: {
           tokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        },
+        status: {
+          phase: 'Active'
         }
       }
     } finally {
