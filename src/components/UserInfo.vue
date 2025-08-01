@@ -58,64 +58,31 @@
           bordered
           size="small"
         >
-          <n-descriptions-item label="用户名">
-            {{ currentUser.metadata.name }}
-          </n-descriptions-item>
           <n-descriptions-item label="显示名称">
-            {{ currentUser.spec.displayName }}
+            {{ currentUser.displayName }}
           </n-descriptions-item>
           <n-descriptions-item label="邮箱">
-            {{ currentUser.spec.email }}
-          </n-descriptions-item>
-          <n-descriptions-item label="角色">
-            {{ currentUser.spec.roles.join(', ') }}
+            {{ currentUser.email }}
           </n-descriptions-item>
           <n-descriptions-item label="状态">
-            <n-tag :type="statusType" size="small">
-              {{ statusText }}
+            <n-tag type="success" size="small">
+              在线
             </n-tag>
           </n-descriptions-item>
-          <n-descriptions-item label="最后登录">
-            {{ formatTime(currentUser.status.lastLoginTime) }}
+          <n-descriptions-item label="Token有效期">
+            3天
           </n-descriptions-item>
         </n-descriptions>
 
-        <!-- 权限信息 -->
-        <n-descriptions
-          title="权限信息"
-          :column="1"
-          bordered
-          size="small"
-          style="margin-top: 16px;"
-        >
-          <n-descriptions-item label="智能体权限">
-            <n-space>
-              <n-tag v-if="currentUser.spec.permissions.agents.create" type="success" size="small">创建</n-tag>
-              <n-tag v-if="currentUser.spec.permissions.agents.restart" type="warning" size="small">重启</n-tag>
-              <n-tag v-if="currentUser.spec.permissions.agents.send" type="info" size="small">发送消息</n-tag>
-              <n-tag v-if="currentUser.spec.permissions.agents.logs" type="default" size="small">查看日志</n-tag>
-            </n-space>
-          </n-descriptions-item>
-        </n-descriptions>
-
-        <!-- 配额信息 -->
-        <n-descriptions
-          title="配额信息"
-          :column="3"
-          bordered
-          size="small"
-          style="margin-top: 16px;"
-        >
-          <n-descriptions-item label="智能体数量">
-            {{ currentUser.status.agentCount }} / {{ currentUser.spec.quotas.maxAgents }}
-          </n-descriptions-item>
-          <n-descriptions-item label="命名空间数量">
-            {{ currentUser.status.namespaceCount }} / {{ currentUser.spec.quotas.maxNamespaces }}
-          </n-descriptions-item>
-          <n-descriptions-item label="DAG数量">
-            {{ currentUser.status.dagCount }} / {{ currentUser.spec.quotas.maxDags }}
-          </n-descriptions-item>
-        </n-descriptions>
+        <!-- 使用说明 -->
+        <div style="margin-top: 16px;">
+          <n-text strong>使用说明：</n-text>
+          <div class="user-description">
+            <p>您已成功登录GoQGo AI智能体协助开发平台。</p>
+            <p>当前使用Token认证方式，临时token有效期为3天。</p>
+            <p>您可以使用所有功能，包括创建智能体、发送消息、查看日志等。</p>
+          </div>
+        </div>
       </div>
     </n-modal>
   </div>
@@ -144,7 +111,7 @@ const showUserDetails = ref(false)
 // 计算属性
 const userAvatar = computed(() => {
   // 可以从用户数据中获取头像URL
-  return currentUser.value?.metadata?.annotations?.avatar || ''
+  return ''
 })
 
 const defaultAvatar = computed(() => {
@@ -163,40 +130,15 @@ const userInitials = computed(() => {
 })
 
 const statusType = computed(() => {
-  if (!currentUser.value || !currentUser.value.status) return 'default'
-  
-  switch (currentUser.value.status.phase) {
-    case 'Active':
-      return 'success'
-    case 'Inactive':
-      return 'warning'
-    case 'Suspended':
-      return 'error'
-    default:
-      return 'default'
-  }
+  return 'success' // 简化状态显示
 })
 
 const statusText = computed(() => {
-  if (!currentUser.value || !currentUser.value.status) return '在线'
-  
-  switch (currentUser.value.status.phase) {
-    case 'Active':
-      return '活跃'
-    case 'Inactive':
-      return '非活跃'
-    case 'Suspended':
-      return '已暂停'
-    default:
-      return '未知'
-  }
+  return '在线' // 简化状态文本
 })
 
 const hasAnyAgentPermission = computed(() => {
-  if (!currentUser.value) return false
-  
-  const permissions = currentUser.value.spec.permissions.agents
-  return permissions.create || permissions.delete || permissions.restart || permissions.send || permissions.logs
+  return true // 简化权限检查
 })
 
 // 下拉菜单选项
@@ -254,8 +196,8 @@ const handleMenuSelect = (key: string) => {
 
 const refreshUserInfo = async () => {
   try {
-    if (currentUser.value?.metadata.name) {
-      await userStore.fetchCurrentUser(currentUser.value.metadata.name)
+    if (currentUser.value?.displayName) {
+      await userStore.fetchCurrentUser(currentUser.value.displayName)
     }
     message.success('用户信息已刷新')
   } catch (error) {
@@ -295,9 +237,9 @@ const formatTime = (timeString: string) => {
 // 生命周期
 onMounted(async () => {
   // 只有在用户已登录时才获取用户详细信息
-  if (currentUser.value && currentUser.value.metadata.name) {
+  if (currentUser.value && currentUser.value.displayName) {
     try {
-      await userStore.fetchCurrentUser(currentUser.value.metadata.name)
+      await userStore.fetchCurrentUser(currentUser.value.displayName)
     } catch (error) {
       console.error('UserInfo组件初始化失败:', error)
       // 不显示错误消息，因为store已经处理了fallback

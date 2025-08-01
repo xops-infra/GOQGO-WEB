@@ -3,61 +3,17 @@ import { ref, computed } from 'vue'
 import axios from 'axios'
 
 export interface User {
-  apiVersion: string
-  kind: string
-  metadata: {
-    name: string
-    creationTimestamp: string
-    labels: Record<string, string>
-    annotations: Record<string, string>
-  }
-  spec: {
-    displayName: string
-    email: string
-    roles: string[]
-    permissions: {
-      namespaces: Array<{
-        name: string
-        access: string
-      }>
-      agents: {
-        create: boolean
-        delete: boolean
-        restart: boolean
-        send: boolean
-        logs: boolean
-      }
-      dags: {
-        create: boolean
-        run: boolean
-        delete: boolean
-      }
-    }
-    preferences: {
-      defaultNamespace: string
-      outputFormat: string
-      timezone: string
-    }
-    quotas: {
-      maxAgents: number
-      maxNamespaces: number
-      maxDags: number
-    }
-  }
-  status: {
-    phase: 'Active' | 'Inactive' | 'Suspended'
-    lastLoginTime: string
-    agentCount: number
-    namespaceCount: number
-    dagCount: number
-  }
+  displayName: string
+  email: string
+  // 可以根据实际API响应添加更多字段
 }
 
 export interface LoginResponse {
   success: boolean
   message: string
-  token: string
-  user: User
+  bearer_token: string
+  displayName: string
+  email: string
 }
 
 export const useUserStore = defineStore('user', () => {
@@ -71,10 +27,9 @@ export const useUserStore = defineStore('user', () => {
 
   // 计算属性
   const userInfo = computed(() => currentUser.value)
-  const username = computed(() => currentUser.value?.metadata.name || '')
-  const displayName = computed(() => currentUser.value?.spec.displayName || currentUser.value?.metadata.name || '')
+  const username = computed(() => currentUser.value?.displayName || '')
+  const displayName = computed(() => currentUser.value?.displayName || '')
   const hasPermission = computed(() => (permission: string) => {
-    if (!currentUser.value) return false
     // 根据实际权限结构实现权限检查
     return true
   })
@@ -93,7 +48,7 @@ export const useUserStore = defineStore('user', () => {
         // 设置axios默认header
         setAuthHeader(savedToken)
         
-        console.log('✅ 恢复登录状态:', currentUser.value?.metadata.name)
+        console.log('✅ 恢复登录状态:', currentUser.value?.displayName)
         return true
       }
     } catch (error) {
@@ -109,7 +64,7 @@ export const useUserStore = defineStore('user', () => {
   }
 
   // Token登录
-  const loginWithToken = async (userToken: string, username?: string) => {
+  const loginWithToken = async (userToken: string) => {
     isLoading.value = true
     loading.value = true
     error.value = null
@@ -120,12 +75,9 @@ export const useUserStore = defineStore('user', () => {
         throw new Error('令牌格式不正确')
       }
 
-      // 如果没有提供用户名，尝试从token中解析或使用默认值
-      const loginUsername = username || 'xops'
-      
       // 调用真实的登录API
       const response = await axios.post<LoginResponse>(
-        `http://localhost:8080/api/v1/users/${loginUsername}/login`,
+        'http://localhost:8080/api/v1/users/login',
         { token: userToken },
         { headers: { 'Content-Type': 'application/json' } }
       )
@@ -135,18 +87,23 @@ export const useUserStore = defineStore('user', () => {
       }
       
       // 保存认证信息
-      token.value = response.data.token
-      currentUser.value = response.data.user
+      const user: User = {
+        displayName: response.data.displayName,
+        email: response.data.email
+      }
+      
+      token.value = response.data.bearer_token
+      currentUser.value = user
       isAuthenticated.value = true
       
       // 持久化存储
-      localStorage.setItem('goqgo_token', response.data.token)
-      localStorage.setItem('goqgo_user', JSON.stringify(response.data.user))
+      localStorage.setItem('goqgo_token', response.data.bearer_token)
+      localStorage.setItem('goqgo_user', JSON.stringify(user))
       
       // 设置认证头
-      setAuthHeader(response.data.token)
+      setAuthHeader(response.data.bearer_token)
       
-      console.log('✅ Token登录成功:', response.data.user.metadata.name)
+      console.log('✅ Token登录成功:', response.data.displayName)
       
     } catch (err: any) {
       console.error('❌ Token登录失败:', err)
@@ -167,17 +124,17 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  // 密码登录
+  // 密码登录（如果支持的话）
   const loginWithPassword = async (username: string, password: string) => {
     isLoading.value = true
     loading.value = true
     error.value = null
     
     try {
-      // 调用真实的登录API
+      // 调用密码登录API（如果后台支持）
       const response = await axios.post<LoginResponse>(
-        `http://localhost:8080/api/v1/users/${username}/login`,
-        { password },
+        'http://localhost:8080/api/v1/users/login',
+        { username, password },
         { headers: { 'Content-Type': 'application/json' } }
       )
       
@@ -186,18 +143,23 @@ export const useUserStore = defineStore('user', () => {
       }
       
       // 保存认证信息
-      token.value = response.data.token
-      currentUser.value = response.data.user
+      const user: User = {
+        displayName: response.data.displayName,
+        email: response.data.email
+      }
+      
+      token.value = response.data.bearer_token
+      currentUser.value = user
       isAuthenticated.value = true
       
       // 持久化存储
-      localStorage.setItem('goqgo_token', response.data.token)
-      localStorage.setItem('goqgo_user', JSON.stringify(response.data.user))
+      localStorage.setItem('goqgo_token', response.data.bearer_token)
+      localStorage.setItem('goqgo_user', JSON.stringify(user))
       
       // 设置认证头
-      setAuthHeader(response.data.token)
+      setAuthHeader(response.data.bearer_token)
       
-      console.log('✅ 密码登录成功:', response.data.user.metadata.name)
+      console.log('✅ 密码登录成功:', response.data.displayName)
       
     } catch (err: any) {
       console.error('❌ 密码登录失败:', err)
@@ -221,7 +183,7 @@ export const useUserStore = defineStore('user', () => {
   // 获取当前用户信息（兼容现有组件）
   const fetchCurrentUser = async (username: string) => {
     // 如果已经有用户信息，直接返回
-    if (currentUser.value && currentUser.value.metadata.name === username) {
+    if (currentUser.value) {
       return
     }
     
@@ -243,10 +205,7 @@ export const useUserStore = defineStore('user', () => {
 
   // 获取用户显示名称（兼容现有组件）
   const getUserDisplayName = (userId: string) => {
-    if (userId === currentUser.value?.metadata.name) {
-      return currentUser.value?.spec.displayName || currentUser.value?.metadata.name || userId
-    }
-    return userId
+    return currentUser.value?.displayName || userId
   }
 
   // AD登录（预留）

@@ -68,17 +68,17 @@
           <div class="login-tabs">
             <button 
               class="tab-button"
-              :class="{ active: loginType === 'password' }"
-              @click="loginType = 'password'"
-            >
-              密码登录
-            </button>
-            <button 
-              class="tab-button"
               :class="{ active: loginType === 'token' }"
               @click="loginType = 'token'"
             >
               Token登录
+            </button>
+            <button 
+              class="tab-button"
+              :class="{ active: loginType === 'password' }"
+              @click="loginType = 'password'"
+            >
+              密码登录
             </button>
             <button 
               class="tab-button"
@@ -89,6 +89,67 @@
               AD登录
               <span class="coming-soon">即将支持</span>
             </button>
+          </div>
+          
+          <!-- Token登录表单 -->
+          <div v-if="loginType === 'token'" class="login-form">
+            <n-form
+              ref="tokenFormRef"
+              :model="tokenForm"
+              :rules="tokenRules"
+              size="large"
+            >
+              <n-form-item path="token" label="访问令牌">
+                <n-input
+                  v-model:value="tokenForm.token"
+                  type="password"
+                  placeholder="请输入您的访问令牌"
+                  show-password-on="mousedown"
+                  :input-props="{ autocomplete: 'off' }"
+                  @keyup.enter="handleTokenLogin"
+                >
+                  <template #prefix>
+                    <n-icon>
+                      <svg viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M7,14A2,2 0 0,1 5,12A2,2 0 0,1 7,10A2,2 0 0,1 9,12A2,2 0 0,1 7,14M12.65,10C11.83,7.67 9.61,6 7,6A6,6 0 0,0 1,12A6,6 0 0,0 7,18C9.61,18 11.83,16.33 12.65,14H17V18H21V14H23V10H12.65Z"/>
+                      </svg>
+                    </n-icon>
+                  </template>
+                </n-input>
+              </n-form-item>
+              
+              <n-form-item>
+                <n-button
+                  type="primary"
+                  size="large"
+                  block
+                  :loading="isLoading"
+                  @click="handleTokenLogin"
+                >
+                  {{ isLoading ? '登录中...' : '登录' }}
+                </n-button>
+              </n-form-item>
+            </n-form>
+            
+            <!-- Token说明 -->
+            <div class="token-help">
+              <n-alert type="info" :show-icon="false">
+                <template #header>
+                  <n-icon style="margin-right: 8px;">
+                    <svg viewBox="0 0 24 24">
+                      <path fill="currentColor" d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"/>
+                    </svg>
+                  </n-icon>
+                  Token登录说明
+                </template>
+                <ul class="help-list">
+                  <li>使用预设的Token进行登录（类似AKSK认证）</li>
+                  <li>登录成功后会获得临时token，有效期3天</li>
+                  <li>示例Token: <code>my-simple-api-token-2025</code></li>
+                  <li>请联系管理员获取您的专用Token</li>
+                </ul>
+              </n-alert>
+            </div>
           </div>
           
           <!-- 密码登录表单 -->
@@ -149,83 +210,6 @@
             </n-form>
           </div>
           
-          <!-- Token登录表单 -->
-          <div v-if="loginType === 'token'" class="login-form">
-            <n-form
-              ref="tokenFormRef"
-              :model="tokenForm"
-              :rules="tokenRules"
-              size="large"
-            >
-              <n-form-item path="username" label="用户名">
-                <n-input
-                  v-model:value="tokenForm.username"
-                  placeholder="请输入用户名"
-                  :input-props="{ autocomplete: 'username' }"
-                  @keyup.enter="handleTokenLogin"
-                >
-                  <template #prefix>
-                    <n-icon>
-                      <svg viewBox="0 0 24 24">
-                        <path fill="currentColor" d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
-                      </svg>
-                    </n-icon>
-                  </template>
-                </n-input>
-              </n-form-item>
-              
-              <n-form-item path="token" label="访问令牌">
-                <n-input
-                  v-model:value="tokenForm.token"
-                  type="password"
-                  placeholder="请输入您的访问令牌"
-                  show-password-on="mousedown"
-                  :input-props="{ autocomplete: 'off' }"
-                  @keyup.enter="handleTokenLogin"
-                >
-                  <template #prefix>
-                    <n-icon>
-                      <svg viewBox="0 0 24 24">
-                        <path fill="currentColor" d="M7,14A2,2 0 0,1 5,12A2,2 0 0,1 7,10A2,2 0 0,1 9,12A2,2 0 0,1 7,14M12.65,10C11.83,7.67 9.61,6 7,6A6,6 0 0,0 1,12A6,6 0 0,0 7,18C9.61,18 11.83,16.33 12.65,14H17V18H21V14H23V10H12.65Z"/>
-                      </svg>
-                    </n-icon>
-                  </template>
-                </n-input>
-              </n-form-item>
-              
-              <n-form-item>
-                <n-button
-                  type="primary"
-                  size="large"
-                  block
-                  :loading="isLoading"
-                  @click="handleTokenLogin"
-                >
-                  {{ isLoading ? '登录中...' : '登录' }}
-                </n-button>
-              </n-form-item>
-            </n-form>
-            
-            <!-- Token说明 -->
-            <div class="token-help">
-              <n-alert type="info" :show-icon="false">
-                <template #header>
-                  <n-icon style="margin-right: 8px;">
-                    <svg viewBox="0 0 24 24">
-                      <path fill="currentColor" d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"/>
-                    </svg>
-                  </n-icon>
-                  如何获取访问令牌？
-                </template>
-                <ul class="help-list">
-                  <li>联系系统管理员获取个人访问令牌</li>
-                  <li>令牌用于身份验证和资源访问控制</li>
-                  <li>请妥善保管您的令牌，不要与他人分享</li>
-                </ul>
-              </n-alert>
-            </div>
-          </div>
-          
           <!-- AD登录表单（预留） -->
           <div v-if="loginType === 'ad'" class="login-form">
             <div class="coming-soon-content">
@@ -258,26 +242,40 @@ const userStore = useUserStore()
 const version = ref('v0.1.1')
 
 // 登录类型
-const loginType = ref<'password' | 'token' | 'ad'>('password')
+const loginType = ref<'token' | 'password' | 'ad'>('token')
 
 // 加载状态
 const isLoading = ref(false)
 
-// 密码登录表单
-const passwordFormRef = ref<FormInst | null>(null)
-const passwordForm = reactive({
-  username: 'xops',
-  password: ''
-})
-
 // Token登录表单
 const tokenFormRef = ref<FormInst | null>(null)
 const tokenForm = reactive({
-  username: 'xops',
-  token: ''
+  token: 'my-simple-api-token-2025'
+})
+
+// 密码登录表单
+const passwordFormRef = ref<FormInst | null>(null)
+const passwordForm = reactive({
+  username: '',
+  password: ''
 })
 
 // 表单验证规则
+const tokenRules: FormRules = {
+  token: [
+    {
+      required: true,
+      message: '请输入访问令牌',
+      trigger: ['input', 'blur']
+    },
+    {
+      min: 10,
+      message: '令牌长度至少10个字符',
+      trigger: ['input', 'blur']
+    }
+  ]
+}
+
 const passwordRules: FormRules = {
   username: [
     {
@@ -300,26 +298,35 @@ const passwordRules: FormRules = {
   ]
 }
 
-const tokenRules: FormRules = {
-  username: [
-    {
-      required: true,
-      message: '请输入用户名',
-      trigger: ['input', 'blur']
+// Token登录处理
+const handleTokenLogin = async () => {
+  if (!tokenFormRef.value) return
+  
+  try {
+    await tokenFormRef.value.validate()
+    isLoading.value = true
+    
+    // 调用用户store的token登录方法
+    await userStore.loginWithToken(tokenForm.token)
+    
+    message.success('登录成功！')
+    
+    // 跳转到主页面
+    router.push('/')
+    
+  } catch (error: any) {
+    console.error('Token登录失败:', error)
+    
+    if (error?.message) {
+      message.error(error.message)
+    } else if (typeof error === 'string') {
+      message.error(error)
+    } else {
+      message.error('登录失败，请检查令牌是否正确')
     }
-  ],
-  token: [
-    {
-      required: true,
-      message: '请输入访问令牌',
-      trigger: ['input', 'blur']
-    },
-    {
-      min: 10,
-      message: '令牌长度至少10个字符',
-      trigger: ['input', 'blur']
-    }
-  ]
+  } finally {
+    isLoading.value = false
+  }
 }
 
 // 密码登录处理
@@ -347,37 +354,6 @@ const handlePasswordLogin = async () => {
       message.error(error)
     } else {
       message.error('登录失败，请检查用户名和密码')
-    }
-  } finally {
-    isLoading.value = false
-  }
-}
-
-// Token登录处理
-const handleTokenLogin = async () => {
-  if (!tokenFormRef.value) return
-  
-  try {
-    await tokenFormRef.value.validate()
-    isLoading.value = true
-    
-    // 调用用户store的token登录方法
-    await userStore.loginWithToken(tokenForm.token, tokenForm.username)
-    
-    message.success('登录成功！')
-    
-    // 跳转到主页面
-    router.push('/')
-    
-  } catch (error: any) {
-    console.error('Token登录失败:', error)
-    
-    if (error?.message) {
-      message.error(error.message)
-    } else if (typeof error === 'string') {
-      message.error(error)
-    } else {
-      message.error('登录失败，请检查令牌是否正确')
     }
   } finally {
     isLoading.value = false
@@ -640,6 +616,16 @@ onMounted(async () => {
         &:last-child {
           margin-bottom: 0;
         }
+      }
+      
+      code {
+        background: var(--bg-tertiary);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: 'JetBrains Mono', 'Consolas', monospace;
+        font-size: 0.8rem;
+        color: var(--color-primary);
+        border: 1px solid var(--border-primary);
       }
     }
   }
