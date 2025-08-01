@@ -47,7 +47,7 @@ export const useChatStore = defineStore('chat', () => {
 
     console.log('🔌 连接聊天室:', {
       namespace: namespaceStr,
-      username: userStore.currentUser.username
+      username: userStore.username
     })
 
     // 清空之前的数据
@@ -63,7 +63,7 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     // 创建新的WebSocket连接，使用当前用户名
-    chatSocket = new ChatSocket(userStore.currentUser.username)
+    chatSocket = new ChatSocket()
 
     // 连接到指定的命名空间聊天室
     chatSocket.connect(namespaceStr, {
@@ -158,7 +158,7 @@ export const useChatStore = defineStore('chat', () => {
 
       onTyping: (username, isTyping) => {
         console.log('⌨️ 用户输入状态:', username, isTyping)
-        if (username !== userStore.currentUser.username) {
+        if (username !== userStore.username) {
           if (isTyping) {
             typingUsers.value.add(username)
           } else {
@@ -185,8 +185,23 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   // 添加消息
-  // 添加消息
   const addMessage = (message: ChatMessage) => {
+    // 验证消息数据的完整性
+    if (!message || (!message.id && !message.tempId)) {
+      console.warn('⚠️ 消息缺少必要的ID字段，跳过添加:', message)
+      return
+    }
+
+    if (!message.content && message.messageType !== 'image') {
+      console.warn('⚠️ 消息内容为空且非图片消息，跳过添加:', message)
+      return
+    }
+
+    if (!message.senderName) {
+      console.warn('⚠️ 消息缺少发送者信息，跳过添加:', message)
+      return
+    }
+
     console.log('📨 添加新消息详细信息:', {
       id: message.id,
       tempId: message.tempId,
@@ -199,11 +214,20 @@ export const useChatStore = defineStore('chat', () => {
     })
 
     // 检查消息是否已存在（避免重复）
-    const exists = messages.value.some((m) => m.id === message.id)
+    const exists = messages.value.some((m) => 
+      (message.id && m.id === message.id) || 
+      (message.tempId && m.tempId === message.tempId)
+    )
+    
     if (!exists) {
       const newMessage = {
         ...message,
-        status: message.status || 'delivered' // 收到的消息默认为已处理
+        // 确保必要字段存在
+        id: message.id || message.tempId || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        senderName: message.senderName || 'Unknown User',
+        timestamp: message.timestamp || new Date().toISOString(),
+        status: message.status || 'delivered', // 收到的消息默认为已处理
+        content: message.content || ''
       }
 
       messages.value.push(newMessage)
@@ -215,7 +239,7 @@ export const useChatStore = defineStore('chat', () => {
       })
       console.log('📋 当前消息总数:', messages.value.length)
     } else {
-      console.log('⚠️ 消息已存在，跳过添加:', message.id)
+      console.log('⚠️ 消息已存在，跳过添加:', message.id || message.tempId)
     }
   }
 
@@ -276,8 +300,9 @@ export const useChatStore = defineStore('chat', () => {
 
       // 调用 HTTP API 发送图片消息
       const response = await chatApi.sendMessage(currentNamespace.value, {
-        message: `[图片] ${imageUrl}`,
-        type: 'user'
+        message: imageUrl,
+        type: 'user',
+        messageType: 'image'
       })
 
       console.log('✅ 图片消息发送成功:', response)
@@ -304,8 +329,19 @@ export const useChatStore = defineStore('chat', () => {
       console.log('📤 准备发送消息:', {
         namespace: currentNamespace.value,
         content: content.substring(0, 50) + '...',
-        messageType
+        messageType,
+        currentUser: userStore.currentUser
       })
+
+      // 检查用户信息
+      if (!userStore.username) {
+        console.error('❌ 用户信息不完整，无法发送消息:', {
+          currentUser: userStore.currentUser,
+          username: userStore.username,
+          displayName: userStore.displayName
+        })
+        throw new Error('用户信息不完整，请重新登录')
+      }
 
       // 通过WebSocket发送消息，获取临时ID
       const tempId = chatSocket.sendMessage(content, messageType)
@@ -315,9 +351,9 @@ export const useChatStore = defineStore('chat', () => {
       const optimisticMessage: ChatMessage = {
         id: tempId, // 先使用临时ID
         tempId: tempId, // 保存临时ID用于后续更新
-        senderId: userStore.currentUser.username,
-        senderName: userStore.currentUser.username,
-        senderAvatar: userStore.currentUser.avatar,
+        senderId: userStore.username,
+        senderName: userStore.username,
+        senderAvatar: userStore.currentUser?.avatar || '',
         content: content,
         timestamp: new Date().toISOString(),
         type: 'user',
@@ -393,7 +429,7 @@ export const useChatStore = defineStore('chat', () => {
     return (
       chatSocket?.getConnectionInfo() || {
         namespace: currentNamespace.value,
-        username: userStore.currentUser.username,
+        username: userStore.username,
         connected: false,
         wsUrl: ''
       }

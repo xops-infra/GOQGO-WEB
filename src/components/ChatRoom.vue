@@ -50,13 +50,14 @@
           <span>加载历史消息...</span>
         </div>
 
-        <template v-for="message in visibleMessages" :key="message.id">
+        <template v-for="(message, index) in visibleMessages" :key="message.id || message.tempId || `msg-${index}`">
           <div
+            v-if="message && message.content"
             :class="[
               'message-item',
               {
-                'message-self': message.senderId === currentUser.username,
-                'message-other': message.senderId !== currentUser.username
+                'message-self': isOwnMessage(message),
+                'message-other': !isOwnMessage(message)
               }
             ]"
           >
@@ -200,12 +201,20 @@ const shouldShowDivider = computed(() => {
 
 // 获取要显示的消息列表（默认显示最新50条）
 const visibleMessages = computed(() => {
-  if (messages.value.length <= DEFAULT_VISIBLE_MESSAGES) {
-    return messages.value
+  // 过滤掉无效的消息
+  const validMessages = messages.value.filter(msg => 
+    msg && 
+    (msg.id || msg.tempId) && 
+    msg.content !== undefined &&
+    msg.senderName
+  )
+  
+  if (validMessages.length <= DEFAULT_VISIBLE_MESSAGES) {
+    return validMessages
   }
 
   // 只显示最新的50条消息
-  return messages.value.slice(-DEFAULT_VISIBLE_MESSAGES)
+  return validMessages.slice(-DEFAULT_VISIBLE_MESSAGES)
 })
 
 // 获取隐藏的历史消息数量
@@ -225,7 +234,6 @@ const handleSend = async (text: string) => {
     // 发送消息后立即滚动到底部
     nextTick(() => {
       scrollToBottom()
-      console.log('📤 发送消息后滚动到底部')
     })
   } catch (error) {
     console.error('发送消息失败:', error)
@@ -240,7 +248,6 @@ const handleSendImage = async (imageUrl: string) => {
     // 发送图片后立即滚动到底部
     nextTick(() => {
       scrollToBottom()
-      console.log('📷 发送图片后滚动到底部')
     })
   } catch (error) {
     console.error('发送图片失败:', error)
@@ -250,94 +257,66 @@ const handleSendImage = async (imageUrl: string) => {
 
 // 滚动到底部
 const scrollToBottom = () => {
-  if (messagesListRef.value) {
+  if (!messagesListRef.value) return
+
+  try {
     const container = messagesListRef.value
     container.scrollTop = container.scrollHeight
-    console.log('📜 滚动到底部:', {
-      scrollTop: container.scrollTop,
-      scrollHeight: container.scrollHeight,
-      clientHeight: container.clientHeight
-    })
+  } catch (error) {
+    console.error('滚动到底部时发生错误:', error)
   }
 }
 
 // 强制滚动到底部（用于初始化和重连）
 const forceScrollToBottom = () => {
-  // 立即滚动一次
-  scrollToBottom()
+  if (!messagesListRef.value) return
 
-  // 使用nextTick再滚动一次，确保DOM更新完成
-  nextTick(() => {
+  try {
+    // 立即滚动一次
     scrollToBottom()
-    shouldAutoScroll.value = true // 重置自动滚动标志
 
-    // 再用setTimeout确保完全渲染后滚动
-    setTimeout(() => {
-      scrollToBottom()
-      console.log('🔄 强制滚动到底部完成')
-    }, 50)
-  })
+    // 使用nextTick再滚动一次，确保DOM更新完成
+    nextTick(() => {
+      try {
+        if (!messagesListRef.value) return
+
+        scrollToBottom()
+        shouldAutoScroll.value = true // 重置自动滚动标志
+
+        // 再用setTimeout确保完全渲染后滚动
+        setTimeout(() => {
+          try {
+            if (!messagesListRef.value) return
+            scrollToBottom()
+          } catch (error) {
+            console.error('强制滚动到底部时发生错误:', error)
+          }
+        }, 50)
+      } catch (error) {
+        console.error('强制滚动到底部时发生错误:', error)
+      }
+    })
+  } catch (error) {
+    console.error('强制滚动到底部时发生错误:', error)
+  }
 }
 
-// 调试方法：检查滚动状态
+// 检查滚动状态
 const checkScrollStatus = () => {
-  console.log('🔍 开始检查滚动状态...')
+  if (!messagesListRef.value) return false
 
-  if (messagesListRef.value) {
+  try {
     const container = messagesListRef.value
     const { scrollTop, scrollHeight, clientHeight } = container
     const isAtBottom = scrollHeight - scrollTop - clientHeight < 10
-
-    console.log('🔍 滚动状态检查:', {
-      scrollTop,
-      scrollHeight,
-      clientHeight,
-      差值: scrollHeight - scrollTop - clientHeight,
-      是否在底部: isAtBottom,
-      消息数量: messages.value.length,
-      容器存在: !!container
-    })
-
     return isAtBottom
-  } else {
-    console.log('❌ messagesListRef不存在，无法检查滚动状态')
+  } catch (error) {
+    console.error('检查滚动状态时发生错误:', error)
     return false
   }
 }
 
-// 调试方法：测试组件状态
-const testComponentStatus = () => {
-  console.log('🧪 组件状态测试:')
-  console.log('- messagesListRef:', messagesListRef.value)
-  console.log('- messages.length:', messages.value.length)
-  console.log('- isInitialLoad:', isInitialLoad.value)
-  console.log('- shouldAutoScroll:', shouldAutoScroll.value)
-  console.log('- isUserScrolling:', isUserScrolling.value)
-  console.log('- currentUser:', currentUser.value.username)
-  console.log('- namespace:', props.namespace)
 
-  if (messagesListRef.value) {
-    const container = messagesListRef.value
-    console.log('- 容器尺寸:', {
-      scrollTop: container.scrollTop,
-      scrollHeight: container.scrollHeight,
-      clientHeight: container.clientHeight,
-      offsetHeight: container.offsetHeight
-    })
-  }
-}
-
-// 在开发环境下暴露测试方法到全局
-if (import.meta.env.DEV) {
-  ;(window as any).testChatRoom = {
-    checkScrollStatus,
-    testComponentStatus,
-    scrollToBottom,
-    forceScrollToBottom,
-    messages: messages.value
-  }
-  console.log('🧪 开发模式：测试方法已暴露到 window.testChatRoom')
-}
 
 // 处理滚动事件
 const handleScroll = () => {
@@ -349,7 +328,6 @@ const handleScroll = () => {
   if (scrollTop === 0) {
     // 如果还有更多历史消息，自动加载
     if (hasMoreHistory.value && !isLoadingHistory.value) {
-      console.log('📜 滚动到顶部，加载更多历史消息')
       loadMoreHistory()
     }
   }
@@ -363,13 +341,6 @@ const handleScroll = () => {
   setTimeout(() => {
     isUserScrolling.value = false
   }, 150)
-
-  console.log('📜 滚动状态:', {
-    scrollTop,
-    isNearBottom,
-    hasMoreHistory: hasMoreHistory.value,
-    isLoadingHistory: isLoadingHistory.value
-  })
 }
 
 // 加载更多历史消息
@@ -399,66 +370,65 @@ const loadMoreHistory = async () => {
 watch(
   messages,
   (newMessages, oldMessages) => {
-    console.log('📨 消息变化触发:', {
-      新消息数量: newMessages.length,
-      旧消息数量: oldMessages?.length || 0,
-      是否初始加载: isInitialLoad.value,
-      shouldAutoScroll: shouldAutoScroll.value,
-      isUserScrolling: isUserScrolling.value
-    })
-
-    // 打印前几条消息内容用于调试
-    if (newMessages.length > 0) {
-      console.log(
-        '📋 消息列表预览:',
-        newMessages.slice(0, 3).map((m) => ({
-          id: m.id,
-          content: m.content?.substring(0, 50) + '...',
-          timestamp: m.timestamp
-        }))
-      )
-    }
+    // 防御性检查：确保组件仍然挂载
+    if (!messagesListRef.value) return
 
     if (isInitialLoad.value) {
-      console.log('🔄 处理初始加载滚动...')
       // 初始加载，等待DOM渲染完成后滚动
       setTimeout(() => {
-        console.log('🔄 开始初始滚动...')
-        console.log('📦 messagesListRef状态:', messagesListRef.value ? '已绑定' : '未绑定')
-
-        if (messagesListRef.value) {
-          checkScrollStatus() // 滚动前检查状态
-          forceScrollToBottom()
-
-          // 滚动后再次检查
-          setTimeout(() => {
-            const isAtBottom = checkScrollStatus()
-            if (!isAtBottom) {
-              console.log('⚠️ 滚动后仍未到底部，再次尝试滚动')
-              scrollToBottom()
-            }
-
-            // 完成初始加载，重新启用滚动动画
+        try {
+          // 再次检查组件是否仍然挂载
+          if (!messagesListRef.value) {
             isInitialLoad.value = false
-            console.log('✅ 初始加载完成，已滚动到底部，重新启用滚动动画')
-          }, 100)
-        } else {
-          console.log('❌ messagesListRef未绑定，无法滚动')
-          // 即使失败也要重置状态
+            return
+          }
+
+          if (messagesListRef.value) {
+            checkScrollStatus() // 滚动前检查状态
+            forceScrollToBottom()
+
+            // 滚动后再次检查
+            setTimeout(() => {
+              try {
+                // 第三次检查组件状态
+                if (!messagesListRef.value) {
+                  isInitialLoad.value = false
+                  return
+                }
+
+                const isAtBottom = checkScrollStatus()
+                if (!isAtBottom) {
+                  scrollToBottom()
+                }
+
+                // 完成初始加载，重新启用滚动动画
+                isInitialLoad.value = false
+              } catch (error) {
+                console.error('滚动检查时发生错误:', error)
+                isInitialLoad.value = false
+              }
+            }, 100)
+          } else {
+            // 即使失败也要重置状态
+            isInitialLoad.value = false
+          }
+        } catch (error) {
+          console.error('初始滚动时发生错误:', error)
           isInitialLoad.value = false
         }
       }, 300) // 增加延迟时间
     } else if (shouldAutoScroll.value && !isUserScrolling.value) {
-      console.log('📨 处理新消息滚动...')
       // 新消息，立即滚动
       setTimeout(() => {
-        scrollToBottom()
+        try {
+          // 检查组件是否仍然挂载
+          if (messagesListRef.value) {
+            scrollToBottom()
+          }
+        } catch (error) {
+          console.error('新消息滚动时发生错误:', error)
+        }
       }, 50)
-    } else {
-      console.log('⏸️ 跳过滚动:', {
-        shouldAutoScroll: shouldAutoScroll.value,
-        isUserScrolling: isUserScrolling.value
-      })
     }
   },
   { deep: true, flush: 'post' }
@@ -537,6 +507,17 @@ const handleDrop = async (e: DragEvent) => {
   }
 }
 
+
+
+// 判断是否为自己的消息（忽略大小写）
+const isOwnMessage = (message: any) => {
+  const currentUsername = userStore.username.toLowerCase()
+  const senderId = message.senderId?.toLowerCase() || ''
+  const senderName = message.senderName?.toLowerCase() || ''
+  
+  return senderId === currentUsername || senderName === currentUsername
+}
+
 // 滚动到指定消息
 const scrollToMessage = (messageId: string) => {
   const messageElement = document.querySelector(`[data-message-id="${messageId}"]`)
@@ -559,8 +540,6 @@ watch(
   () => props.namespace,
   async (newNamespace, oldNamespace) => {
     if (newNamespace !== oldNamespace && newNamespace) {
-      console.log('🔄 Namespace变化，重新连接聊天室:', { from: oldNamespace, to: newNamespace })
-
       try {
         // 重置初始加载标志
         isInitialLoad.value = true
@@ -576,9 +555,8 @@ watch(
 
         // 连接成功后，等待消息加载完成再滚动
         // 消息变化的watch会处理滚动
-        console.log('✅ 成功切换到新的聊天室:', newNamespace, '等待消息加载...')
       } catch (error) {
-        console.error('❌ 切换聊天室失败:', error)
+        console.error('切换聊天室失败:', error)
         message.error(`切换到 ${newNamespace} 聊天室失败`)
       }
     }
@@ -588,58 +566,42 @@ watch(
 
 // 生命周期
 onMounted(async () => {
-  console.log('🚀 ChatRoom组件开始挂载')
-  console.log('📋 Props:', { namespace: props.namespace, showStats: props.showStats })
-  console.log('👤 当前用户:', currentUser.value.username)
-
   try {
-    console.log(
-      '🚀 ChatRoom挂载，连接聊天室:',
-      props.namespace,
-      '用户:',
-      currentUser.value.username
-    )
-
     // 确保初始加载标志为true
     isInitialLoad.value = true
-    console.log('🔄 设置初始加载标志为true')
-
-    // 检查messagesListRef是否正确绑定
-    console.log('📦 messagesListRef引用:', messagesListRef.value)
 
     await chatStore.connect(props.namespace)
 
     // 连接成功后，等待消息加载完成再滚动
     // 消息变化的watch会处理滚动
-    console.log('✅ 聊天室连接成功，等待消息加载...')
-    console.log('📨 当前消息数量:', messages.value.length)
 
     // 额外的保险措施：延迟检查并滚动
     setTimeout(() => {
-      console.log('🔍 延迟检查滚动状态...')
-      console.log('📦 messagesListRef引用检查:', messagesListRef.value)
-      console.log('📨 消息数量检查:', messages.value.length)
-
       if (messagesListRef.value && messages.value.length > 0) {
         const isAtBottom = checkScrollStatus()
         if (!isAtBottom) {
-          console.log('⚠️ 发现未在底部，强制滚动')
           forceScrollToBottom()
         }
-      } else {
-        console.log('⚠️ messagesListRef或消息为空')
-        console.log('messagesListRef:', messagesListRef.value)
-        console.log('messages.length:', messages.value.length)
       }
     }, 1000) // 1秒后检查
   } catch (error) {
-    console.error('❌ 连接聊天室失败:', error)
+    console.error('连接聊天室失败:', error)
     message.error('连接失败')
   }
 })
 
 onUnmounted(() => {
-  chatStore.disconnect()
+  try {
+    // 断开聊天连接
+    chatStore.disconnect()
+    
+    // 清理所有定时器和引用
+    isInitialLoad.value = false
+    shouldAutoScroll.value = false
+    isUserScrolling.value = false
+  } catch (error) {
+    console.error('ChatRoom组件卸载时发生错误:', error)
+  }
 })
 </script>
 

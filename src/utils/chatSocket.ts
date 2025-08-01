@@ -110,7 +110,11 @@ export class ChatSocket {
       case 'chat': {
         // 处理聊天消息，转换字段格式
         const chatMessage = this.normalizeMessage(data.data)
-        this.callbacks.onMessage?.(chatMessage)
+        if (chatMessage) {
+          this.callbacks.onMessage?.(chatMessage)
+        } else {
+          console.warn('⚠️ 消息格式化失败，跳过处理:', data.data)
+        }
         break
       }
       case 'message_confirm': {
@@ -167,8 +171,10 @@ export class ChatSocket {
         const rawMessages = historyData?.messages || []
         const hasMore = historyData?.hasMore || false
 
-        // 转换消息格式
-        const normalizedMessages = rawMessages.map((msg) => this.normalizeMessage(msg))
+        // 转换消息格式，过滤掉无效消息
+        const normalizedMessages = rawMessages
+          .map((msg) => this.normalizeMessage(msg))
+          .filter((msg) => msg !== null) as ChatMessage[]
 
         console.log('📜 解析历史消息:', {
           messagesCount: normalizedMessages.length,
@@ -264,30 +270,86 @@ export class ChatSocket {
   }
 
   // 转换服务器消息格式为前端格式
-  private normalizeMessage(serverMessage: any): ChatMessage {
-    return {
-      id: serverMessage.id,
-      senderId: serverMessage.username || serverMessage.senderId || 'unknown',
-      senderName: serverMessage.username || serverMessage.senderName || 'Unknown User',
+  private normalizeMessage(serverMessage: any): ChatMessage | null {
+    // 验证服务器消息的基本结构
+    if (!serverMessage) {
+      console.warn('⚠️ 服务器消息为空或undefined')
+      return null
+    }
+
+    // 确保有有效的ID
+    const messageId = serverMessage.id || serverMessage.tempId || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    
+    // 确保有发送者信息
+    const senderName = serverMessage.username || serverMessage.senderName || serverMessage.senderId || 'Unknown User'
+    
+    // 处理图片消息的内容，移除可能的[图片]前缀
+    let content = serverMessage.content || ''
+    let messageType = serverMessage.messageType || this.detectMessageType(content)
+    let imageUrl = serverMessage.imageUrl
+
+    // 如果是图片消息，处理内容格式
+    if (messageType === 'image') {
+      // 移除[图片]前缀，提取真实的URL
+      if (content.startsWith('[图片]')) {
+        content = content.replace(/^\[图片\]/, '')
+        imageUrl = content
+      }
+    }
+
+    // 确保有时间戳
+    const timestamp = serverMessage.timestamp || new Date().toISOString()
+
+    const normalizedMessage: ChatMessage = {
+      id: messageId,
+      senderId: serverMessage.username || serverMessage.senderId || senderName,
+      senderName: senderName,
       senderAvatar: serverMessage.senderAvatar,
-      content: serverMessage.content || '',
-      timestamp: serverMessage.timestamp || new Date().toISOString(),
+      content: content,
+      timestamp: timestamp,
       type: serverMessage.type || 'user',
       status: 'sent', // 服务器消息都标记为已发送
-      messageType: this.detectMessageType(serverMessage.content || ''),
-      imageUrl: serverMessage.imageUrl,
-      imagePath: serverMessage.imagePath
+      messageType: messageType,
+      imageUrl: imageUrl,
+      imagePath: serverMessage.imagePath,
+      tempId: serverMessage.tempId // 保留临时ID用于消息确认
     }
+
+    console.log('🔄 消息格式化完成:', {
+      原始: {
+        id: serverMessage.id,
+        username: serverMessage.username,
+        content: serverMessage.content?.substring(0, 30) + '...'
+      },
+      格式化后: {
+        id: normalizedMessage.id,
+        senderName: normalizedMessage.senderName,
+        content: normalizedMessage.content?.substring(0, 30) + '...',
+        messageType: normalizedMessage.messageType
+      }
+    })
+
+    return normalizedMessage
   }
 
   // 检测消息类型
   private detectMessageType(content: string): 'text' | 'image' | 'file' {
-    if (content.includes('[图片]') || content.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+    // 检查是否为图片URL（包含图片扩展名或localhost:8080的图片路径）
+    if (content.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)(\?.*)?$/i) || 
+        (content.includes('localhost:8080') && content.includes('/api/v1/files/') && content.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)/i))) {
       return 'image'
     }
+    
+    // 检查是否包含[图片]前缀（兼容旧格式）
+    if (content.includes('[图片]')) {
+      return 'image'
+    }
+    
+    // 检查是否为文件
     if (content.includes('[文件]') || content.match(/\.(pdf|doc|docx|txt|zip|rar)$/i)) {
       return 'file'
     }
+    
     return 'text'
   }
 

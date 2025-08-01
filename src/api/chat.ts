@@ -6,6 +6,7 @@ const API_BASE = '/api/v1'
 export interface SendMessageRequest {
   message: string
   type?: 'user' | 'agent' | 'system'
+  messageType?: 'text' | 'image' | 'file'
 }
 
 export interface SendMessageResponse {
@@ -23,6 +24,7 @@ export const chatApi = {
     const response = await axios.post(`${API_BASE}/namespaces/${namespace}/chat/messages`, {
       content: data.message,
       type: data.type || 'user',
+      messageType: data.messageType || 'text',
       timestamp: new Date().toISOString()
     })
     return response

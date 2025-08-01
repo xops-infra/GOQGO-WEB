@@ -1,5 +1,10 @@
 <template>
-  <div class="message-item" :data-message-id="message.id" :class="messageClasses">
+  <div 
+    v-if="isValidMessage"
+    class="message-item" 
+    :data-message-id="messageId" 
+    :class="messageClasses"
+  >
     <!-- 消息卡片 -->
     <div class="message-card">
       <!-- 用户信息头部 -->
@@ -9,242 +14,303 @@
             <n-avatar
               :size="28"
               :src="message.senderAvatar"
-              :fallback-src="getDefaultAvatar(message.type)"
-              :color="getAvatarColor(message.senderName, message.type)"
+              :color="avatarColor"
               round
               class="user-avatar"
             >
-              {{ getAvatarText(message.senderName) }}
+              {{ avatarText }}
             </n-avatar>
             <!-- 在线状态指示器 -->
             <div
-              v-if="message.type === 'user' || message.type === 'agent'"
+              v-if="showOnlineStatus"
               class="online-indicator"
-              :class="{
-                online: isUserOnline(message.senderName),
-                offline: !isUserOnline(message.senderName)
-              }"
-              :title="isUserOnline(message.senderName) ? '在线' : '离线'"
+              :class="{ online: isOnline, offline: !isOnline }"
+              :title="isOnline ? '在线' : '离线'"
             >
-              <!-- 在线状态图标 -->
-              <svg v-if="isUserOnline(message.senderName)" viewBox="0 0 8 8" class="status-icon">
-                <circle cx="4" cy="4" r="3" fill="#52c41a" />
-              </svg>
-              <!-- 离线状态图标 -->
-              <svg v-else viewBox="0 0 8 8" class="status-icon">
-                <circle cx="4" cy="4" r="3" fill="#8c8c8c" />
+              <svg viewBox="0 0 8 8" class="status-icon">
+                <circle cx="4" cy="4" r="3" :fill="isOnline ? '#52c41a' : '#8c8c8c'" />
               </svg>
             </div>
           </div>
           <div class="user-details">
-            <span class="sender-name" :class="getSenderClass(message.type)">
-              {{ message.senderName }}
+            <span class="sender-name" :class="senderNameClass">
+              {{ displayName }}
             </span>
             <n-tag
-              v-if="message.type !== 'user'"
-              :type="getTypeTagColor(message.type)"
+              v-if="showTypeTag"
+              :type="typeTagColor"
               size="small"
               round
             >
-              {{ getTypeLabel(message.type) }}
+              {{ typeLabel }}
             </n-tag>
           </div>
         </div>
         <div class="time-info">
-          <span class="message-time">{{ formatTime }}</span>
-          <!-- 消息状态 -->
-          <n-icon v-if="message.status === 'sending'" class="status-icon sending" title="发送中">
-            <svg viewBox="0 0 16 16">
-              <path fill="currentColor" d="M8,2V4.5A5.5,5.5 0 0,0 2.5,10H0A8,8 0 0,1 8,2Z" />
-            </svg>
-          </n-icon>
-          <n-icon v-else-if="message.status === 'sent'" class="status-icon sent" title="已发送">
-            <svg viewBox="0 0 16 16">
-              <path
-                fill="currentColor"
-                d="M0.41,13.41L6,7.83L10.59,12.41L15.41,7.59L16.83,9L10.59,15.24L6,10.66L1.83,14.83L0.41,13.41Z"
-              />
-            </svg>
-          </n-icon>
-          <n-icon
-            v-else-if="message.status === 'delivered'"
-            class="status-icon delivered"
-            title="已送达"
-          >
-            <svg viewBox="0 0 16 16">
-              <path
-                fill="currentColor"
-                d="M0.41,13.41L6,7.83L10.59,12.41L15.41,7.59L16.83,9L10.59,15.24L6,10.66L1.83,14.83L0.41,13.41Z"
-              />
-              <path
-                fill="currentColor"
-                d="M2.41,13.41L8,7.83L12.59,12.41L17.41,7.59L18.83,9L12.59,15.24L8,10.66L3.83,14.83L2.41,13.41Z"
-              />
-            </svg>
-          </n-icon>
-          <n-icon v-else-if="message.status === 'error'" class="status-icon error" title="发送失败">
-            <svg viewBox="0 0 16 16">
-              <path fill="currentColor" d="M8,0L9.5,6L16,7L9.5,8L8,14L6.5,8L0,7L6.5,6L8,0Z" />
-            </svg>
+          <span class="message-time">{{ formattedTime }}</span>
+          <!-- 消息状态图标 -->
+          <n-icon v-if="statusIcon" :class="statusIconClass" :title="statusTitle">
+            <component :is="statusIcon" />
           </n-icon>
         </div>
       </div>
 
       <!-- 消息内容框 -->
       <div class="message-content-box">
-        <!-- 调试信息 -->
-        <div
-          v-if="false"
-          style="background: #f0f0f0; padding: 4px; font-size: 12px; margin-bottom: 8px"
-        >
-          调试: messageType={{ message.messageType }}, content={{ message.content }}
-        </div>
-
         <!-- 文本消息 -->
-        <template v-if="message.messageType === 'text' || !message.messageType">
-          <div class="text-content" v-html="formatMessageContent(message.content)"></div>
-        </template>
+        <div 
+          v-if="isTextMessage" 
+          class="text-content" 
+          v-html="formattedContent"
+        ></div>
 
         <!-- 图片消息 -->
-        <template v-else-if="message.messageType === 'image'">
-          <div class="image-content" @click="handleImageClick">
-            <img :src="message.imageUrl || message.content" :alt="message.senderName" />
-          </div>
-        </template>
+        <div v-else-if="isImageMessage" class="image-content">
+          <img
+            :src="imageUrl"
+            :alt="altText"
+            class="message-image"
+            @click="handleImageClick"
+            @error="handleImageError"
+          />
+        </div>
+
+        <!-- 其他类型消息 -->
+        <div v-else class="text-content">
+          {{ message.content || '[消息内容为空]' }}
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted } from 'vue'
+import { computed, h } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useChatStore } from '@/stores/chat'
-import { useTimeManager, formatRelativeTime } from '@/utils/timeManager'
+import { formatRelativeTime } from '@/utils/timeManager'
 import { formatMessageContent } from '@/utils/messageParser'
 import type { ChatMessage } from '@/types/api'
 
-const props = defineProps<{
+// Props定义
+interface Props {
   message: ChatMessage
-}>()
+}
 
-// 调试日志
-console.log('📨 MessageItem 渲染消息:', {
-  id: props.message.id,
-  messageType: props.message.messageType,
-  content: props.message.content,
-  imageUrl: props.message.imageUrl
-})
+const props = defineProps<Props>()
 
 // 获取聊天store中的在线用户列表
 const chatStore = useChatStore()
 const { onlineUsers } = storeToRefs(chatStore)
 
-// 使用全局时间管理器
-const { currentTime, cleanup } = useTimeManager()
+// 基础验证
+const isValidMessage = computed(() => {
+  return !!(
+    props.message &&
+    (props.message.id || props.message.tempId) &&
+    props.message.senderName &&
+    props.message.content !== undefined
+  )
+})
 
-// 消息样式类
+// 消息ID
+const messageId = computed(() => {
+  return props.message?.id || props.message?.tempId || 'unknown'
+})
+
+// 显示名称
+const displayName = computed(() => {
+  return props.message?.senderName || 'Unknown User'
+})
+
+// 消息类型检查
+const messageType = computed(() => {
+  return props.message?.type || 'user'
+})
+
+const isTextMessage = computed(() => {
+  const type = props.message?.messageType
+  return !type || type === 'text'
+})
+
+const isImageMessage = computed(() => {
+  return props.message?.messageType === 'image'
+})
+
+// 图片URL
+const imageUrl = computed(() => {
+  if (!isImageMessage.value) return ''
+  return props.message?.imageUrl || props.message?.content || ''
+})
+
+const altText = computed(() => {
+  return `${displayName.value}发送的图片`
+})
+
+// 在线状态
+const isOnline = computed(() => {
+  const senderName = props.message?.senderName
+  return senderName ? onlineUsers.value.includes(senderName) : false
+})
+
+const showOnlineStatus = computed(() => {
+  const type = messageType.value
+  return type === 'user' || type === 'agent'
+})
+
+// 头像相关
+const avatarColor = computed(() => {
+  const type = messageType.value
+  if (type === 'system') return '#faad14'
+  if (isOnline.value) {
+    return type === 'user' ? '#1890ff' : '#52c41a'
+  }
+  return '#8c8c8c'
+})
+
+const avatarText = computed(() => {
+  const name = displayName.value
+  if (name.startsWith('agent_')) return 'AI'
+  return name.charAt(0).toUpperCase()
+})
+
+// 样式类
 const messageClasses = computed(() => ({
-  'message-user': props.message.type === 'user',
-  'message-agent': props.message.type === 'agent',
-  'message-system': props.message.type === 'system'
+  'message-user': messageType.value === 'user',
+  'message-agent': messageType.value === 'agent',
+  'message-system': messageType.value === 'system'
 }))
 
-// 判断用户是否在线
-const isUserOnline = (senderName: string) => {
-  return onlineUsers.value.includes(senderName)
-}
+const senderNameClass = computed(() => ({
+  'sender-user': messageType.value === 'user',
+  'sender-agent': messageType.value === 'agent',
+  'sender-system': messageType.value === 'system'
+}))
 
-// 获取头像颜色
-const getAvatarColor = (senderName: string, type: string) => {
-  // 系统消息始终使用默认颜色
-  if (type === 'system') {
-    return '#faad14'
-  }
-
-  // 根据在线状态设置颜色
-  if (isUserOnline(senderName)) {
-    // 在线用户使用彩色
-    if (type === 'user') {
-      return '#1890ff'
-    } else if (type === 'agent') {
-      return '#52c41a'
-    }
-  } else {
-    // 离线用户使用灰色
-    return '#8c8c8c'
-  }
-
-  return undefined
-}
-
-// 获取发送者样式类
-const getSenderClass = (type: string) => ({
-  'sender-user': type === 'user',
-  'sender-agent': type === 'agent',
-  'sender-system': type === 'system'
+// 类型标签
+const showTypeTag = computed(() => {
+  const type = messageType.value
+  return type && type !== 'user'
 })
 
-// 获取类型标签颜色
-const getTypeTagColor = (type: string) => {
+const typeTagColor = computed(() => {
+  const type = messageType.value
   switch (type) {
-    case 'agent':
-      return 'info'
-    case 'system':
-      return 'warning'
-    default:
-      return 'default'
+    case 'agent': return 'info'
+    case 'system': return 'warning'
+    default: return 'default'
   }
-}
+})
 
-// 获取类型标签文本
-const getTypeLabel = (type: string) => {
+const typeLabel = computed(() => {
+  const type = messageType.value
   switch (type) {
-    case 'agent':
-      return 'AI'
-    case 'system':
-      return '系统'
+    case 'agent': return 'AI'
+    case 'system': return '系统'
+    default: return ''
+  }
+})
+
+// 时间格式化
+const formattedTime = computed(() => {
+  const timestamp = props.message?.timestamp
+  if (!timestamp) return '未知时间'
+  return formatRelativeTime(timestamp, new Date()) // 修复：传入Date对象而不是字符串
+})
+
+// 消息状态
+const messageStatus = computed(() => {
+  return props.message?.status || 'sent'
+})
+
+const statusIcon = computed(() => {
+  const status = messageStatus.value
+  switch (status) {
+    case 'sending':
+      return h('svg', { viewBox: '0 0 16 16' }, [
+        h('path', { 
+          fill: 'currentColor', 
+          d: 'M8,2V4.5A5.5,5.5 0 0,0 2.5,10H0A8,8 0 0,1 8,2Z' 
+        })
+      ])
+    case 'sent':
+      return h('svg', { viewBox: '0 0 16 16' }, [
+        h('path', { 
+          fill: 'currentColor', 
+          d: 'M0.41,13.41L6,7.83L10.59,12.41L15.41,7.59L16.83,9L10.59,15.24L6,10.66L1.83,14.83L0.41,13.41Z' 
+        })
+      ])
+    case 'delivered':
+      return h('svg', { viewBox: '0 0 16 16' }, [
+        h('path', { 
+          fill: 'currentColor', 
+          d: 'M0.41,13.41L6,7.83L10.59,12.41L15.41,7.59L16.83,9L10.59,15.24L6,10.66L1.83,14.83L0.41,13.41Z' 
+        }),
+        h('path', { 
+          fill: 'currentColor', 
+          d: 'M2.41,13.41L8,7.83L12.59,12.41L17.41,7.59L18.83,9L12.59,15.24L8,10.66L3.83,14.83L2.41,13.41Z' 
+        })
+      ])
+    case 'error':
+      return h('svg', { viewBox: '0 0 16 16' }, [
+        h('path', { 
+          fill: 'currentColor', 
+          d: 'M8,0L9.5,6L16,7L9.5,8L8,14L6.5,8L0,7L6.5,6L8,0Z' 
+        })
+      ])
     default:
-      return ''
+      return null
   }
-}
+})
 
-// 获取默认头像
-const getDefaultAvatar = (type: string) => {
-  switch (type) {
-    case 'agent':
-      return '/avatars/agent-default.png'
-    case 'system':
-      return '/avatars/system-default.png'
-    default:
-      return '/avatars/user-default.png'
+const statusIconClass = computed(() => {
+  const status = messageStatus.value
+  return {
+    'status-icon': true,
+    'sending': status === 'sending',
+    'sent': status === 'sent',
+    'delivered': status === 'delivered',
+    'error': status === 'error'
   }
-}
+})
 
-// 获取头像文字
-const getAvatarText = (senderName: string) => {
-  if (senderName.startsWith('agent_')) {
-    return 'AI'
+const statusTitle = computed(() => {
+  const status = messageStatus.value
+  switch (status) {
+    case 'sending': return '发送中'
+    case 'sent': return '已发送'
+    case 'delivered': return '已送达'
+    case 'error': return '发送失败'
+    default: return ''
   }
-  return senderName.charAt(0).toUpperCase()
-}
+})
 
-// 处理图片点击
+// 内容格式化
+const formattedContent = computed(() => {
+  const content = props.message?.content
+  if (!content) return ''
+  
+  try {
+    return formatMessageContent(content)
+  } catch (error) {
+    console.warn('格式化消息内容失败:', error)
+    return content
+  }
+})
+
+// 事件处理
 const handleImageClick = () => {
-  if (props.message.messageType === 'image') {
-    window.open(props.message.imageUrl || props.message.content, '_blank')
+  const url = imageUrl.value
+  if (url) {
+    window.open(url, '_blank')
   }
 }
 
-// 响应式的时间格式化函数
-const formatTime = computed(() => {
-  return formatRelativeTime(props.message.timestamp, currentTime.value)
-})
-
-// 生命周期
-onUnmounted(() => {
-  cleanup()
-})
+const handleImageError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  img.style.display = 'none'
+  console.error('图片加载失败:', imageUrl.value)
+}
 </script>
 
 <style scoped lang="scss">
@@ -290,7 +356,6 @@ onUnmounted(() => {
   box-shadow: var(--shadow-sm);
   color: var(--text-primary);
   transition: all 0.3s ease;
-  transition: all 0.2s ease;
   overflow: hidden;
 
   &:hover {
@@ -337,18 +402,6 @@ onUnmounted(() => {
         .status-icon {
           width: 8px;
           height: 8px;
-        }
-
-        &.online {
-          .status-icon circle {
-            fill: #52c41a;
-          }
-        }
-
-        &.offline {
-          .status-icon circle {
-            fill: #8c8c8c;
-          }
         }
       }
     }
@@ -453,14 +506,14 @@ onUnmounted(() => {
 
   .image-content {
     margin-top: 4px;
-    cursor: pointer;
 
-    img {
-      max-width: 100%;
-      max-height: 300px;
+    .message-image {
+      max-width: 300px;
+      max-height: 200px;
       border-radius: 8px;
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
       transition: all 0.3s ease;
+      cursor: pointer;
 
       &:hover {
         transform: scale(1.02);
@@ -514,150 +567,6 @@ onUnmounted(() => {
     .text-content {
       font-size: 13px;
       line-height: 1.5;
-    }
-  }
-}
-
-// 文件链接样式
-:deep(.file-link) {
-  display: inline-block;
-  margin: 8px 0;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  max-width: 400px;
-  width: 100%;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
-  }
-
-  .file-link-content {
-    display: flex;
-    align-items: center;
-    padding: 16px;
-    text-decoration: none;
-    color: inherit;
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
-    gap: 16px;
-    min-width: 0;
-    transition: all 0.3s ease;
-
-    .file-icon {
-      font-size: 24px;
-      flex-shrink: 0;
-    }
-
-    .file-info {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      min-width: 0;
-      flex: 1;
-
-      .file-type {
-        font-weight: 600;
-        color: var(--text-primary);
-        font-size: 14px;
-      }
-
-      .file-name {
-        font-size: 12px;
-        color: var(--text-secondary);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-    }
-  }
-
-  &.video-link .file-link-content {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-
-    .file-info .file-type,
-    .file-info .file-name {
-      color: rgba(255, 255, 255, 0.95);
-    }
-  }
-
-  &.audio-link .file-link-content {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
-    border: none;
-
-    .file-info .file-type,
-    .file-info .file-name {
-      color: rgba(255, 255, 255, 0.95);
-    }
-  }
-
-  &.generic-file .file-link-content {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    color: white;
-    border: none;
-
-    .file-info .file-type,
-    .file-info .file-name {
-      color: rgba(255, 255, 255, 0.95);
-    }
-  }
-}
-
-// 内联图片样式
-:deep(.inline-image-container) {
-  position: relative;
-  display: inline-block;
-  margin: 8px 0;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-  cursor: pointer;
-
-  &:hover {
-    transform: scale(1.02);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-
-    .image-overlay {
-      opacity: 1;
-    }
-  }
-
-  .inline-image {
-    max-width: 300px;
-    max-height: 200px;
-    width: auto;
-    height: auto;
-    display: block;
-    border-radius: 12px;
-  }
-
-  .image-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(45deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-
-    .image-label {
-      background-color: var(--bg-modal);
-      color: var(--text-primary);
-      padding: 4px 8px;
-      border-radius: 16px;
-      font-size: 12px;
-      font-weight: 600;
-      backdrop-filter: blur(4px);
     }
   }
 }

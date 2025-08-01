@@ -58,30 +58,53 @@ export const useTimeManager = () => {
 
 // 格式化相对时间的工具函数
 export const formatRelativeTime = (timestamp: string, now: Date = new Date()) => {
-  const date = new Date(timestamp)
-  const diff = now.getTime() - date.getTime()
+  try {
+    // 验证参数
+    if (!timestamp) {
+      console.warn('⚠️ formatRelativeTime: timestamp为空')
+      return '未知时间'
+    }
+    
+    if (!(now instanceof Date)) {
+      console.warn('⚠️ formatRelativeTime: now参数不是Date对象，使用当前时间', now)
+      now = new Date()
+    }
+    
+    const date = new Date(timestamp)
+    
+    // 验证日期是否有效
+    if (isNaN(date.getTime())) {
+      console.warn('⚠️ formatRelativeTime: 无效的时间戳', timestamp)
+      return '无效时间'
+    }
+    
+    const diff = now.getTime() - date.getTime()
 
-  if (diff < 60000) {
-    // 1分钟内
-    return '刚刚'
-  } else if (diff < 3600000) {
-    // 1小时内
-    const minutes = Math.floor(diff / 60000)
-    return `${minutes}分钟前`
-  } else if (diff < 86400000) {
-    // 24小时内
-    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-  } else if (diff < 604800000) {
-    // 7天内
-    const days = Math.floor(diff / 86400000)
-    return `${days}天前`
-  } else {
-    return date.toLocaleString('zh-CN', {
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+    if (diff < 60000) {
+      // 1分钟内
+      return '刚刚'
+    } else if (diff < 3600000) {
+      // 1小时内
+      const minutes = Math.floor(diff / 60000)
+      return `${minutes}分钟前`
+    } else if (diff < 86400000) {
+      // 24小时内
+      return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    } else if (diff < 604800000) {
+      // 7天内
+      const days = Math.floor(diff / 86400000)
+      return `${days}天前`
+    } else {
+      return date.toLocaleString('zh-CN', {
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }
+  } catch (error) {
+    console.error('❌ formatRelativeTime错误:', error)
+    return '时间错误'
   }
 }
 
