@@ -196,13 +196,13 @@ const addLog = (type: DebugLog['type'], msg: string, data?: any) => {
 
 // 连接WebSocket
 const handleConnect = async () => {
-  if (!namespace.value || !username.value) {
-    message.error('请填写命名空间和用户名')
+  if (!namespace.value) {
+    message.error('请填写命名空间')
     return
   }
 
   connecting.value = true
-  addLog('info', `开始连接到 ${namespace.value}/${chatName.value}，用户: ${username.value}`)
+  addLog('info', `开始连接到 ${namespace.value}/${chatName.value}`)
 
   try {
     // 断开现有连接
@@ -210,8 +210,8 @@ const handleConnect = async () => {
       chatSocket.disconnect()
     }
 
-    // 创建新连接
-    chatSocket = new ChatSocket(username.value)
+    // 创建新连接（不再需要username参数）
+    chatSocket = new ChatSocket()
     
     // 连接到聊天室
     chatSocket.connect(namespace.value, chatName.value, {

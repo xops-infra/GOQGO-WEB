@@ -118,8 +118,16 @@ const connect = () => {
     ws.close()
   }
 
-  const wsUrl = `ws://localhost:8080/ws/namespaces/${namespace.value}/chat?username=${username.value}`
-  addLog('system', 'info', `连接到: ${wsUrl}`)
+  // 获取token用于WebSocket认证
+  const token = localStorage.getItem('goqgo_token')
+  if (!token) {
+    addLog('system', 'error', '未找到认证token，请先登录')
+    message.error('未找到认证token，请先登录')
+    return
+  }
+
+  const wsUrl = `ws://localhost:8080/ws/namespaces/${namespace.value}/chat?token=${token}`
+  addLog('system', 'info', `连接到: ${wsUrl.replace(token, '***TOKEN***')}`)
   
   ws = new WebSocket(wsUrl)
   

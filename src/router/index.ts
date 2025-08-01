@@ -15,6 +15,7 @@ import EmptyMessageTest from '@/views/EmptyMessageTest.vue'
 import LoginStatusTest from '@/views/LoginStatusTest.vue'
 import LoginErrorTest from '@/views/LoginErrorTest.vue'
 import ApiAuthTest from '@/views/ApiAuthTest.vue'
+import WebSocketAuthTest from '@/views/WebSocketAuthTest.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -152,6 +153,15 @@ const router = createRouter({
       component: ApiAuthTest,
       meta: { 
         title: 'API认证测试',
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/test/websocket-auth',
+      name: 'websocket-auth-test',
+      component: WebSocketAuthTest,
+      meta: { 
+        title: 'WebSocket认证测试',
         requiresAuth: true
       }
     },

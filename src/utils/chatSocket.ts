@@ -17,7 +17,6 @@ export interface SocketCallbacks {
 export class ChatSocket {
   private ws: WebSocket | null = null
   private namespace: string
-  private username: string
   private callbacks: SocketCallbacks = {}
   private reconnectTimer: number | null = null
   private pingTimer: number | null = null
@@ -26,9 +25,8 @@ export class ChatSocket {
   // 消息确认超时管理
   private pendingMessages = new Map<string, NodeJS.Timeout>()
   
-  constructor(username: string = 'xops') {
+  constructor() {
     this.namespace = 'default'
-    this.username = username
   }
   
   connect(namespace: string, callbacks: SocketCallbacks = {}) {
@@ -44,14 +42,22 @@ export class ChatSocket {
       this.ws.close()
     }
     
-    // 使用新的WebSocket连接URL格式（移除chatName）
-    const wsUrl = `ws://localhost:8080/ws/namespaces/${this.namespace}/chat?username=${this.username}`
-    console.log('🔌 连接WebSocket:', wsUrl)
+    // 获取token用于WebSocket认证
+    const token = localStorage.getItem('goqgo_token')
+    if (!token) {
+      console.error('❌ 未找到认证token，无法连接WebSocket')
+      this.callbacks.onError?.({ message: '未找到认证token，请先登录' })
+      return
+    }
+    
+    // 使用token认证的WebSocket连接URL
+    const wsUrl = `ws://localhost:8080/ws/namespaces/${this.namespace}/chat?token=${token}`
+    console.log('🔌 连接WebSocket:', wsUrl.replace(token, '***TOKEN***'))
     
     this.ws = new WebSocket(wsUrl)
     
     this.ws.onopen = () => {
-      console.log('✅ WebSocket连接成功, 用户:', this.username, '命名空间:', this.namespace)
+      console.log('✅ WebSocket连接成功, 命名空间:', this.namespace)
       this.reconnectAttempts = 0
       this.callbacks.onStatus?.(true)
       this.startPing()
@@ -239,8 +245,7 @@ export class ChatSocket {
     this.send({
       type: 'typing',
       data: { 
-        isTyping,
-        username: this.username
+        isTyping
       }
     })
   }
@@ -315,24 +320,13 @@ export class ChatSocket {
     }
   }
   
-  // 设置用户名
-  setUsername(username: string) {
-    this.username = username
-    console.log('👤 设置用户名:', username)
-  }
-  
-  // 获取当前用户名
-  getUsername(): string {
-    return this.username
-  }
-  
   // 获取连接信息
   getConnectionInfo() {
+    const token = localStorage.getItem('goqgo_token')
     return {
       namespace: this.namespace,
-      username: this.username,
       connected: this.isConnected,
-      wsUrl: `ws://localhost:8080/ws/namespaces/${this.namespace}/chat?username=${this.username}`
+      wsUrl: `ws://localhost:8080/ws/namespaces/${this.namespace}/chat?token=${token ? '***TOKEN***' : 'NO_TOKEN'}`
     }
   }
   

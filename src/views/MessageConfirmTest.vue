@@ -135,17 +135,28 @@ const connect = () => {
     ws.close()
   }
 
-  const wsUrl = `ws://localhost:8080/ws/namespaces/${namespace.value}/chat?username=${username.value}`
+  // 获取token用于WebSocket认证
+  const token = localStorage.getItem('goqgo_token')
+  if (!token) {
+    message.error('未找到认证token，请先登录')
+    return
+  }
+
+  const wsUrl = `ws://localhost:8080/ws/namespaces/${namespace.value}/chat?token=${token}`
+  console.log('🔗 连接WebSocket:', wsUrl.replace(token, '***TOKEN***'))
+  
   ws = new WebSocket(wsUrl)
   
   ws.onopen = () => {
     isConnected.value = true
     message.success('连接成功')
+    console.log('✅ WebSocket连接成功')
   }
   
   ws.onclose = () => {
     isConnected.value = false
     message.warning('连接关闭')
+    console.log('⚠️ WebSocket连接关闭')
   }
   
   ws.onerror = (error) => {

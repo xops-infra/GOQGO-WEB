@@ -36,7 +36,21 @@ export class LogSocket {
     return new Promise((resolve, reject) => {
       try {
         this.isManualClose = false
+        
+        // 获取token用于WebSocket认证
+        const token = localStorage.getItem('goqgo_token')
+        if (!token) {
+          const error = '未找到认证token，请先登录'
+          console.error('❌', error)
+          this.callbacks.onError?.(error)
+          reject(new Error(error))
+          return
+        }
+        
         const params = new URLSearchParams()
+        
+        // 添加token参数
+        params.append('token', token)
         
         if (this.options.lines) {
           params.append('lines', this.options.lines.toString())
@@ -46,7 +60,7 @@ export class LogSocket {
         }
 
         const url = `ws://localhost:8080/ws/namespaces/${this.namespace}/agents/${this.agentName}/logs?${params}`
-        console.log('🔗 连接日志 WebSocket:', url)
+        console.log('🔗 连接日志 WebSocket:', url.replace(token, '***TOKEN***'))
         console.log('🔗 连接参数:', { namespace: this.namespace, agentName: this.agentName, options: this.options })
         
         this.socket = new WebSocket(url)
