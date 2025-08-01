@@ -30,10 +30,12 @@ export interface ChatMessage {
   content: string
   timestamp: string
   type: 'user' | 'agent' | 'system'
-  status?: 'sending' | 'sent' | 'error'
+  status?: 'sending' | 'sent' | 'delivered' | 'error'
   messageType?: 'text' | 'image' | 'file'
   imageUrl?: string
   imagePath?: string
+  // 用于消息确认的临时ID
+  tempId?: string
 }
 
 export interface ChatSession {

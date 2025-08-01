@@ -9,6 +9,9 @@ export interface SocketCallbacks {
   onTyping?: (user: string, isTyping: boolean) => void
   onStatus?: (connected: boolean) => void
   onError?: (error: any) => void
+  // 消息发送确认回调，支持错误状态
+  onMessageSent?: (tempId: string, messageId: string, status?: 'success' | 'error') => void
+  onMessageDelivered?: (messageId: string) => void
 }
 
 export class ChatSocket {
@@ -20,6 +23,8 @@ export class ChatSocket {
   private pingTimer: number | null = null
   private reconnectAttempts = 0
   private maxReconnectAttempts = 5
+  // 消息确认超时管理
+  private pendingMessages = new Map<string, NodeJS.Timeout>()
   
   constructor(username: string = 'xops') {
     this.namespace = 'default'
@@ -91,6 +96,52 @@ export class ChatSocket {
         this.callbacks.onMessage?.(chatMessage)
         break
         
+      case 'message_confirm':
+        // 消息发送成功确认 - 后台返回tempId
+        console.log('✅ 收到消息发送确认:', data)
+        
+        const tempId = data.data?.tempId
+        const messageId = data.data?.messageId
+        
+        if (tempId && messageId) {
+          console.log('✅ 找到tempId和messageId，调用回调:', { tempId, messageId })
+          
+          // 清除超时定时器
+          if (this.pendingMessages.has(tempId)) {
+            clearTimeout(this.pendingMessages.get(tempId)!)
+            this.pendingMessages.delete(tempId)
+            console.log('✅ 清除消息超时定时器:', tempId)
+          }
+          
+          this.callbacks.onMessageSent?.(tempId, messageId, 'success')
+        } else {
+          console.warn('⚠️ 消息确认数据格式不正确:', data)
+        }
+        break
+        
+      case 'message_sent':
+        // 兼容旧格式的消息发送确认
+        console.log('✅ 收到消息发送确认(旧格式):', data.data)
+        this.callbacks.onMessageSent?.(data.data.tempId, data.data.messageId)
+        break
+        
+      case 'message_delivered':
+        // 消息处理完成确认
+        console.log('📬 收到消息处理确认:', data.data)
+        this.callbacks.onMessageDelivered?.(data.data.messageId)
+        break
+        
+      case 'error':
+        // 错误消息处理
+        console.error('❌ 收到服务器错误:', data.data)
+        this.callbacks.onError?.(data.data)
+        
+        // 如果错误包含tempId，可以标记对应消息为失败
+        if (data.data.tempId && this.callbacks.onMessageSent) {
+          this.callbacks.onMessageSent(data.data.tempId, '', 'error')
+        }
+        break
+        
       case 'history':
         console.log('📜 收到历史消息原始数据:', data.data)
         // 服务器返回格式: {"data": {"messages": [...], "hasMore": false}}
@@ -135,11 +186,6 @@ export class ChatSocket {
         console.log('💓 收到心跳响应')
         break
         
-      case 'error':
-        console.error('❌ 服务器错误:', data.data)
-        this.callbacks.onError?.(data.data)
-        break
-        
       default:
         console.warn('未知的消息类型:', data.type, data)
     }
@@ -158,10 +204,14 @@ export class ChatSocket {
     this.requestHistory(limit, beforeMessageId)
   }
   
-  sendMessage(content: string, messageType: string = 'text') {
+  sendMessage(content: string, messageType: string = 'text'): string {
+    // 生成临时ID用于消息确认
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    
     const message = {
       type: 'chat',
       data: {
+        tempId, // 添加临时ID
         content,
         type: messageType
       }
@@ -169,6 +219,20 @@ export class ChatSocket {
     
     console.log('📤 发送消息:', message)
     this.send(message)
+    
+    // 设置10秒超时定时器
+    const timeoutId = setTimeout(() => {
+      console.warn('⏰ 消息确认超时:', tempId)
+      this.pendingMessages.delete(tempId)
+      // 调用回调标记消息为失败
+      this.callbacks.onMessageSent?.(tempId, '', 'error')
+    }, 10000) // 10秒超时
+    
+    // 保存超时定时器
+    this.pendingMessages.set(tempId, timeoutId)
+    console.log('⏰ 设置消息超时定时器:', tempId, '10秒')
+    
+    return tempId // 返回临时ID
   }
   
   sendTyping(isTyping: boolean) {
@@ -191,7 +255,7 @@ export class ChatSocket {
       content: serverMessage.content || '',
       timestamp: serverMessage.timestamp || new Date().toISOString(),
       type: serverMessage.type || 'user',
-      status: 'sent',
+      status: 'sent', // 服务器消息都标记为已发送
       messageType: this.detectMessageType(serverMessage.content || ''),
       imageUrl: serverMessage.imageUrl,
       imagePath: serverMessage.imagePath
@@ -281,6 +345,13 @@ export class ChatSocket {
       clearTimeout(this.reconnectTimer)
       this.reconnectTimer = null
     }
+    
+    // 清理所有待确认的消息
+    this.pendingMessages.forEach((timeoutId, tempId) => {
+      clearTimeout(timeoutId)
+      console.log('🧹 清理待确认消息:', tempId)
+    })
+    this.pendingMessages.clear()
     
     if (this.ws) {
       this.ws.close(1000, 'Client disconnect')

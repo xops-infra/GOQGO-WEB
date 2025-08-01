@@ -38,7 +38,8 @@
         ref="messagesListRef"
         class="messages-list"
         :class="{ 
-          'has-history-status': isLoadingHistory || (!hasMoreHistory && messages.length > 0) 
+          'has-history-status': isLoadingHistory || (!hasMoreHistory && messages.length > 0),
+          'no-scroll-animation': isInitialLoad
         }"
         @scroll="handleScroll"
       >
@@ -48,7 +49,7 @@
           <span>加载历史消息...</span>
         </div>
         
-        <template v-for="(message, index) in messages" :key="message.id">
+        <template v-for="(message, index) in visibleMessages" :key="message.id">
           <div
             :class="['message-item', {
               'message-self': message.senderId === currentUser.username,
@@ -57,15 +58,49 @@
           >
             <MessageItem :message="message" />
           </div>
-          
-          <!-- 在历史消息的最后一条后面显示分割线 -->
-          <div 
-            v-if="!hasMoreHistory && messages.length > 0 && index === getHistoryMessageEndIndex()" 
-            class="history-divider"
-          >
-            <span>已显示全部历史消息</span>
-          </div>
         </template>
+        
+        <!-- 历史消息分割线 -->
+        <div 
+          v-if="shouldShowDivider && !isHistoryExpanded && hiddenHistoryCount > 0"
+          class="history-divider clickable"
+          @click="toggleHistoryExpanded"
+        >
+          <div class="divider-content">
+            <n-icon class="expand-icon">
+              <svg viewBox="0 0 24 24">
+                <path fill="currentColor" d="M7,14L12,9L17,14H7Z"/>
+              </svg>
+            </n-icon>
+            <span class="divider-text">{{ getDividerText }} · {{ hiddenHistoryCount }}条历史消息</span>
+            <n-icon class="expand-icon">
+              <svg viewBox="0 0 24 24">
+                <path fill="currentColor" d="M7,14L12,9L17,14H7Z"/>
+              </svg>
+            </n-icon>
+          </div>
+        </div>
+        
+        <!-- 折叠历史消息的分割线 -->
+        <div 
+          v-if="shouldShowDivider && isHistoryExpanded"
+          class="history-divider clickable collapse-divider"
+          @click="toggleHistoryExpanded"
+        >
+          <div class="divider-content">
+            <n-icon class="collapse-icon">
+              <svg viewBox="0 0 24 24">
+                <path fill="currentColor" d="M7,10L12,15L17,10H7Z"/>
+              </svg>
+            </n-icon>
+            <span class="divider-text">{{ getDividerText }} · 收起历史消息</span>
+            <n-icon class="collapse-icon">
+              <svg viewBox="0 0 24 24">
+                <path fill="currentColor" d="M7,10L12,15L17,10H7Z"/>
+              </svg>
+            </n-icon>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -139,24 +174,117 @@ const showSearch = ref(false)
 const showStats = ref(false)
 const isInitialLoad = ref(true) // 标记是否为初始加载
 
-// 查找历史消息的结束位置（最后一条历史消息的索引）
+// 历史消息展开状态
+const isHistoryExpanded = ref(false)
+
+// 查找历史消息的结束位置（基于1小时前的时间分割）
 const getHistoryMessageEndIndex = () => {
-  if (!sessionStartTime.value || messages.value.length === 0) {
+  if (messages.value.length === 0) {
     return -1
   }
   
-  const sessionStart = new Date(sessionStartTime.value).getTime()
+  // 计算1小时前的时间
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).getTime()
   
-  // 找到第一条在会话开始时间之后的消息
+  // 找到第一条在1小时内的消息
   for (let i = 0; i < messages.value.length; i++) {
     const messageTime = new Date(messages.value[i].timestamp).getTime()
-    if (messageTime >= sessionStart) {
-      return i - 1 // 返回历史消息的最后一条索引
+    if (messageTime >= oneHourAgo) {
+      // 如果第一条消息就是1小时内的，不显示分割线
+      if (i === 0) {
+        console.log('📅 所有消息都在1小时内，不显示分割线')
+        return -1
+      }
+      console.log(`📅 找到分割点: 索引${i-1}，1小时内消息从索引${i}开始`)
+      return i - 1 // 返回1小时前消息的最后一条索引
     }
   }
   
-  // 如果所有消息都是历史消息，返回最后一条消息的索引
+  // 如果所有消息都是1小时前的，返回最后一条消息的索引
+  console.log('📅 所有消息都超过1小时，分割线在最后')
   return messages.value.length - 1
+}
+
+// 计算分割线显示文本
+const getDividerText = computed(() => {
+  const endIndex = getHistoryMessageEndIndex()
+  if (endIndex === -1 || messages.value.length === 0) {
+    return '1小时前'
+  }
+  
+  // 获取分割点的消息时间
+  const dividerMessage = messages.value[endIndex]
+  if (!dividerMessage) {
+    return '1小时前'
+  }
+  
+  const messageTime = new Date(dividerMessage.timestamp)
+  const now = new Date()
+  const diffMs = now.getTime() - messageTime.getTime()
+  const diffMinutes = Math.floor(diffMs / (1000 * 60))
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  
+  if (diffMinutes < 60) {
+    return diffMinutes <= 1 ? '刚刚' : `${diffMinutes}分钟前`
+  } else if (diffHours < 24) {
+    return diffHours === 1 ? '1小时前' : `${diffHours}小时前`
+  } else if (diffDays === 1) {
+    return '昨天'
+  } else if (diffDays < 7) {
+    return `${diffDays}天前`
+  } else {
+    // 超过一周显示具体日期
+    return messageTime.toLocaleDateString('zh-CN', {
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+})
+
+// 检查是否应该显示分割线
+const shouldShowDivider = computed(() => {
+  const endIndex = getHistoryMessageEndIndex()
+  return messages.value.length > 0 && endIndex !== -1
+})
+
+// 获取要显示的消息列表（根据展开状态过滤）
+const visibleMessages = computed(() => {
+  if (isHistoryExpanded.value) {
+    return messages.value
+  }
+  
+  const endIndex = getHistoryMessageEndIndex()
+  if (endIndex === -1) {
+    return messages.value
+  }
+  
+  // 只显示1小时内的消息
+  return messages.value.slice(endIndex + 1)
+})
+
+// 获取隐藏的历史消息数量
+const hiddenHistoryCount = computed(() => {
+  if (isHistoryExpanded.value) {
+    return 0
+  }
+  
+  const endIndex = getHistoryMessageEndIndex()
+  if (endIndex === -1) {
+    return 0
+  }
+  
+  return endIndex + 1
+})
+
+// 切换历史消息展开状态
+const toggleHistoryExpanded = () => {
+  isHistoryExpanded.value = !isHistoryExpanded.value
+  
+  // 如果展开历史消息，需要加载更多历史消息
+  if (isHistoryExpanded.value && hasMoreHistory.value) {
+    loadMoreHistory()
+  }
 }
 
 // 处理发送消息
@@ -286,9 +414,19 @@ const handleScroll = () => {
   
   const { scrollTop, scrollHeight, clientHeight } = messagesListRef.value
   
-  // 检查是否滚动到顶部，如果是则加载更多历史消息
-  if (scrollTop === 0 && hasMoreHistory.value && !isLoadingHistory.value) {
-    loadMoreHistory()
+  // 检查是否滚动到顶部
+  if (scrollTop === 0) {
+    // 如果历史消息未展开且有隐藏的历史消息，自动展开
+    if (!isHistoryExpanded.value && hiddenHistoryCount.value > 0) {
+      console.log('📜 滚动到顶部，自动展开历史消息')
+      isHistoryExpanded.value = true
+    }
+    
+    // 如果已展开且还有更多历史消息，加载更多
+    if (isHistoryExpanded.value && hasMoreHistory.value && !isLoadingHistory.value) {
+      console.log('📜 加载更多历史消息')
+      loadMoreHistory()
+    }
   }
   
   // 检查用户是否在底部附近（允许一些误差）
@@ -300,6 +438,13 @@ const handleScroll = () => {
   setTimeout(() => {
     isUserScrolling.value = false
   }, 150)
+  
+  console.log('📜 滚动状态:', {
+    scrollTop,
+    isNearBottom,
+    isHistoryExpanded: isHistoryExpanded.value,
+    hiddenHistoryCount: hiddenHistoryCount.value
+  })
 }
 
 // 加载更多历史消息
@@ -362,11 +507,15 @@ watch(messages, (newMessages, oldMessages) => {
             console.log('⚠️ 滚动后仍未到底部，再次尝试滚动')
             scrollToBottom()
           }
+          
+          // 完成初始加载，重新启用滚动动画
           isInitialLoad.value = false
-          console.log('✅ 初始加载完成，已滚动到底部')
+          console.log('✅ 初始加载完成，已滚动到底部，重新启用滚动动画')
         }, 100)
       } else {
         console.log('❌ messagesListRef未绑定，无法滚动')
+        // 即使失败也要重置状态
+        isInitialLoad.value = false
       }
     }, 300) // 增加延迟时间
   } else if (shouldAutoScroll.value && !isUserScrolling.value) {
@@ -503,6 +652,10 @@ onMounted(async () => {
   console.log('🚀 ChatRoom组件开始挂载')
   console.log('📋 Props:', { namespace: props.namespace, showStats: props.showStats })
   console.log('👤 当前用户:', currentUser.value.username)
+  
+  // 初始化历史消息状态
+  isHistoryExpanded.value = false
+  console.log('📅 初始化历史消息为折叠状态')
   
   try {
     console.log('🚀 ChatRoom挂载，连接聊天室:', props.namespace, '用户:', currentUser.value.username)
@@ -650,6 +803,11 @@ onUnmounted(() => {
     gap: 16px;
     scroll-behavior: smooth;
     
+    // 禁用滚动动画的类
+    &.no-scroll-animation {
+      scroll-behavior: auto !important;
+    }
+    
     // 历史消息加载提示
     .loading-history {
       display: flex;
@@ -672,20 +830,34 @@ onUnmounted(() => {
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px 0;
-      margin: 8px 0;
+      padding: 16px 0;
+      margin: 12px 0;
       position: relative;
       
-      span {
+      .divider-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
         position: relative;
-        padding: 8px 20px;
+        padding: 8px 16px;
         background-color: var(--bg-secondary);
         color: var(--text-tertiary);
-        font-size: 12px;
-        border-radius: 16px;
         border: 1px solid var(--border-primary);
+        border-radius: 20px;
+        font-size: 12px;
         z-index: 2;
         transition: all 0.3s ease;
+        
+        .divider-text {
+          white-space: nowrap;
+        }
+        
+        .expand-icon,
+        .collapse-icon {
+          font-size: 14px;
+          opacity: 0.7;
+          transition: all 0.3s ease;
+        }
         
         // 分割线效果
         &::before {
@@ -703,6 +875,45 @@ onUnmounted(() => {
             transparent
           );
           z-index: 1;
+        }
+      }
+      
+      // 可点击状态
+      &.clickable {
+        cursor: pointer;
+        
+        .divider-content {
+          &:hover {
+            background-color: var(--bg-hover);
+            border-color: var(--border-focus);
+            color: var(--text-secondary);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+            
+            .expand-icon,
+            .collapse-icon {
+              opacity: 1;
+              transform: scale(1.1);
+            }
+          }
+          
+          &:active {
+            transform: translateY(0);
+            box-shadow: none;
+          }
+        }
+      }
+      
+      // 折叠状态的特殊样式
+      &.collapse-divider {
+        .divider-content {
+          background-color: var(--bg-active);
+          border-color: var(--color-primary);
+          color: var(--color-primary);
+          
+          .collapse-icon {
+            color: var(--color-primary);
+          }
         }
       }
     }

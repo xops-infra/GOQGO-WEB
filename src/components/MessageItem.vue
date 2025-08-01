@@ -48,12 +48,23 @@
         <div class="time-info">
           <span class="message-time">{{ formatTime }}</span>
           <!-- 消息状态 -->
-          <n-icon v-if="message.status === 'sending'" class="status-icon sending">
+          <n-icon v-if="message.status === 'sending'" class="status-icon sending" title="发送中">
             <svg viewBox="0 0 16 16">
               <path fill="currentColor" d="M8,2V4.5A5.5,5.5 0 0,0 2.5,10H0A8,8 0 0,1 8,2Z"/>
             </svg>
           </n-icon>
-          <n-icon v-else-if="message.status === 'error'" class="status-icon error">
+          <n-icon v-else-if="message.status === 'sent'" class="status-icon sent" title="已发送">
+            <svg viewBox="0 0 16 16">
+              <path fill="currentColor" d="M0.41,13.41L6,7.83L10.59,12.41L15.41,7.59L16.83,9L10.59,15.24L6,10.66L1.83,14.83L0.41,13.41Z"/>
+            </svg>
+          </n-icon>
+          <n-icon v-else-if="message.status === 'delivered'" class="status-icon delivered" title="已送达">
+            <svg viewBox="0 0 16 16">
+              <path fill="currentColor" d="M0.41,13.41L6,7.83L10.59,12.41L15.41,7.59L16.83,9L10.59,15.24L6,10.66L1.83,14.83L0.41,13.41Z"/>
+              <path fill="currentColor" d="M2.41,13.41L8,7.83L12.59,12.41L17.41,7.59L18.83,9L12.59,15.24L8,10.66L3.83,14.83L2.41,13.41Z"/>
+            </svg>
+          </n-icon>
+          <n-icon v-else-if="message.status === 'error'" class="status-icon error" title="发送失败">
             <svg viewBox="0 0 16 16">
               <path fill="currentColor" d="M8,0L9.5,6L16,7L9.5,8L8,14L6.5,8L0,7L6.5,6L8,0Z"/>
             </svg>
@@ -89,6 +100,7 @@ import { computed, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useChatStore } from '@/stores/chat'
 import { useTimeManager, formatRelativeTime } from '@/utils/timeManager'
+import { formatMessageContent } from '@/utils/messageParser'
 import type { ChatMessage } from '@/types/api'
 
 const props = defineProps<{
@@ -185,63 +197,6 @@ const getAvatarText = (senderName: string) => {
     return 'AI'
   }
   return senderName.charAt(0).toUpperCase()
-}
-
-// 格式化消息内容，处理 @mention 和文件链接
-const formatMessageContent = (content: string) => {
-  console.log('🔧 formatMessageContent 输入:', content)
-  
-  const result = content
-    // 处理文件链接格式：[图片]URL, [视频]URL, [文件]URL 等
-    .replace(/\[([^\]]+)\](https?:\/\/[^\s]+)/g, (match, type, url) => {
-      console.log('🔍 匹配到文件链接:', { match, type, url })
-      const decodedType = decodeURIComponent(type)
-      const cleanUrl = url.trim()
-      
-      console.log('📝 处理文件:', { decodedType, cleanUrl })
-      
-      // 根据文件类型生成不同的HTML
-      if (decodedType === '图片') {
-        const imageHtml = `<div class="inline-image-container">
-          <img src="${cleanUrl}" alt="图片" class="inline-image" onclick="window.open('${cleanUrl}', '_blank')" />
-          <div class="image-overlay">
-            <span class="image-label">${decodedType}</span>
-          </div>
-        </div>`
-        console.log('🖼️ 生成图片HTML:', imageHtml)
-        return imageHtml
-      } else {
-        // 其他文件类型保持原有处理
-        const fileIcons = {
-          '视频': '🎥',
-          '音频': '🎵',
-          'PDF': '📄',
-          '文档': '📝',
-          '表格': '📊',
-          '演示': '📽️',
-          '压缩包': '📦',
-          '文件': '📎'
-        }
-        const icon = fileIcons[decodedType] || '📎'
-        
-        const fileHtml = `<div class="file-link generic-file">
-          <a href="${cleanUrl}" target="_blank" class="file-link-content">
-            <span class="file-icon">${icon}</span>
-            <span class="file-type">${decodedType}</span>
-            <span class="file-url">${cleanUrl}</span>
-          </a>
-        </div>`
-        console.log('📎 生成文件HTML:', fileHtml)
-        return fileHtml
-      }
-    })
-    // 处理 @mention，只匹配 @ 后面的单词字符，保持原有空格
-    .replace(/@(\w+)(\s|$)/g, '<span class="mention">@$1</span>$2')
-    // 处理换行
-    .replace(/\n/g, '<br>')
-  
-  console.log('✅ formatMessageContent 输出:', result)
-  return result
 }
 
 // 处理图片点击
@@ -396,8 +351,16 @@ onUnmounted(() => {
       font-size: 12px;
       
       &.sending {
-        color: var(--color-primary);
+        color: var(--color-warning);
         animation: spin 1s linear infinite;
+      }
+      
+      &.sent {
+        color: var(--color-info);
+      }
+      
+      &.delivered {
+        color: var(--color-success);
       }
       
       &.error {
@@ -525,47 +488,55 @@ onUnmounted(() => {
 :deep(.file-link) {
   display: inline-block;
   margin: 8px 0;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
-  max-width: 100%;
+  max-width: 400px;
+  width: 100%;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
   }
 
   .file-link-content {
     display: flex;
     align-items: center;
-    padding: 12px 16px;
+    padding: 16px;
     text-decoration: none;
     color: inherit;
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-primary);
-    gap: 12px;
+    gap: 16px;
     min-width: 0;
     transition: all 0.3s ease;
 
     .file-icon {
-      font-size: 20px;
+      font-size: 24px;
       flex-shrink: 0;
     }
 
-    .file-type {
-      font-weight: 600;
-      color: var(--text-primary);
-      flex-shrink: 0;
-    }
-
-    .file-url {
-      font-size: 12px;
-      color: var(--text-secondary);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    .file-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
       min-width: 0;
+      flex: 1;
+
+      .file-type {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 14px;
+      }
+
+      .file-name {
+        font-size: 12px;
+        color: var(--text-secondary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
     }
   }
 
@@ -574,8 +545,9 @@ onUnmounted(() => {
     color: white;
     border: none;
 
-    .file-type, .file-url {
-      color: rgba(255, 255, 255, 0.9);
+    .file-info .file-type,
+    .file-info .file-name {
+      color: rgba(255, 255, 255, 0.95);
     }
   }
 
@@ -584,8 +556,9 @@ onUnmounted(() => {
     color: white;
     border: none;
 
-    .file-type, .file-url {
-      color: rgba(255, 255, 255, 0.9);
+    .file-info .file-type,
+    .file-info .file-name {
+      color: rgba(255, 255, 255, 0.95);
     }
   }
 
@@ -594,8 +567,9 @@ onUnmounted(() => {
     color: white;
     border: none;
 
-    .file-type, .file-url {
-      color: rgba(255, 255, 255, 0.9);
+    .file-info .file-type,
+    .file-info .file-name {
+      color: rgba(255, 255, 255, 0.95);
     }
   }
 }

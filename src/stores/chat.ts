@@ -69,6 +69,20 @@ export const useChatStore = defineStore('chat', () => {
         addMessage(message)
       },
       
+      onMessageSent: (tempId, messageId, status = 'success') => {
+        console.log('✅ 消息发送确认:', { tempId, messageId, status })
+        if (status === 'success') {
+          updateMessageStatus(tempId, 'sent', messageId)
+        } else {
+          updateMessageStatus(tempId, 'error')
+        }
+      },
+      
+      onMessageDelivered: (messageId) => {
+        console.log('📬 消息处理确认:', messageId)
+        updateMessageStatusById(messageId, 'delivered')
+      },
+      
       onHistoryLoaded: (historyMessages) => {
         console.log('📜 加载历史消息:', historyMessages?.length || 0, '条')
         
@@ -162,20 +176,84 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   // 添加消息
+  // 添加消息
   const addMessage = (message: ChatMessage) => {
-    // 检查消息是否已存在
+    console.log('📨 添加新消息详细信息:', {
+      id: message.id,
+      tempId: message.tempId,
+      messageType: message.messageType,
+      content: message.content?.substring(0, 50) + '...',
+      senderName: message.senderName,
+      type: message.type,
+      timestamp: message.timestamp,
+      status: message.status
+    })
+
+    // 检查消息是否已存在（避免重复）
     const exists = messages.value.some(m => m.id === message.id)
     if (!exists) {
-      console.log('📨 添加新消息详细信息:', {
-        id: message.id,
-        messageType: message.messageType,
-        content: message.content,
-        imageUrl: message.imageUrl,
-        senderName: message.senderName,
-        type: message.type
+      const newMessage = {
+        ...message,
+        status: message.status || 'delivered' // 收到的消息默认为已处理
+      }
+      
+      messages.value.push(newMessage)
+      console.log('✅ 添加新消息成功:', {
+        id: newMessage.id,
+        tempId: newMessage.tempId,
+        content: newMessage.content?.substring(0, 20) + '...',
+        status: newMessage.status
       })
-      messages.value.push(message)
-      console.log('✅ 添加新消息:', message.content?.substring(0, 50) + '...')
+      console.log('📋 当前消息总数:', messages.value.length)
+    } else {
+      console.log('⚠️ 消息已存在，跳过添加:', message.id)
+    }
+  }
+
+  // 根据临时ID更新消息状态
+  const updateMessageStatus = (tempId: string, status: ChatMessage['status'], realId?: string) => {
+    console.log('🔄 尝试更新消息状态:', { tempId, status, realId })
+    console.log('📋 当前消息列表:', messages.value.map(m => ({
+      id: m.id,
+      tempId: m.tempId,
+      content: m.content?.substring(0, 20) + '...',
+      status: m.status
+    })))
+    
+    const messageIndex = messages.value.findIndex(m => m.tempId === tempId)
+    console.log('🔍 查找结果:', { messageIndex, tempId })
+    
+    if (messageIndex !== -1) {
+      const oldMessage = messages.value[messageIndex]
+      messages.value[messageIndex] = {
+        ...oldMessage,
+        status,
+        ...(realId && { id: realId }) // 如果有真实ID，更新它
+      }
+      console.log('✅ 更新消息状态成功:', { 
+        tempId, 
+        status, 
+        realId,
+        oldStatus: oldMessage.status,
+        newStatus: messages.value[messageIndex].status
+      })
+    } else {
+      console.warn('⚠️ 未找到临时ID对应的消息:', tempId)
+      console.warn('⚠️ 可用的临时ID列表:', messages.value.map(m => m.tempId).filter(Boolean))
+    }
+  }
+
+  // 根据消息ID更新状态
+  const updateMessageStatusById = (messageId: string, status: ChatMessage['status']) => {
+    const messageIndex = messages.value.findIndex(m => m.id === messageId)
+    if (messageIndex !== -1) {
+      messages.value[messageIndex] = {
+        ...messages.value[messageIndex],
+        status
+      }
+      console.log('✅ 更新消息状态:', { messageId, status })
+    } else {
+      console.warn('⚠️ 未找到ID对应的消息:', messageId)
     }
   }
 
@@ -198,7 +276,7 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  // 发送消息 - 使用WebSocket直接发送
+  // 发送消息 - 使用乐观更新 + 确认机制
   const sendMessage = async (content: string, messageType: string = 'text') => {
     if (!content.trim()) {
       console.warn('⚠️ 消息内容为空，跳过发送')
@@ -211,14 +289,42 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     try {
-      console.log('📤 通过WebSocket发送消息:', { 
+      console.log('📤 准备发送消息:', { 
         namespace: currentNamespace.value, 
-        content: content.substring(0, 50) + '...' 
+        content: content.substring(0, 50) + '...',
+        messageType
       })
 
-      // 直接通过WebSocket发送消息
-      chatSocket.sendMessage(content, messageType)
-      console.log('✅ 消息发送成功')
+      // 通过WebSocket发送消息，获取临时ID
+      const tempId = chatSocket.sendMessage(content, messageType)
+      console.log('📤 生成临时ID:', tempId)
+
+      // 乐观更新：立即在前端显示消息
+      const optimisticMessage: ChatMessage = {
+        id: tempId, // 先使用临时ID
+        tempId: tempId, // 保存临时ID用于后续更新
+        senderId: userStore.currentUser.username,
+        senderName: userStore.currentUser.username,
+        senderAvatar: userStore.currentUser.avatar,
+        content: content,
+        timestamp: new Date().toISOString(),
+        type: 'user',
+        status: 'sending', // 发送中状态
+        messageType: messageType as any,
+        imageUrl: messageType === 'image' ? content : undefined
+      }
+
+      console.log('📝 创建乐观更新消息:', {
+        id: optimisticMessage.id,
+        tempId: optimisticMessage.tempId,
+        content: optimisticMessage.content?.substring(0, 20) + '...',
+        status: optimisticMessage.status
+      })
+
+      // 立即添加到消息列表
+      addMessage(optimisticMessage)
+      console.log('✅ 乐观更新：立即显示消息，等待确认')
+
       return true
     } catch (error) {
       console.error('❌ 发送消息失败:', error)
