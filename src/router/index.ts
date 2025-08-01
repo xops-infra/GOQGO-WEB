@@ -14,6 +14,7 @@ import DividerTest from '@/views/DividerTest.vue'
 import EmptyMessageTest from '@/views/EmptyMessageTest.vue'
 import LoginStatusTest from '@/views/LoginStatusTest.vue'
 import LoginErrorTest from '@/views/LoginErrorTest.vue'
+import ApiAuthTest from '@/views/ApiAuthTest.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -143,6 +144,15 @@ const router = createRouter({
       meta: { 
         title: '登录错误测试',
         requiresAuth: false // 允许未登录访问，用于测试登录错误
+      }
+    },
+    {
+      path: '/test/api-auth',
+      name: 'api-auth-test',
+      component: ApiAuthTest,
+      meta: { 
+        title: 'API认证测试',
+        requiresAuth: true
       }
     },
     {

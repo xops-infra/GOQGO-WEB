@@ -100,7 +100,7 @@ export const useUserStore = defineStore('user', () => {
       localStorage.setItem('goqgo_token', response.data.bearer_token)
       localStorage.setItem('goqgo_user', JSON.stringify(user))
       
-      // 设置认证头
+      // 设置认证头（虽然axios拦截器会自动处理，但保持兼容性）
       setAuthHeader(response.data.bearer_token)
       
       console.log('✅ Token登录成功:', response.data.displayName)
@@ -160,7 +160,7 @@ export const useUserStore = defineStore('user', () => {
       localStorage.setItem('goqgo_token', response.data.bearer_token)
       localStorage.setItem('goqgo_user', JSON.stringify(user))
       
-      // 设置认证头
+      // 设置认证头（虽然axios拦截器会自动处理，但保持兼容性）
       setAuthHeader(response.data.bearer_token)
       
       console.log('✅ 密码登录成功:', response.data.displayName)

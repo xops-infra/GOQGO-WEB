@@ -1,7 +1,7 @@
-import axios from 'axios'
+import axios from '@/utils/axios'
 import type { ChatMessage } from '@/types/api'
 
-const API_BASE = 'http://localhost:8080/api/v1'
+const API_BASE = '/api/v1'
 
 export interface SendMessageRequest {
   message: string
@@ -22,7 +22,7 @@ export const chatApi = {
       type: data.type || 'user',
       timestamp: new Date().toISOString()
     })
-    return response.data
+    return response
   },
 
   // 获取聊天历史
@@ -32,13 +32,13 @@ export const chatApi = {
     if (before) params.append('before', before)
     
     const response = await axios.get(`${API_BASE}/namespaces/${namespace}/chat/messages?${params}`)
-    return response.data.items || []
+    return response.items || []
   },
 
   // 获取聊天室信息
   getChatInfo: async (namespace: string, chatName: string) => {
     const response = await axios.get(`${API_BASE}/namespaces/${namespace}/chats/${chatName}`)
-    return response.data
+    return response
   },
 
   // 创建聊天室
@@ -48,6 +48,6 @@ export const chatApi = {
       title: title || chatName,
       type: 'group'
     })
-    return response.data
+    return response
   }
 }
