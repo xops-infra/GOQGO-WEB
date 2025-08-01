@@ -238,8 +238,9 @@ export const useUserStore = defineStore('user', () => {
     isAuthenticated.value = false
     error.value = null
 
-    // 使用认证管理器清除认证信息
-    authManager.clearAuth()
+    // 直接清除本地存储，避免循环调用
+    localStorage.removeItem('goqgo_token')
+    localStorage.removeItem('goqgo_user')
   }
 
   // 检查token是否过期

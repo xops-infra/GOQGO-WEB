@@ -10,6 +10,10 @@ export const useAgentsStore = defineStore('agents', () => {
   const loading = ref(false)
   const selectedAgent = ref<Agent | null>(null)
 
+  // 请求控制
+  let fetchController: AbortController | null = null
+  let fetchTimeout: NodeJS.Timeout | null = null
+
   // 获取namespaces store
   const namespacesStore = useNamespacesStore()
 
@@ -48,6 +52,30 @@ export const useAgentsStore = defineStore('agents', () => {
     const targetNamespace = namespace || namespacesStore.currentNamespace
     console.log('🔍 开始获取agents:', { targetNamespace, loading: loading.value })
 
+    // 取消之前的请求
+    if (fetchController) {
+      fetchController.abort()
+      console.log('🚫 取消之前的请求')
+    }
+
+    // 清除之前的防抖定时器
+    if (fetchTimeout) {
+      clearTimeout(fetchTimeout)
+    }
+
+    // 防抖处理：延迟300ms执行
+    return new Promise<void>((resolve) => {
+      fetchTimeout = setTimeout(async () => {
+        await performFetch(targetNamespace)
+        resolve()
+      }, 300)
+    })
+  }
+
+  const performFetch = async (targetNamespace: string) => {
+    // 创建新的请求控制器
+    fetchController = new AbortController()
+    
     loading.value = true
     try {
       // 检查认证状态
@@ -68,8 +96,8 @@ export const useAgentsStore = defineStore('agents', () => {
       }
 
       console.log('📡 发送API请求获取agents...')
-      // 尝试调用真实API
-      const data = await agentApi.getList(targetNamespace)
+      // 尝试调用真实API，传入AbortController信号
+      const data = await agentApi.getList(targetNamespace, fetchController?.signal)
       // API返回的是 { items: Agent[] } 格式
       console.log('✅ agentApi.getList 成功:', data)
       agents.value = data.items || []
@@ -85,6 +113,14 @@ export const useAgentsStore = defineStore('agents', () => {
         console.log('📭 暂无可用的agents实例')
       }
     } catch (error: any) {
+      // 如果是请求取消，不需要处理为错误
+      if (error.name === 'CanceledError' || 
+          error.code === 'ERR_CANCELED' || 
+          error.name === 'AbortError') {
+        console.log('🔄 请求被取消，可能是组件切换或重复请求')
+        return
+      }
+
       console.error('❌ 获取agents失败:', error)
 
       // 如果是认证错误，清空agents列表
@@ -102,7 +138,8 @@ export const useAgentsStore = defineStore('agents', () => {
       selectedAgent.value = null
     } finally {
       loading.value = false
-      console.log('🏁 fetchAgents 完成')
+      fetchController = null // 清理请求控制器
+      console.log('🏁 performFetch 完成')
     }
   }
   const createAgent = async (namespace: string, data: any) => {
@@ -110,12 +147,14 @@ export const useAgentsStore = defineStore('agents', () => {
     try {
       console.log('🚀 创建Agent:', { namespace, data })
 
-      // 构建创建请求数据
+      // 构建创建请求数据，使用后端API格式
       const createRequest = {
         name: data.name || `agent-${Date.now()}`,
         role: data.role || 'general-assistant',
-        workingDirectory: data.workingDirectory,
-        namespace: namespace
+        workDir: data.workDir || './', // 使用后端支持的workDir字段
+        namespace: namespace,
+        context: data.context || undefined,
+        env: data.env || undefined
       }
 
       // 调用真实API
@@ -271,6 +310,18 @@ export const useAgentsStore = defineStore('agents', () => {
     await fetchAgents()
   }
 
+  // 清理函数，用于组件卸载时调用
+  const cleanup = () => {
+    if (fetchController) {
+      fetchController.abort()
+      fetchController = null
+    }
+    if (fetchTimeout) {
+      clearTimeout(fetchTimeout)
+      fetchTimeout = null
+    }
+  }
+
   return {
     // 状态
     agents,
@@ -292,6 +343,7 @@ export const useAgentsStore = defineStore('agents', () => {
     selectAgent,
     clearSelection,
     refreshAgents,
+    cleanup,
     setupEventListeners,
     cleanupEventListeners
   }

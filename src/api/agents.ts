@@ -20,7 +20,7 @@ export interface CreateAgentRequest {
   namespace: string
   role: string
   context?: string
-  workDir?: string
+  workDir?: string  // 使用后端支持的workDir字段
   env?: string[]
 }
 
@@ -40,8 +40,8 @@ export interface LogMessage {
 
 export const agentApi = {
   // 获取Agent列表
-  getList: (namespace: string = 'default') =>
-    get<{ items: Agent[] }>(`/api/v1/namespaces/${namespace}/agents`),
+  getList: (namespace: string = 'default', signal?: AbortSignal) =>
+    get<{ items: Agent[] }>(`/api/v1/namespaces/${namespace}/agents`, { signal }),
 
   // 获取Agent详情
   getDetail: (namespace: string, name: string) =>

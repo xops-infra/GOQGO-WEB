@@ -274,14 +274,14 @@ const roleOptions = [
 // 计算属性
 const pathPlaceholder = computed(() => {
   return formData.value.directoryType === 'local'
-    ? '例如: /Users/username/project'
+    ? '例如: /Users/username/project 或 ./my-project'
     : '例如: https://github.com/username/repo.git'
 })
 
 const pathTipText = computed(() => {
   return formData.value.directoryType === 'local'
-    ? '请输入本地目录的绝对路径，或点击"浏览"选择目录'
-    : '请输入Git仓库的完整地址，支持HTTPS和SSH协议'
+    ? '支持绝对路径和相对路径，或点击"浏览"选择目录'
+    : '支持HTTPS和SSH协议的Git仓库地址，实例将自动克隆代码'
 })
 
 const canCreate = computed(() => {
@@ -326,32 +326,42 @@ const handleCreate = async () => {
 
   // 验证Git地址格式
   if (formData.value.directoryType === 'git') {
-    const gitUrlPattern =
-      /^(https?:\/\/[\w.-]+\/[\w.-]+\/[\w.-]+\.git|git@[\w.-]+:[\w.-]+\/[\w.-]+\.git)$/
-    if (!gitUrlPattern.test(formData.value.path.trim())) {
-      message.error('Git地址格式不正确，请输入完整的Git仓库地址')
+    const path = formData.value.path.trim()
+    // 支持多种Git URL格式
+    const gitUrlPatterns = [
+      /^https?:\/\/[\w.-]+\/[\w.-]+\/[\w.-]+(\.git)?$/,  // HTTPS
+      /^git@[\w.-]+:[\w.-]+\/[\w.-]+(\.git)?$/,         // SSH
+      /^ssh:\/\/git@[\w.-]+\/[\w.-]+\/[\w.-]+(\.git)?$/, // SSH with protocol
+      /^git:\/\/[\w.-]+\/[\w.-]+\/[\w.-]+(\.git)?$/      // Git protocol
+    ]
+    
+    const isValidGitUrl = gitUrlPatterns.some(pattern => pattern.test(path))
+    if (!isValidGitUrl) {
+      message.error('Git地址格式不正确，支持HTTPS、SSH等格式')
       return
     }
   }
 
-  // 验证本地路径格式
+  // 验证本地路径格式（放宽限制，支持相对路径）
   if (formData.value.directoryType === 'local') {
-    if (!formData.value.path.trim().startsWith('/')) {
-      message.error('本地路径必须是绝对路径')
+    const path = formData.value.path.trim()
+    if (!path) {
+      message.error('请输入有效的本地路径')
       return
     }
   }
 
   loading.value = true
   try {
+    // 根据后端API格式构建请求数据
     const createData = {
       name: formData.value.name.trim() || undefined,
-      role: formData.value.role || undefined,
-      workingDirectory: {
-        type: formData.value.directoryType,
-        path: formData.value.path.trim()
-      },
-      namespace: currentNamespace.value
+      role: formData.value.role || 'general-assistant',
+      workDir: formData.value.path.trim(), // 后端使用 workDir 字段
+      namespace: currentNamespace.value,
+      context: formData.value.directoryType === 'git' 
+        ? `工作在Git仓库: ${formData.value.path.trim()}` 
+        : `工作在本地目录: ${formData.value.path.trim()}`
     }
 
     console.log('创建实例数据:', createData)
@@ -436,8 +446,59 @@ watch(
     .radio-option {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
       font-size: 14px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        background: #f5f5f5;
+      }
+    }
+
+    // 选中状态的样式
+    :deep(.n-radio--checked) {
+      .radio-option {
+        background: #e6f7ff;
+        color: #1890ff;
+        
+        .n-icon {
+          color: #1890ff;
+        }
+      }
+    }
+
+    // Git选项的特殊样式
+    :deep(.n-radio[value="git"]) {
+      .radio-option {
+        border: 1px solid #d9d9d9;
+        
+        .n-icon {
+          color: #52c41a;
+        }
+      }
+      
+      &.n-radio--checked .radio-option {
+        border-color: #1890ff;
+        background: #e6f7ff;
+      }
+    }
+
+    // 本地路径选项样式
+    :deep(.n-radio[value="local"]) {
+      .radio-option {
+        border: 1px solid #d9d9d9;
+        
+        .n-icon {
+          color: #faad14;
+        }
+      }
+      
+      &.n-radio--checked .radio-option {
+        border-color: #1890ff;
+        background: #e6f7ff;
+      }
     }
   }
 

@@ -38,10 +38,8 @@ export class AuthManager {
   clearAuth(): void {
     localStorage.removeItem('goqgo_token')
     localStorage.removeItem('goqgo_user')
-
-    // 清除store中的认证状态
-    const userStore = useUserStore()
-    userStore.clearAuth()
+    // 注意：不再调用userStore.clearAuth()以避免循环调用
+    // userStore的状态应该通过其他方式同步
   }
 
   /**
@@ -128,6 +126,10 @@ export const authManager = AuthManager.getInstance()
 // 导出便捷方法
 export const isAuthenticated = () => authManager.isAuthenticated()
 export const getToken = () => authManager.getToken()
-export const clearAuth = () => authManager.clearAuth()
+export const clearAuth = () => {
+  // 只清除本地存储
+  localStorage.removeItem('goqgo_token')
+  localStorage.removeItem('goqgo_user')
+}
 export const redirectToLogin = (reason?: string) => authManager.redirectToLogin(reason)
 export const handleAuthError = (error: any) => authManager.handleAuthError(error)

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>测试请求取消</title>
+</head>
+<body>
+    <h1>测试请求取消处理</h1>
+    <button onclick="testCancel()">测试快速请求取消</button>
+    <div id="result"></div>
+
+    <script>
+        async function testCancel() {
+            const result = document.getElementById('result');
+            result.innerHTML = '开始测试...';
+            
+            // 模拟快速连续请求
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const controller = new AbortController();
+                    
+                    // 100ms后取消请求
+                    setTimeout(() => controller.abort(), 100);
+                    
+                    const response = await fetch('/api/v1/namespaces/default/agents', {
+                        signal: controller.signal
+                    });
+                    
+                    result.innerHTML += `<br>请求 ${i + 1} 成功`;
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        result.innerHTML += `<br>请求 ${i + 1} 被取消 ✅`;
+                    } else {
+                        result.innerHTML += `<br>请求 ${i + 1} 错误: ${error.message}`;
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
