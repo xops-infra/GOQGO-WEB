@@ -9,4 +9,4 @@ if [ ! -d "node_modules" ]; then
     echo "安装依赖..."
     npm install
 fi
-npm run dev
+export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && nvm use 18 && npm run dev

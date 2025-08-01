@@ -1,130 +1,160 @@
 <template>
-  <n-dropdown
-    :options="themeOptions"
-    @select="handleThemeSelect"
-    trigger="click"
-    placement="bottom-end"
-  >
-    <n-button
-      quaternary
-      circle
-      size="medium"
-      class="theme-toggle-btn"
-      :title="currentThemeLabel"
+  <div class="theme-toggle">
+    <n-dropdown
+      :options="themeOptions"
+      @select="handleThemeSelect"
+      trigger="click"
+      placement="bottom-end"
     >
-      <template #icon>
-        <n-icon size="18">
-          <component :is="currentThemeIcon" />
-        </n-icon>
-      </template>
-    </n-button>
-  </n-dropdown>
+      <n-button
+        :class="['theme-btn', { 'btn-8bit': isTerminal }]"
+        :type="isTerminal ? undefined : 'primary'"
+        ghost
+        circle
+        size="medium"
+      >
+        <template #icon>
+          <span class="theme-icon" :class="{ 'neon-text neon-green': isTerminal }">
+            {{ currentThemeConfig.icon }}
+          </span>
+        </template>
+      </n-button>
+    </n-dropdown>
+
+    <!-- Terminal主题特效 -->
+    <div v-if="isTerminal" class="matrix-bg" ref="matrixContainer"></div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed, h, ref, onMounted } from 'vue'
-import { NButton, NDropdown, NIcon } from 'naive-ui'
-import { themeManager } from '@/utils/theme'
-import { useAppStore } from '@/stores/app'
-import type { ThemeMode } from '@/stores/app'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { NButton, NDropdown } from 'naive-ui'
+import { useTheme, createTerminalEffect, type ThemeType } from '@/utils/theme'
 
-// 响应式的当前主题
-const currentTheme = ref<ThemeMode>('light')
+const { isTerminal, setTheme, getThemeConfig, getAvailableThemes } = useTheme()
 
-// 图标组件 (使用 h 函数创建)
-const SunIcon = {
-  render: () => h('svg', {
-    viewBox: '0 0 24 24',
-    fill: 'currentColor'
-  }, [
-    h('path', {
-      d: 'M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.59a.75.75 0 001.06 1.061l1.591-1.59zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z'
-    })
-  ])
-}
+const matrixContainer = ref<HTMLElement>()
+let matrixEffect: ReturnType<typeof createTerminalEffect>['createMatrixRain'] | null = null
 
-const MoonIcon = {
-  render: () => h('svg', {
-    viewBox: '0 0 24 24',
-    fill: 'currentColor'
-  }, [
-    h('path', {
-      fillRule: 'evenodd',
-      d: 'M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z',
-      clipRule: 'evenodd'
-    })
-  ])
-}
+// 当前主题配置
+const currentThemeConfig = computed(() => getThemeConfig())
 
-const AutoIcon = {
-  render: () => h('svg', {
-    viewBox: '0 0 24 24',
-    fill: 'currentColor'
-  }, [
-    h('path', {
-      d: 'M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12 19.5c-4.125 0-7.5-3.375-7.5-7.5S7.875 4.5 12 4.5V19.5z'
-    })
-  ])
-}
+// 主题选项
+const themeOptions = computed(() => {
+  return getAvailableThemes().map((theme) => ({
+    label: `${theme.icon} ${theme.name}`,
+    key: theme.name.toLowerCase() as ThemeType,
+    props: {
+      style: isTerminal.value ? 'font-family: var(--font-display); color: var(--pixel-green);' : ''
+    }
+  }))
+})
 
-const themeOptions = [
-  {
-    label: '浅色模式',
-    key: 'light' as ThemeMode,
-    icon: SunIcon
-  },
-  {
-    label: '深色模式',
-    key: 'dark' as ThemeMode,
-    icon: MoonIcon
-  },
-  {
-    label: '跟随系统',
-    key: 'auto' as ThemeMode,
-    icon: AutoIcon
+// 处理主题选择
+const handleThemeSelect = (key: ThemeType) => {
+  setTheme(key)
+
+  // 如果切换到terminal主题，启动特效
+  if (key === 'terminal') {
+    setTimeout(() => {
+      initMatrixEffect()
+    }, 100)
+  } else {
+    destroyMatrixEffect()
   }
-]
+}
 
-const currentThemeIcon = computed(() => {
-  const option = themeOptions.find(opt => opt.key === currentTheme.value)
-  return option?.icon || SunIcon
-})
+// 初始化矩阵雨特效
+const initMatrixEffect = () => {
+  if (!isTerminal.value || matrixEffect) return
 
-const currentThemeLabel = computed(() => {
-  const option = themeOptions.find(opt => opt.key === currentTheme.value)
-  return option?.label || '浅色模式'
-})
+  const effects = createTerminalEffect()
+  matrixEffect = effects.createMatrixRain()
 
-const handleThemeSelect = (key: ThemeMode) => {
-  currentTheme.value = key
-  
-  // 更新主题管理器
-  themeManager.setTheme(key)
-  
-  // 尝试更新 store
-  try {
-    const appStore = useAppStore()
-    appStore.theme = key
-  } catch (error) {
-    // 如果 store 不可用，忽略错误
-    console.warn('Store not available:', error)
+  if (matrixEffect && matrixContainer.value) {
+    matrixContainer.value.appendChild(matrixEffect.canvas)
+  }
+}
+
+// 销毁矩阵雨特效
+const destroyMatrixEffect = () => {
+  if (matrixEffect) {
+    matrixEffect.destroy()
+    matrixEffect = null
   }
 }
 
 onMounted(() => {
-  // 初始化当前主题
-  currentTheme.value = themeManager.getSavedTheme()
+  if (isTerminal.value) {
+    initMatrixEffect()
+  }
+})
+
+onUnmounted(() => {
+  destroyMatrixEffect()
 })
 </script>
 
 <style scoped lang="scss">
-.theme-toggle-btn {
-  color: var(--text-secondary);
-  transition: all 0.3s ease;
-  
-  &:hover {
-    color: var(--text-primary);
-    background-color: var(--bg-hover);
+.theme-toggle {
+  position: relative;
+
+  .theme-btn {
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
+
+  .theme-icon {
+    font-size: 18px;
+    transition: all 0.3s ease;
+
+    &.neon-text {
+      animation: pulse-glow 2s ease-in-out infinite alternate;
+    }
+  }
+
+  .matrix-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+  }
+}
+
+@keyframes pulse-glow {
+  from {
+    text-shadow:
+      0 0 5px currentColor,
+      0 0 10px currentColor,
+      0 0 15px currentColor;
+  }
+  to {
+    text-shadow:
+      0 0 10px currentColor,
+      0 0 20px currentColor,
+      0 0 30px currentColor;
+  }
+}
+
+// Terminal主题下的特殊样式
+[data-theme='terminal'] {
+  .theme-toggle {
+    .theme-btn {
+      border-color: var(--pixel-green);
+      color: var(--pixel-green);
+
+      &:hover {
+        background: var(--pixel-green);
+        color: var(--terminal-bg);
+        box-shadow: var(--neon-glow-green);
+      }
+    }
   }
 }
 </style>

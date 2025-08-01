@@ -5,28 +5,14 @@
         <!-- 控制面板 -->
         <div>
           <n-space>
-            <n-button 
-              type="primary" 
-              @click="connectChat"
-              :disabled="isConnected"
-            >
+            <n-button type="primary" @click="connectChat" :disabled="isConnected">
               连接聊天室
             </n-button>
-            <n-button @click="disconnectChat" :disabled="!isConnected">
-              断开连接
-            </n-button>
-            <n-button @click="clearMessages">
-              清空消息
-            </n-button>
-            <n-button @click="addOneMessage" :disabled="!isConnected">
-              添加1条消息
-            </n-button>
-            <n-button @click="add49Messages" :disabled="!isConnected">
-              添加49条消息
-            </n-button>
-            <n-button @click="add51Messages" :disabled="!isConnected">
-              添加51条消息
-            </n-button>
+            <n-button @click="disconnectChat" :disabled="!isConnected"> 断开连接 </n-button>
+            <n-button @click="clearMessages"> 清空消息 </n-button>
+            <n-button @click="addOneMessage" :disabled="!isConnected"> 添加1条消息 </n-button>
+            <n-button @click="add49Messages" :disabled="!isConnected"> 添加49条消息 </n-button>
+            <n-button @click="add51Messages" :disabled="!isConnected"> 添加51条消息 </n-button>
             <n-tag :type="isConnected ? 'success' : 'error'">
               {{ isConnected ? '已连接' : '未连接' }}
             </n-tag>
@@ -46,14 +32,14 @@
         </div>
 
         <!-- 聊天室组件 -->
-        <div style="height: 400px; border: 1px solid var(--border-primary); border-radius: 8px;">
+        <div style="height: 400px; border: 1px solid var(--border-primary); border-radius: 8px">
           <ChatRoom :namespace="'default'" />
         </div>
 
         <!-- 详细调试信息 -->
         <div>
           <n-text strong>详细调试信息：</n-text>
-          <n-card size="small" style="margin-top: 8px;">
+          <n-card size="small" style="margin-top: 8px">
             <div class="debug-info">
               <div><strong>DEFAULT_VISIBLE_MESSAGES:</strong> 50</div>
               <div><strong>messages.length:</strong> {{ messages.length }}</div>
@@ -70,13 +56,16 @@
         <!-- 消息列表预览 -->
         <div>
           <n-text strong>消息列表预览（最新5条）：</n-text>
-          <n-card size="small" style="margin-top: 8px; max-height: 200px; overflow-y: auto;">
-            <div v-if="messages.length === 0" style="text-align: center; color: #999; padding: 20px;">
+          <n-card size="small" style="margin-top: 8px; max-height: 200px; overflow-y: auto">
+            <div
+              v-if="messages.length === 0"
+              style="text-align: center; color: #999; padding: 20px"
+            >
               暂无消息
             </div>
             <div v-else>
-              <div 
-                v-for="(message, index) in messages.slice(-5)" 
+              <div
+                v-for="(message, index) in messages.slice(-5)"
                 :key="message.id"
                 class="message-preview"
               >
@@ -169,7 +158,7 @@ const add49Messages = async () => {
     for (let i = 1; i <= 49; i++) {
       await chatStore.sendMessage(`测试消息 ${i}/49 - ${new Date().toLocaleTimeString()}`)
       if (i % 10 === 0) {
-        await new Promise(resolve => setTimeout(resolve, 100))
+        await new Promise((resolve) => setTimeout(resolve, 100))
       }
     }
     message.success('添加49条消息完成')
@@ -184,7 +173,7 @@ const add51Messages = async () => {
     for (let i = 1; i <= 51; i++) {
       await chatStore.sendMessage(`测试消息 ${i}/51 - ${new Date().toLocaleTimeString()}`)
       if (i % 10 === 0) {
-        await new Promise(resolve => setTimeout(resolve, 100))
+        await new Promise((resolve) => setTimeout(resolve, 100))
       }
     }
     message.success('添加51条消息完成')
@@ -210,15 +199,15 @@ const formatTime = (timestamp: string) => {
   font-family: monospace;
   font-size: 12px;
   line-height: 1.6;
-  
+
   div {
     padding: 2px 0;
     border-bottom: 1px solid var(--border-secondary);
-    
+
     &:last-child {
       border-bottom: none;
     }
-    
+
     strong {
       color: var(--color-primary);
       display: inline-block;
@@ -234,21 +223,21 @@ const formatTime = (timestamp: string) => {
   padding: 4px 0;
   border-bottom: 1px solid var(--border-secondary);
   font-size: 12px;
-  
+
   &:last-child {
     border-bottom: none;
   }
-  
+
   .message-index {
     color: var(--text-tertiary);
     min-width: 30px;
   }
-  
+
   .message-content {
     flex: 1;
     color: var(--text-primary);
   }
-  
+
   .message-time {
     color: var(--text-tertiary);
     font-size: 11px;

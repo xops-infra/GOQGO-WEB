@@ -8,22 +8,18 @@
           <n-tag :type="isConnected ? 'success' : 'error'">
             {{ isConnected ? '已连接' : '未连接' }}
           </n-tag>
-          <n-text style="margin-left: 16px;">命名空间：{{ currentNamespace }}</n-text>
+          <n-text style="margin-left: 16px">命名空间：{{ currentNamespace }}</n-text>
         </div>
 
         <!-- 连接控制 -->
         <div>
           <n-space>
-            <n-input 
-              v-model:value="testNamespace" 
-              placeholder="输入命名空间" 
-              style="width: 200px;"
+            <n-input
+              v-model:value="testNamespace"
+              placeholder="输入命名空间"
+              style="width: 200px"
             />
-            <n-button 
-              type="primary" 
-              @click="connectToChat"
-              :loading="connecting"
-            >
+            <n-button type="primary" @click="connectToChat" :loading="connecting">
               连接聊天室
             </n-button>
             <n-button @click="disconnectChat">断开连接</n-button>
@@ -33,23 +29,21 @@
         <!-- 消息发送 -->
         <div>
           <n-space vertical>
-            <n-input 
-              v-model:value="testMessage" 
-              placeholder="输入测试消息..." 
+            <n-input
+              v-model:value="testMessage"
+              placeholder="输入测试消息..."
               @keyup.enter="sendTestMessage"
             />
             <n-space>
-              <n-button 
-                type="primary" 
+              <n-button
+                type="primary"
                 @click="sendTestMessage"
                 :disabled="!isConnected"
                 :loading="sending"
               >
                 发送消息
               </n-button>
-              <n-button @click="sendImageTest" :disabled="!isConnected">
-                发送图片测试
-              </n-button>
+              <n-button @click="sendImageTest" :disabled="!isConnected"> 发送图片测试 </n-button>
               <n-button @click="clearMessages">清空消息</n-button>
             </n-space>
           </n-space>
@@ -58,28 +52,23 @@
         <!-- 消息列表 -->
         <div>
           <n-text strong>消息列表 ({{ messages.length }} 条)：</n-text>
-          <n-card size="small" style="margin-top: 8px; max-height: 400px; overflow-y: auto;">
-            <div v-if="messages.length === 0" style="text-align: center; color: #999;">
-              暂无消息
-            </div>
+          <n-card size="small" style="margin-top: 8px; max-height: 400px; overflow-y: auto">
+            <div v-if="messages.length === 0" style="text-align: center; color: #999">暂无消息</div>
             <div v-else>
-              <div 
-                v-for="message in sortedMessages" 
+              <div
+                v-for="message in sortedMessages"
                 :key="message.id"
                 class="test-message-item"
                 :class="{
-                  'sending': message.status === 'sending',
-                  'sent': message.status === 'sent',
-                  'error': message.status === 'error'
+                  sending: message.status === 'sending',
+                  sent: message.status === 'sent',
+                  error: message.status === 'error'
                 }"
               >
                 <div class="message-header">
                   <span class="sender">{{ message.senderName }}</span>
                   <span class="time">{{ formatTime(message.timestamp) }}</span>
-                  <n-tag 
-                    :type="getStatusColor(message.status)" 
-                    size="small"
-                  >
+                  <n-tag :type="getStatusColor(message.status)" size="small">
                     {{ getStatusText(message.status) }}
                   </n-tag>
                 </div>
@@ -92,7 +81,7 @@
         <!-- 在线用户 -->
         <div>
           <n-text strong>在线用户 ({{ onlineUsers.length }})：</n-text>
-          <n-space style="margin-top: 8px;">
+          <n-space style="margin-top: 8px">
             <n-tag v-for="user in onlineUsers" :key="user" type="info">
               {{ user }}
             </n-tag>
@@ -110,7 +99,8 @@ import { useChatStore } from '@/stores/chat'
 import { useMessage } from 'naive-ui'
 
 const chatStore = useChatStore()
-const { messages, sortedMessages, onlineUsers, isConnected, currentNamespace } = storeToRefs(chatStore)
+const { messages, sortedMessages, onlineUsers, isConnected, currentNamespace } =
+  storeToRefs(chatStore)
 const message = useMessage()
 
 const testNamespace = ref('default')
@@ -165,8 +155,8 @@ const sendTestMessage = async () => {
 
 // 发送图片测试
 const sendImageTest = async () => {
-  const imageUrl = 'http://localhost:8080/api/v1/users/xops/files/image_20250731_223222.png'
-  
+  const imageUrl = 'http://localhost:8080/api/v1/files/image_20250731_223222.png'
+
   sending.value = true
   try {
     await chatStore.sendMessage(imageUrl, 'image')
@@ -193,22 +183,32 @@ const formatTime = (timestamp: string) => {
 // 获取状态颜色
 const getStatusColor = (status?: string) => {
   switch (status) {
-    case 'sending': return 'warning'
-    case 'sent': return 'info'
-    case 'delivered': return 'success'
-    case 'error': return 'error'
-    default: return 'default'
+    case 'sending':
+      return 'warning'
+    case 'sent':
+      return 'info'
+    case 'delivered':
+      return 'success'
+    case 'error':
+      return 'error'
+    default:
+      return 'default'
   }
 }
 
 // 获取状态文本
 const getStatusText = (status?: string) => {
   switch (status) {
-    case 'sending': return '发送中'
-    case 'sent': return '已发送'
-    case 'delivered': return '已送达'
-    case 'error': return '发送失败'
-    default: return '未知'
+    case 'sending':
+      return '发送中'
+    case 'sent':
+      return '已发送'
+    case 'delivered':
+      return '已送达'
+    case 'error':
+      return '发送失败'
+    default:
+      return '未知'
   }
 }
 </script>

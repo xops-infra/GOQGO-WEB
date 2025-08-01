@@ -15,7 +15,7 @@
         <!-- 用户信息详情 -->
         <div>
           <n-text strong>用户信息详情：</n-text>
-          <n-card size="small" style="margin-top: 8px;">
+          <n-card size="small" style="margin-top: 8px">
             <pre>{{ JSON.stringify(userStore.currentUser, null, 2) }}</pre>
           </n-card>
         </div>
@@ -23,7 +23,7 @@
         <!-- 用户数据详情 -->
         <div>
           <n-text strong>用户数据详情：</n-text>
-          <n-card size="small" style="margin-top: 8px;">
+          <n-card size="small" style="margin-top: 8px">
             <pre>{{ JSON.stringify(userStore.currentUserData, null, 2) }}</pre>
           </n-card>
         </div>
@@ -34,19 +34,22 @@
             <n-button @click="refreshUserInfo" :loading="userStore.loading">
               刷新用户信息
             </n-button>
-            <n-button @click="testLogout" type="error">
-              测试登出
-            </n-button>
-            <n-button @click="goToLogin" type="primary">
-              跳转登录页
-            </n-button>
+            <n-button @click="testLogout" type="error"> 测试登出 </n-button>
+            <n-button @click="goToLogin" type="primary"> 跳转登录页 </n-button>
           </n-space>
         </div>
 
         <!-- UserInfo组件测试 -->
         <div>
           <n-text strong>UserInfo组件测试：</n-text>
-          <div style="margin-top: 8px; padding: 16px; border: 1px solid var(--border-primary); border-radius: 8px;">
+          <div
+            style="
+              margin-top: 8px;
+              padding: 16px;
+              border: 1px solid var(--border-primary);
+              border-radius: 8px;
+            "
+          >
             <UserInfo />
           </div>
         </div>
@@ -78,7 +81,7 @@ const refreshUserInfo = async () => {
     message.warning('用户未登录')
     return
   }
-  
+
   try {
     await userStore.fetchCurrentUser(userStore.currentUser.username)
     message.success('用户信息已刷新')

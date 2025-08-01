@@ -17,16 +17,17 @@
             <n-button @click="testNetworkError" type="info" :loading="isLoading">
               测试网络错误
             </n-button>
-            <n-button @click="clearError" :disabled="!userStore.error">
-              清除错误
-            </n-button>
+            <n-button @click="clearError" :disabled="!userStore.error"> 清除错误 </n-button>
           </n-space>
         </div>
 
         <!-- 当前状态显示 -->
         <div>
           <n-space>
-            <n-statistic label="登录状态" :value="userStore.isAuthenticated ? '已登录' : '未登录'" />
+            <n-statistic
+              label="登录状态"
+              :value="userStore.isAuthenticated ? '已登录' : '未登录'"
+            />
             <n-statistic label="加载状态" :value="userStore.isLoading ? '加载中' : '空闲'" />
             <n-statistic label="错误状态" :value="userStore.error ? '有错误' : '无错误'" />
           </n-space>
@@ -50,17 +51,15 @@
         <!-- 测试日志 -->
         <div>
           <n-text strong>测试日志：</n-text>
-          <n-card size="small" style="margin-top: 8px; max-height: 300px; overflow-y: auto;">
-            <div v-if="testLogs.length === 0" style="text-align: center; color: #999; padding: 20px;">
+          <n-card size="small" style="margin-top: 8px; max-height: 300px; overflow-y: auto">
+            <div
+              v-if="testLogs.length === 0"
+              style="text-align: center; color: #999; padding: 20px"
+            >
               暂无测试日志
             </div>
             <div v-else>
-              <div 
-                v-for="(log, index) in testLogs" 
-                :key="index"
-                class="log-item"
-                :class="log.type"
-              >
+              <div v-for="(log, index) in testLogs" :key="index" class="log-item" :class="log.type">
                 <span class="log-time">{{ log.time }}</span>
                 <span class="log-type">{{ log.type.toUpperCase() }}</span>
                 <span class="log-message">{{ log.message }}</span>
@@ -72,7 +71,7 @@
         <!-- API响应模拟 -->
         <div>
           <n-text strong>API响应格式说明：</n-text>
-          <n-card size="small" style="margin-top: 8px;">
+          <n-card size="small" style="margin-top: 8px">
             <div class="api-examples">
               <div class="api-example">
                 <h4>成功响应:</h4>
@@ -100,23 +99,25 @@ const message = useMessage()
 const isLoading = ref(false)
 
 // 测试日志
-const testLogs = ref<Array<{
-  time: string
-  type: 'info' | 'success' | 'error' | 'warning'
-  message: string
-}>>([])
+const testLogs = ref<
+  Array<{
+    time: string
+    type: 'info' | 'success' | 'error' | 'warning'
+    message: string
+  }>
+>([])
 
 // API响应示例
 const successExample = {
   success: true,
-  message: "login successful",
-  bearer_token: "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6...",
-  displayName: "My User",
-  email: "myuser@example.com"
+  message: 'login successful',
+  bearer_token: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6...',
+  displayName: 'My User',
+  email: 'myuser@example.com'
 }
 
 const errorExample = {
-  message: "invalid token",
+  message: 'invalid token',
   success: false
 }
 
@@ -127,7 +128,7 @@ const addLog = (type: 'info' | 'success' | 'error' | 'warning', message: string)
     type,
     message
   })
-  
+
   // 限制日志数量
   if (testLogs.value.length > 50) {
     testLogs.value = testLogs.value.slice(0, 50)
@@ -138,7 +139,7 @@ const addLog = (type: 'info' | 'success' | 'error' | 'warning', message: string)
 const testValidToken = async () => {
   isLoading.value = true
   addLog('info', '开始测试有效Token: my-simple-api-token-2025')
-  
+
   try {
     await userStore.loginWithToken('my-simple-api-token-2025')
     addLog('success', '有效Token测试成功')
@@ -155,7 +156,7 @@ const testValidToken = async () => {
 const testInvalidToken = async () => {
   isLoading.value = true
   addLog('info', '开始测试无效Token: invalid-token-123')
-  
+
   try {
     await userStore.loginWithToken('invalid-token-123')
     addLog('warning', '无效Token测试意外成功')
@@ -172,7 +173,7 @@ const testInvalidToken = async () => {
 const testEmptyToken = async () => {
   isLoading.value = true
   addLog('info', '开始测试空Token')
-  
+
   try {
     await userStore.loginWithToken('')
     addLog('warning', '空Token测试意外成功')
@@ -189,15 +190,15 @@ const testEmptyToken = async () => {
 const testNetworkError = async () => {
   isLoading.value = true
   addLog('info', '开始测试网络错误（使用错误的API地址）')
-  
+
   // 临时修改API地址来模拟网络错误
   const originalLoginWithToken = userStore.loginWithToken
-  
+
   // 创建一个会失败的登录方法
   const mockFailedLogin = async (token: string) => {
     throw new Error('Network Error: 无法连接到服务器')
   }
-  
+
   try {
     await mockFailedLogin('test-token')
     addLog('warning', '网络错误测试意外成功')
@@ -231,40 +232,40 @@ const clearError = () => {
   padding: 8px 0;
   border-bottom: 1px solid var(--border-secondary);
   font-size: 12px;
-  
+
   &:last-child {
     border-bottom: none;
   }
-  
+
   .log-time {
     color: var(--text-tertiary);
     min-width: 80px;
     font-family: monospace;
   }
-  
+
   .log-type {
     min-width: 60px;
     font-weight: bold;
     font-family: monospace;
   }
-  
+
   .log-message {
     flex: 1;
     color: var(--text-primary);
   }
-  
+
   &.info .log-type {
     color: var(--color-info);
   }
-  
+
   &.success .log-type {
     color: var(--color-success);
   }
-  
+
   &.error .log-type {
     color: var(--color-error);
   }
-  
+
   &.warning .log-type {
     color: var(--color-warning);
   }
@@ -273,14 +274,14 @@ const clearError = () => {
 .api-examples {
   display: grid;
   gap: 16px;
-  
+
   .api-example {
     h4 {
       margin: 0 0 8px 0;
       color: var(--text-primary);
       font-size: 14px;
     }
-    
+
     pre {
       background: var(--bg-tertiary);
       padding: 12px;

@@ -1,16 +1,20 @@
 <template>
   <div class="chat-input-container">
-    <div class="chat-input" 
-         @dragover="handleDragOver" 
-         @dragleave="handleDragLeave" 
-         @drop="handleDrop"
-         :class="{ 'drag-over': isDragOver }">
-      
+    <div
+      class="chat-input"
+      @dragover="handleDragOver"
+      @dragleave="handleDragLeave"
+      @drop="handleDrop"
+      :class="{ 'drag-over': isDragOver }"
+    >
       <!-- 拖拽提示 -->
       <div v-if="isDragOver" class="drag-overlay">
         <n-icon size="48" :color="'var(--color-success)'">
           <svg viewBox="0 0 24 24">
-            <path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+            <path
+              fill="currentColor"
+              d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"
+            />
           </svg>
         </n-icon>
         <p>释放文件以上传</p>
@@ -30,7 +34,10 @@
             <template #icon>
               <n-icon>
                 <svg viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M16.5,6V17.5A4,4 0 0,1 12.5,21.5A4,4 0 0,1 8.5,17.5V5A2.5,2.5 0 0,1 11,2.5A2.5,2.5 0 0,1 13.5,5V15.5A1,1 0 0,1 12.5,16.5A1,1 0 0,1 11.5,15.5V6H10V15.5A2.5,2.5 0 0,0 12.5,18A2.5,2.5 0 0,0 15,15.5V5A4,4 0 0,0 11,1A4,4 0 0,0 7,5V17.5A5.5,5.5 0 0,0 12.5,23A5.5,5.5 0 0,0 18,17.5V6H16.5Z"/>
+                  <path
+                    fill="currentColor"
+                    d="M16.5,6V17.5A4,4 0 0,1 12.5,21.5A4,4 0 0,1 8.5,17.5V5A2.5,2.5 0 0,1 11,2.5A2.5,2.5 0 0,1 13.5,5V15.5A1,1 0 0,1 12.5,16.5A1,1 0 0,1 11.5,15.5V6H10V15.5A2.5,2.5 0 0,0 12.5,18A2.5,2.5 0 0,0 15,15.5V5A4,4 0 0,0 11,1A4,4 0 0,0 7,5V17.5A5.5,5.5 0 0,0 12.5,23A5.5,5.5 0 0,0 18,17.5V6H16.5Z"
+                  />
                 </svg>
               </n-icon>
             </template>
@@ -76,7 +83,7 @@
           <template #icon>
             <n-icon>
               <svg viewBox="0 0 24 24">
-                <path fill="currentColor" d="M2,21L23,12L2,3V10L17,12L2,14V21Z"/>
+                <path fill="currentColor" d="M2,21L23,12L2,3V10L17,12L2,14V21Z" />
               </svg>
             </n-icon>
           </template>
@@ -100,8 +107,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'send', message: string): void
-  (e: 'send-image', url: string): void
+  send: [message: string]
+  'send-image': [url: string]
 }>()
 
 // 状态管理
@@ -128,7 +135,7 @@ const placeholderText = computed(() => {
 // 发送消息
 const handleSendMessage = () => {
   if (!canSendMessage.value) return
-  
+
   const text = inputMessage.value.trim()
   if (text) {
     emit('send', text)
@@ -148,23 +155,23 @@ const handleKeyDown = (e: KeyboardEvent) => {
 const uploadAndInsertFile = async (file: File) => {
   try {
     console.log('📤 开始上传文件:', file.name, file.type, formatFileSize(file.size))
-    
+
     // 显示上传进度提示
     const loadingMessage = message.loading(`正在上传 ${file.name}...`, { duration: 0 })
-    
+
     // 上传文件
     const result = await filesApi.uploadFile(userStore.currentUser.username, file)
     console.log('✅ 文件上传成功:', result)
-    
+
     // 关闭加载提示
     loadingMessage.destroy()
-    
+
     // 根据文件类型生成不同的链接格式
     const fileLink = generateFileLink(file, result.url)
-    
+
     // 插入到输入框中
     insertTextAtCursor(fileLink)
-    
+
     message.success(`文件 ${file.name} 上传成功`)
   } catch (error) {
     console.error('❌ 上传文件失败:', error)
@@ -176,7 +183,7 @@ const uploadAndInsertFile = async (file: File) => {
 const generateFileLink = (file: File, url: string) => {
   const fileName = file.name
   const fileType = file.type
-  
+
   // 判断文件类型并生成相应格式
   if (fileType.startsWith('image/')) {
     return `[图片]${url}`
@@ -188,9 +195,17 @@ const generateFileLink = (file: File, url: string) => {
     return `[PDF]${url}`
   } else if (fileType.includes('word') || fileName.endsWith('.doc') || fileName.endsWith('.docx')) {
     return `[文档]${url}`
-  } else if (fileType.includes('excel') || fileName.endsWith('.xls') || fileName.endsWith('.xlsx')) {
+  } else if (
+    fileType.includes('excel') ||
+    fileName.endsWith('.xls') ||
+    fileName.endsWith('.xlsx')
+  ) {
     return `[表格]${url}`
-  } else if (fileType.includes('powerpoint') || fileName.endsWith('.ppt') || fileName.endsWith('.pptx')) {
+  } else if (
+    fileType.includes('powerpoint') ||
+    fileName.endsWith('.ppt') ||
+    fileName.endsWith('.pptx')
+  ) {
     return `[演示]${url}`
   } else if (fileType.includes('zip') || fileType.includes('rar') || fileType.includes('7z')) {
     return `[压缩包]${url}`
@@ -202,32 +217,33 @@ const generateFileLink = (file: File, url: string) => {
 // 在光标位置插入文本
 const insertTextAtCursor = (text: string) => {
   console.log('🔧 尝试插入文本:', text)
-  
+
   try {
     // 尝试多种方式访问input元素
     let input = null
-    
+
     if (inputRef.value) {
       console.log('📝 inputRef存在，尝试获取DOM元素')
       // 尝试不同的访问路径
-      input = inputRef.value.inputElRef || 
-              inputRef.value.textareaElRef || 
-              inputRef.value.$el?.querySelector('textarea') ||
-              inputRef.value.$el?.querySelector('input')
-      
+      input =
+        inputRef.value.inputElRef ||
+        inputRef.value.textareaElRef ||
+        inputRef.value.$el?.querySelector('textarea') ||
+        inputRef.value.$el?.querySelector('input')
+
       console.log('📝 获取到的input元素:', input)
     }
-    
+
     if (input && typeof input.selectionStart === 'number') {
       console.log('✅ 找到有效的input元素，使用光标位置插入')
       const start = input.selectionStart
       const end = input.selectionEnd
       const currentValue = inputMessage.value
-      
+
       // 在光标位置插入文本
       const newValue = currentValue.substring(0, start) + text + currentValue.substring(end)
       inputMessage.value = newValue
-      
+
       // 设置新的光标位置
       nextTick(() => {
         try {
@@ -241,11 +257,10 @@ const insertTextAtCursor = (text: string) => {
       })
       return
     }
-    
+
     // 备用方案：追加到末尾
     console.log('⚠️ 无法获取光标位置，使用追加方案')
     appendTextToEnd(text)
-    
   } catch (error) {
     console.error('插入文本失败:', error)
     // 最后的备用方案
@@ -256,7 +271,7 @@ const insertTextAtCursor = (text: string) => {
 // 追加文本到末尾的辅助函数
 const appendTextToEnd = (text: string) => {
   console.log('📝 追加文本到末尾:', text)
-  
+
   // 确保有适当的分隔符
   if (inputMessage.value) {
     const lastChar = inputMessage.value.slice(-1)
@@ -264,9 +279,9 @@ const appendTextToEnd = (text: string) => {
       inputMessage.value += ' '
     }
   }
-  
+
   inputMessage.value += text
-  
+
   // 尝试聚焦输入框
   nextTick(() => {
     try {
@@ -291,7 +306,7 @@ const handleFileUpload = () => {
   input.onchange = async (e) => {
     const selectedFiles = Array.from((e.target as HTMLInputElement).files || [])
     console.log('📁 选择文件数量:', selectedFiles.length)
-    
+
     for (const file of selectedFiles) {
       await uploadAndInsertFile(file)
     }
@@ -299,30 +314,30 @@ const handleFileUpload = () => {
   input.click()
 }
 
-// 处理图片上传按钮点击
-const handleImageUpload = () => {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = 'image/*'
-  input.multiple = true
-  input.onchange = async (e) => {
-    const selectedImages = Array.from((e.target as HTMLInputElement).files || [])
-    console.log('🖼️ 选择图片数量:', selectedImages.length)
-    
-    for (const file of selectedImages) {
-      await uploadAndInsertFile(file)
-    }
-  }
-  input.click()
-}
+// 处理图片上传按钮点击 (暂未使用)
+// const handleImageUpload = () => {
+//   const input = document.createElement('input')
+//   input.type = 'file'
+//   input.accept = 'image/*'
+//   input.multiple = true
+//   input.onchange = async (e) => {
+//     const selectedImages = Array.from((e.target as HTMLInputElement).files || [])
+//     console.log('🖼️ 选择图片数量:', selectedImages.length)
+
+//     for (const file of selectedImages) {
+//       await uploadAndInsertFile(file)
+//     }
+//   }
+//   input.click()
+// }
 
 // 处理粘贴事件
 const handlePaste = async (e: ClipboardEvent) => {
   if (!e.clipboardData) return
-  
+
   const items = Array.from(e.clipboardData.items)
-  const fileItems = items.filter(item => item.kind === 'file')
-  
+  const fileItems = items.filter((item) => item.kind === 'file')
+
   for (const fileItem of fileItems) {
     e.preventDefault()
     const file = fileItem.getAsFile()
@@ -348,10 +363,10 @@ const handleDragLeave = (e: DragEvent) => {
 const handleDrop = async (e: DragEvent) => {
   e.preventDefault()
   isDragOver.value = false
-  
+
   const droppedFiles = Array.from(e.dataTransfer?.files || [])
   console.log('🗂️ 拖拽文件数量:', droppedFiles.length)
-  
+
   for (const file of droppedFiles) {
     await uploadAndInsertFile(file)
   }
@@ -432,37 +447,37 @@ const handleDrop = async (e: DragEvent) => {
 
 .message-input {
   flex: 1;
-  
+
   :deep(.n-input) {
     background-color: var(--bg-secondary) !important;
     border-color: var(--border-primary) !important;
-    
+
     .n-input__input-el,
     .n-input__textarea-el {
       background-color: var(--bg-secondary) !important;
       color: var(--text-primary) !important;
       border: none !important;
-      
+
       &::placeholder {
         color: var(--text-tertiary) !important;
       }
     }
-    
+
     .n-input__border,
     .n-input__state-border {
       border-color: var(--border-primary) !important;
     }
-    
+
     &:hover .n-input__state-border {
       border-color: var(--border-focus) !important;
     }
-    
+
     &.n-input--focus .n-input__state-border {
       border-color: var(--color-primary) !important;
       box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
     }
   }
-  
+
   :deep(.n-input__textarea-el) {
     resize: none;
     font-size: 14px;
@@ -475,7 +490,7 @@ const handleDrop = async (e: DragEvent) => {
   padding: 0 16px;
   border-radius: 6px;
   font-weight: 500;
-  
+
   &:disabled {
     opacity: 0.5;
   }

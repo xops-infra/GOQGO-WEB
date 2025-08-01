@@ -1,6 +1,12 @@
 // 导入主题样式
 @use './theme.scss';
 
+// 导入Terminal & 8-bit主题
+@use './terminal-theme.scss';
+
+// 导入文字颜色增强样式
+@use './text-enhancement.scss';
+
 // 导入组件样式增强
 @use './components.scss';
 

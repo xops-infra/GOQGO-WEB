@@ -15,17 +15,17 @@ export const useChatStore = defineStore('chat', () => {
   const isLoadingHistory = ref(false)
   const hasMoreHistory = ref(true)
   const sessionStartTime = ref<string>('') // 会话开始时间，用于区分历史消息和当前消息
-  
+
   // WebSocket实例
   let chatSocket: ChatSocket | null = null
-  
+
   // 获取用户store
   const userStore = useUserStore()
 
   // 计算属性
-  const sortedMessages = computed(() => 
-    [...messages.value].sort((a, b) => 
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  const sortedMessages = computed(() =>
+    [...messages.value].sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     )
   )
 
@@ -34,41 +34,44 @@ export const useChatStore = defineStore('chat', () => {
   // 连接聊天室
   const connect = async (namespace: string) => {
     // 调试信息
-    console.log('🔍 connect函数接收到的namespace:', { 
-      value: namespace, 
-      type: typeof namespace, 
+    console.log('🔍 connect函数接收到的namespace:', {
+      value: namespace,
+      type: typeof namespace,
       isString: typeof namespace === 'string',
       stringified: String(namespace)
     })
-    
+
     // 确保namespace是字符串类型
     const namespaceStr = typeof namespace === 'string' ? namespace : String(namespace)
     currentNamespace.value = namespaceStr
-    
-    console.log('🔌 连接聊天室:', { namespace: namespaceStr, username: userStore.currentUser.username })
-    
+
+    console.log('🔌 连接聊天室:', {
+      namespace: namespaceStr,
+      username: userStore.currentUser.username
+    })
+
     // 清空之前的数据
     messages.value = []
     onlineUsers.value = []
     typingUsers.value.clear()
     hasMoreHistory.value = true
     sessionStartTime.value = new Date().toISOString() // 记录会话开始时间
-    
+
     // 断开现有连接
     if (chatSocket) {
       chatSocket.disconnect()
     }
-    
+
     // 创建新的WebSocket连接，使用当前用户名
     chatSocket = new ChatSocket(userStore.currentUser.username)
-    
+
     // 连接到指定的命名空间聊天室
     chatSocket.connect(namespaceStr, {
       onMessage: (message) => {
         console.log('📨 收到新消息:', message)
         addMessage(message)
       },
-      
+
       onMessageSent: (tempId, messageId, status = 'success') => {
         console.log('✅ 消息发送确认:', { tempId, messageId, status })
         if (status === 'success') {
@@ -77,55 +80,61 @@ export const useChatStore = defineStore('chat', () => {
           updateMessageStatus(tempId, 'error')
         }
       },
-      
+
       onMessageDelivered: (messageId) => {
         console.log('📬 消息处理确认:', messageId)
         updateMessageStatusById(messageId, 'delivered')
       },
-      
+
       onHistoryLoaded: (historyMessages) => {
         console.log('📜 加载历史消息:', historyMessages?.length || 0, '条')
-        
+
         if (!Array.isArray(historyMessages) || historyMessages.length === 0) {
           console.log('📜 历史消息为空，设置hasMoreHistory为false')
           hasMoreHistory.value = false
           isLoadingHistory.value = false
           return
         }
-        
+
         // 合并历史消息，避免重复
-        const existingIds = new Set(messages.value.map(m => m.id))
-        const newMessages = historyMessages.filter(m => m && m.id && !existingIds.has(m.id))
-        
+        const existingIds = new Set(messages.value.map((m) => m.id))
+        const newMessages = historyMessages.filter((m) => m && m.id && !existingIds.has(m.id))
+
         console.log('📜 消息去重结果:', {
           existing: messages.value.length,
           received: historyMessages.length,
           new: newMessages.length
         })
-        
+
         if (newMessages.length > 0) {
           // 将历史消息添加到开头（保持时间顺序）
           messages.value = [...newMessages, ...messages.value]
-          console.log('✅ 添加了', newMessages.length, '条新的历史消息，总计:', messages.value.length, '条')
+          console.log(
+            '✅ 添加了',
+            newMessages.length,
+            '条新的历史消息，总计:',
+            messages.value.length,
+            '条'
+          )
         } else {
           console.log('⚠️ 没有新的历史消息需要添加')
         }
-        
+
         isLoadingHistory.value = false
-        
+
         // 如果返回的消息数量少于请求数量，说明没有更多了
         if (historyMessages.length < 20) {
           hasMoreHistory.value = false
           console.log('📜 历史消息数量少于20条，设置hasMoreHistory为false')
         }
       },
-      
+
       onHistoryInfo: (info) => {
         console.log('📜 收到历史消息元信息:', info)
         hasMoreHistory.value = info.hasMore
         isLoadingHistory.value = false
       },
-      
+
       onUserJoin: (username) => {
         console.log('👤 用户加入:', username)
         if (!onlineUsers.value.includes(username)) {
@@ -137,7 +146,7 @@ export const useChatStore = defineStore('chat', () => {
           isOnline: true
         })
       },
-      
+
       onUserLeave: (username) => {
         console.log('👤 用户离开:', username)
         const index = onlineUsers.value.indexOf(username)
@@ -146,7 +155,7 @@ export const useChatStore = defineStore('chat', () => {
         }
         userStore.removeOnlineUser(username)
       },
-      
+
       onTyping: (username, isTyping) => {
         console.log('⌨️ 用户输入状态:', username, isTyping)
         if (username !== userStore.currentUser.username) {
@@ -157,7 +166,7 @@ export const useChatStore = defineStore('chat', () => {
           }
         }
       },
-      
+
       onStatus: (connected) => {
         console.log('🔗 连接状态变化:', connected)
         isConnected.value = connected
@@ -167,7 +176,7 @@ export const useChatStore = defineStore('chat', () => {
           console.log('❌ 聊天室连接断开')
         }
       },
-      
+
       onError: (error) => {
         console.error('❌ 聊天室连接错误:', error)
         isConnected.value = false
@@ -190,13 +199,13 @@ export const useChatStore = defineStore('chat', () => {
     })
 
     // 检查消息是否已存在（避免重复）
-    const exists = messages.value.some(m => m.id === message.id)
+    const exists = messages.value.some((m) => m.id === message.id)
     if (!exists) {
       const newMessage = {
         ...message,
         status: message.status || 'delivered' // 收到的消息默认为已处理
       }
-      
+
       messages.value.push(newMessage)
       console.log('✅ 添加新消息成功:', {
         id: newMessage.id,
@@ -213,16 +222,19 @@ export const useChatStore = defineStore('chat', () => {
   // 根据临时ID更新消息状态
   const updateMessageStatus = (tempId: string, status: ChatMessage['status'], realId?: string) => {
     console.log('🔄 尝试更新消息状态:', { tempId, status, realId })
-    console.log('📋 当前消息列表:', messages.value.map(m => ({
-      id: m.id,
-      tempId: m.tempId,
-      content: m.content?.substring(0, 20) + '...',
-      status: m.status
-    })))
-    
-    const messageIndex = messages.value.findIndex(m => m.tempId === tempId)
+    console.log(
+      '📋 当前消息列表:',
+      messages.value.map((m) => ({
+        id: m.id,
+        tempId: m.tempId,
+        content: m.content?.substring(0, 20) + '...',
+        status: m.status
+      }))
+    )
+
+    const messageIndex = messages.value.findIndex((m) => m.tempId === tempId)
     console.log('🔍 查找结果:', { messageIndex, tempId })
-    
+
     if (messageIndex !== -1) {
       const oldMessage = messages.value[messageIndex]
       messages.value[messageIndex] = {
@@ -230,22 +242,22 @@ export const useChatStore = defineStore('chat', () => {
         status,
         ...(realId && { id: realId }) // 如果有真实ID，更新它
       }
-      console.log('✅ 更新消息状态成功:', { 
-        tempId, 
-        status, 
+      console.log('✅ 更新消息状态成功:', {
+        tempId,
+        status,
         realId,
         oldStatus: oldMessage.status,
         newStatus: messages.value[messageIndex].status
       })
     } else {
       console.warn('⚠️ 未找到临时ID对应的消息:', tempId)
-      console.warn('⚠️ 可用的临时ID列表:', messages.value.map(m => m.tempId).filter(Boolean))
+      console.warn('⚠️ 可用的临时ID列表:', messages.value.map((m) => m.tempId).filter(Boolean))
     }
   }
 
   // 根据消息ID更新状态
   const updateMessageStatusById = (messageId: string, status: ChatMessage['status']) => {
-    const messageIndex = messages.value.findIndex(m => m.id === messageId)
+    const messageIndex = messages.value.findIndex((m) => m.id === messageId)
     if (messageIndex !== -1) {
       messages.value[messageIndex] = {
         ...messages.value[messageIndex],
@@ -289,8 +301,8 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     try {
-      console.log('📤 准备发送消息:', { 
-        namespace: currentNamespace.value, 
+      console.log('📤 准备发送消息:', {
+        namespace: currentNamespace.value,
         content: content.substring(0, 50) + '...',
         messageType
       })
@@ -346,7 +358,7 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     isLoadingHistory.value = true
-    
+
     // 获取最早的消息ID作为before参数
     const oldestMessage = messages.value[0]
     const beforeId = oldestMessage?.id
@@ -358,12 +370,12 @@ export const useChatStore = defineStore('chat', () => {
   // 断开连接
   const disconnect = () => {
     console.log('🔌 断开聊天室连接')
-    
+
     if (chatSocket) {
       chatSocket.disconnect()
       chatSocket = null
     }
-    
+
     isConnected.value = false
     messages.value = []
     onlineUsers.value = []
@@ -378,12 +390,14 @@ export const useChatStore = defineStore('chat', () => {
 
   // 获取连接信息
   const getConnectionInfo = () => {
-    return chatSocket?.getConnectionInfo() || {
-      namespace: currentNamespace.value,
-      username: userStore.currentUser.username,
-      connected: false,
-      wsUrl: ''
-    }
+    return (
+      chatSocket?.getConnectionInfo() || {
+        namespace: currentNamespace.value,
+        username: userStore.currentUser.username,
+        connected: false,
+        wsUrl: ''
+      }
+    )
   }
 
   return {
@@ -398,7 +412,7 @@ export const useChatStore = defineStore('chat', () => {
     isLoadingHistory,
     hasMoreHistory,
     sessionStartTime,
-    
+
     // 方法
     connect,
     disconnect,

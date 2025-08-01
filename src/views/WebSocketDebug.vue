@@ -5,26 +5,10 @@
         <!-- 连接控制 -->
         <div>
           <n-space>
-            <n-input 
-              v-model:value="namespace" 
-              placeholder="命名空间" 
-              style="width: 150px;"
-            />
-            <n-input 
-              v-model:value="username" 
-              placeholder="用户名" 
-              style="width: 150px;"
-            />
-            <n-button 
-              type="primary" 
-              @click="connect"
-              :disabled="isConnected"
-            >
-              连接
-            </n-button>
-            <n-button @click="disconnect" :disabled="!isConnected">
-              断开
-            </n-button>
+            <n-input v-model:value="namespace" placeholder="命名空间" style="width: 150px" />
+            <n-input v-model:value="username" placeholder="用户名" style="width: 150px" />
+            <n-button type="primary" @click="connect" :disabled="isConnected"> 连接 </n-button>
+            <n-button @click="disconnect" :disabled="!isConnected"> 断开 </n-button>
             <n-tag :type="isConnected ? 'success' : 'error'">
               {{ isConnected ? '已连接' : '未连接' }}
             </n-tag>
@@ -34,17 +18,13 @@
         <!-- 发送消息 -->
         <div>
           <n-space>
-            <n-input 
-              v-model:value="testMessage" 
-              placeholder="测试消息" 
-              style="width: 300px;"
+            <n-input
+              v-model:value="testMessage"
+              placeholder="测试消息"
+              style="width: 300px"
               @keyup.enter="sendMessage"
             />
-            <n-button 
-              type="primary" 
-              @click="sendMessage"
-              :disabled="!isConnected"
-            >
+            <n-button type="primary" @click="sendMessage" :disabled="!isConnected">
               发送消息
             </n-button>
             <n-button @click="clearLogs">清空日志</n-button>
@@ -54,21 +34,14 @@
         <!-- 消息日志 -->
         <div>
           <n-text strong>WebSocket 消息日志：</n-text>
-          <n-card size="small" style="margin-top: 8px;">
+          <n-card size="small" style="margin-top: 8px">
             <div class="log-container">
-              <div 
-                v-for="(log, index) in logs" 
-                :key="index"
-                class="log-item"
-                :class="log.type"
-              >
+              <div v-for="(log, index) in logs" :key="index" class="log-item" :class="log.type">
                 <span class="timestamp">{{ log.timestamp }}</span>
                 <span class="direction">{{ log.direction }}</span>
                 <span class="message">{{ log.message }}</span>
               </div>
-              <div v-if="logs.length === 0" class="no-logs">
-                暂无消息日志
-              </div>
+              <div v-if="logs.length === 0" class="no-logs">暂无消息日志</div>
             </div>
           </n-card>
         </div>
@@ -105,7 +78,7 @@ const addLog = (direction: LogItem['direction'], type: LogItem['type'], msg: str
     type,
     message: msg
   })
-  
+
   // 限制日志数量
   if (logs.value.length > 100) {
     logs.value.shift()
@@ -128,31 +101,31 @@ const connect = () => {
 
   const wsUrl = `ws://localhost:8080/ws/namespaces/${namespace.value}/chat?token=${token}`
   addLog('system', 'info', `连接到: ${wsUrl.replace(token, '***TOKEN***')}`)
-  
+
   ws = new WebSocket(wsUrl)
-  
+
   ws.onopen = () => {
     isConnected.value = true
     addLog('system', 'success', '连接成功')
     message.success('WebSocket连接成功')
   }
-  
+
   ws.onclose = (event) => {
     isConnected.value = false
     addLog('system', 'warning', `连接关闭: ${event.code} ${event.reason}`)
     message.warning('WebSocket连接关闭')
   }
-  
+
   ws.onerror = (error) => {
     addLog('system', 'error', `连接错误: ${error}`)
     message.error('WebSocket连接错误')
   }
-  
+
   ws.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data)
       addLog('receive', 'info', JSON.stringify(data, null, 2))
-      
+
       // 特别标记不同类型的消息
       if (data.type === 'chat') {
         addLog('receive', 'success', `📨 收到聊天消息: ${data.data?.content || ''}`)
@@ -239,50 +212,50 @@ onUnmounted(() => {
   border-radius: 4px;
   display: flex;
   gap: 12px;
-  
+
   .timestamp {
     color: #666;
     min-width: 80px;
   }
-  
+
   .direction {
     min-width: 60px;
     font-weight: 600;
   }
-  
+
   .message {
     flex: 1;
     white-space: pre-wrap;
     word-break: break-all;
   }
-  
+
   &.info {
     background-color: rgba(24, 144, 255, 0.1);
-    
+
     .direction {
       color: #1890ff;
     }
   }
-  
+
   &.success {
     background-color: rgba(82, 196, 26, 0.1);
-    
+
     .direction {
       color: #52c41a;
     }
   }
-  
+
   &.warning {
     background-color: rgba(250, 173, 20, 0.1);
-    
+
     .direction {
       color: #faad14;
     }
   }
-  
+
   &.error {
     background-color: rgba(255, 77, 79, 0.1);
-    
+
     .direction {
       color: #ff4d4f;
     }

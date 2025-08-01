@@ -36,7 +36,7 @@ export class LogSocket {
     return new Promise((resolve, reject) => {
       try {
         this.isManualClose = false
-        
+
         // 获取token用于WebSocket认证
         const token = localStorage.getItem('goqgo_token')
         if (!token) {
@@ -46,12 +46,12 @@ export class LogSocket {
           reject(new Error(error))
           return
         }
-        
+
         const params = new URLSearchParams()
-        
+
         // 添加token参数
         params.append('token', token)
-        
+
         if (this.options.lines) {
           params.append('lines', this.options.lines.toString())
         }
@@ -61,8 +61,12 @@ export class LogSocket {
 
         const url = `ws://localhost:8080/ws/namespaces/${this.namespace}/agents/${this.agentName}/logs?${params}`
         console.log('🔗 连接日志 WebSocket:', url.replace(token, '***TOKEN***'))
-        console.log('🔗 连接参数:', { namespace: this.namespace, agentName: this.agentName, options: this.options })
-        
+        console.log('🔗 连接参数:', {
+          namespace: this.namespace,
+          agentName: this.agentName,
+          options: this.options
+        })
+
         this.socket = new WebSocket(url)
 
         this.socket.onopen = () => {
@@ -101,7 +105,7 @@ export class LogSocket {
           console.log('🔌 日志 WebSocket 连接关闭:', event.code, event.reason)
           this.stopHeartbeat()
           this.callbacks.onDisconnect?.()
-          
+
           if (!this.isManualClose && this.reconnectAttempts < this.maxReconnectAttempts) {
             this.scheduleReconnect()
           }
@@ -118,7 +122,6 @@ export class LogSocket {
           this.callbacks.onError?.('WebSocket 连接错误')
           reject(error)
         }
-
       } catch (error) {
         console.error('❌ 创建日志 WebSocket 失败:', error)
         reject(error)
@@ -130,7 +133,7 @@ export class LogSocket {
     this.isManualClose = true
     this.stopHeartbeat()
     this.clearReconnectTimer()
-    
+
     if (this.socket) {
       this.socket.close()
       this.socket = null
@@ -146,7 +149,7 @@ export class LogSocket {
 
   private handleMessage(message: LogMessage): void {
     console.log('🔄 处理消息:', message.type, message)
-    
+
     switch (message.type) {
       case 'initial':
         if (message.data) {
@@ -164,7 +167,7 @@ export class LogSocket {
           console.log('➕ 收到新日志数据:', message.data)
           const logEntries = this.parseLogContent(message.data)
           console.log('➕ 解析出新日志:', logEntries.length, '条')
-          logEntries.forEach(log => {
+          logEntries.forEach((log) => {
             this.callbacks.onAppend?.(log)
           })
         } else {
@@ -199,16 +202,16 @@ export class LogSocket {
 
   private parseLogContent(data: any): LogEntry[] {
     console.log('🔄 解析日志内容:', data)
-    
+
     // 如果 data 已经是 LogEntry 数组，直接返回
     if (Array.isArray(data)) {
       return data
     }
-    
+
     // 处理后端返回的格式
     if (data.content && typeof data.content === 'string') {
-      const logLines = data.content.split('\n').filter(line => line.trim())
-      return logLines.map(line => {
+      const logLines = data.content.split('\n').filter((line) => line.trim())
+      return logLines.map((line) => {
         // 尝试解析时间戳和消息
         const match = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}):\s*(.+)$/)
         if (match) {
@@ -220,7 +223,9 @@ export class LogSocket {
           }
         } else {
           return {
-            timestamp: data.timestamp ? new Date(data.timestamp * 1000).toISOString() : new Date().toISOString(),
+            timestamp: data.timestamp
+              ? new Date(data.timestamp * 1000).toISOString()
+              : new Date().toISOString(),
             level: 'info',
             message: line,
             source: data.agent || data.source || 'unknown'
@@ -228,17 +233,21 @@ export class LogSocket {
         }
       })
     }
-    
+
     // 处理单条日志的情况
     if (data.message || data.content) {
-      return [{
-        timestamp: data.timestamp ? new Date(data.timestamp * 1000).toISOString() : new Date().toISOString(),
-        level: data.level || 'info',
-        message: data.message || data.content,
-        source: data.agent || data.source || 'unknown'
-      }]
+      return [
+        {
+          timestamp: data.timestamp
+            ? new Date(data.timestamp * 1000).toISOString()
+            : new Date().toISOString(),
+          level: data.level || 'info',
+          message: data.message || data.content,
+          source: data.agent || data.source || 'unknown'
+        }
+      ]
     }
-    
+
     console.warn('⚠️ 无法解析日志内容:', data)
     return []
   }
@@ -261,11 +270,11 @@ export class LogSocket {
   private scheduleReconnect(): void {
     this.reconnectAttempts++
     const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts - 1), 30000) // 指数退避，最大30秒
-    
+
     console.log(`🔄 ${delay}ms 后尝试重连 (${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
-    
+
     this.reconnectTimer = window.setTimeout(() => {
-      this.connect().catch(error => {
+      this.connect().catch((error) => {
         console.error('❌ 重连失败:', error)
       })
     }, delay)

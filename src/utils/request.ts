@@ -8,16 +8,16 @@ import { authManager } from './auth'
  */
 export class ApiRequest {
   private static instance: ApiRequest
-  
+
   private constructor() {}
-  
+
   static getInstance(): ApiRequest {
     if (!ApiRequest.instance) {
       ApiRequest.instance = new ApiRequest()
     }
     return ApiRequest.instance
   }
-  
+
   /**
    * GET请求
    */
@@ -30,7 +30,7 @@ export class ApiRequest {
       throw error
     }
   }
-  
+
   /**
    * POST请求
    */
@@ -43,7 +43,7 @@ export class ApiRequest {
       throw error
     }
   }
-  
+
   /**
    * PUT请求
    */
@@ -56,7 +56,7 @@ export class ApiRequest {
       throw error
     }
   }
-  
+
   /**
    * DELETE请求
    */
@@ -69,7 +69,7 @@ export class ApiRequest {
       throw error
     }
   }
-  
+
   /**
    * PATCH请求
    */
@@ -82,7 +82,7 @@ export class ApiRequest {
       throw error
     }
   }
-  
+
   /**
    * 上传文件
    */
@@ -95,7 +95,7 @@ export class ApiRequest {
           ...config?.headers
         }
       }
-      
+
       const response = await axios.post(url, formData, uploadConfig)
       return response
     } catch (error) {
@@ -103,7 +103,7 @@ export class ApiRequest {
       throw error
     }
   }
-  
+
   /**
    * 处理请求错误
    */
@@ -113,18 +113,18 @@ export class ApiRequest {
       status: error.response?.status,
       message: error.response?.data?.message || error.message
     })
-    
+
     // 如果是认证错误，由axios拦截器统一处理
     // 这里可以添加其他特殊错误处理逻辑
   }
-  
+
   /**
    * 检查请求是否需要认证
    */
   private requiresAuth(url: string): boolean {
     return !authManager.shouldSkipAuth(url)
   }
-  
+
   /**
    * 批量请求
    */
@@ -137,28 +137,31 @@ export class ApiRequest {
       throw error
     }
   }
-  
+
   /**
    * 并发请求（有限制）
    */
   async concurrent<T = any>(requests: (() => Promise<any>)[], limit: number = 5): Promise<T[]> {
     const results: T[] = []
     const executing: Promise<any>[] = []
-    
+
     for (const request of requests) {
       const promise = request().then((result: T) => {
         results.push(result)
         return result
       })
-      
+
       executing.push(promise)
-      
+
       if (executing.length >= limit) {
         await Promise.race(executing)
-        executing.splice(executing.findIndex(p => p === promise), 1)
+        executing.splice(
+          executing.findIndex((p) => p === promise),
+          1
+        )
       }
     }
-    
+
     await Promise.all(executing)
     return results
   }
@@ -168,22 +171,22 @@ export class ApiRequest {
 export const apiRequest = ApiRequest.getInstance()
 
 // 导出便捷方法
-export const get = <T = any>(url: string, config?: AxiosRequestConfig) => 
+export const get = <T = any>(url: string, config?: AxiosRequestConfig) =>
   apiRequest.get<T>(url, config)
 
-export const post = <T = any>(url: string, data?: any, config?: AxiosRequestConfig) => 
+export const post = <T = any>(url: string, data?: any, config?: AxiosRequestConfig) =>
   apiRequest.post<T>(url, data, config)
 
-export const put = <T = any>(url: string, data?: any, config?: AxiosRequestConfig) => 
+export const put = <T = any>(url: string, data?: any, config?: AxiosRequestConfig) =>
   apiRequest.put<T>(url, data, config)
 
-export const del = <T = any>(url: string, config?: AxiosRequestConfig) => 
+export const del = <T = any>(url: string, config?: AxiosRequestConfig) =>
   apiRequest.delete<T>(url, config)
 
-export const patch = <T = any>(url: string, data?: any, config?: AxiosRequestConfig) => 
+export const patch = <T = any>(url: string, data?: any, config?: AxiosRequestConfig) =>
   apiRequest.patch<T>(url, data, config)
 
-export const upload = <T = any>(url: string, formData: FormData, config?: AxiosRequestConfig) => 
+export const upload = <T = any>(url: string, formData: FormData, config?: AxiosRequestConfig) =>
   apiRequest.upload<T>(url, formData, config)
 
 // 默认导出axios实例（保持向后兼容）

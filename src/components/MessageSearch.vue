@@ -11,7 +11,10 @@
       <template #icon>
         <n-icon>
           <svg viewBox="0 0 24 24">
-            <path fill="currentColor" d="M15.5,14H20.5L22,15.5V20.5L20.5,22H15.5L14,20.5V15.5L15.5,14M16,15V21H20V15H16M15.5,12H14L12.5,10.5V9.5L14,8H15.5L17,9.5V10.5L15.5,12M16,9V11H20V9H16M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"/>
+            <path
+              fill="currentColor"
+              d="M15.5,14H20.5L22,15.5V20.5L20.5,22H15.5L14,20.5V15.5L15.5,14M16,15V21H20V15H16M15.5,12H14L12.5,10.5V9.5L14,8H15.5L17,9.5V10.5L15.5,12M16,9V11H20V9H16M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"
+            />
           </svg>
         </n-icon>
       </template>
@@ -24,21 +27,22 @@
           <div class="search-title">
             <n-icon size="18">
               <svg viewBox="0 0 24 24">
-                <path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"/>
+                <path
+                  fill="currentColor"
+                  d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"
+                />
               </svg>
             </n-icon>
             <span>搜索消息</span>
           </div>
-          <n-button
-            quaternary
-            circle
-            size="small"
-            @click="showSearch = false"
-          >
+          <n-button quaternary circle size="small" @click="showSearch = false">
             <template #icon>
               <n-icon>
                 <svg viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                  <path
+                    fill="currentColor"
+                    d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                  />
                 </svg>
               </n-icon>
             </template>
@@ -57,17 +61,15 @@
             <template #prefix>
               <n-icon>
                 <svg viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"/>
+                  <path
+                    fill="currentColor"
+                    d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"
+                  />
                 </svg>
               </n-icon>
             </template>
             <template #suffix>
-              <n-button
-                text
-                size="small"
-                @click="handleSearch"
-                :loading="searching"
-              >
+              <n-button text size="small" @click="handleSearch" :loading="searching">
                 搜索
               </n-button>
             </template>
@@ -80,7 +82,7 @@
               :type="searchType === 'all' ? 'primary' : 'default'"
               checkable
               :checked="searchType === 'all'"
-              @update:checked="() => searchType = 'all'"
+              @update:checked="() => (searchType = 'all')"
             >
               全部
             </n-tag>
@@ -88,7 +90,7 @@
               :type="searchType === 'text' ? 'primary' : 'default'"
               checkable
               :checked="searchType === 'text'"
-              @update:checked="() => searchType = 'text'"
+              @update:checked="() => (searchType = 'text')"
             >
               文本
             </n-tag>
@@ -96,7 +98,7 @@
               :type="searchType === 'image' ? 'primary' : 'default'"
               checkable
               :checked="searchType === 'image'"
-              @update:checked="() => searchType = 'image'"
+              @update:checked="() => (searchType = 'image')"
             >
               图片
             </n-tag>
@@ -104,7 +106,7 @@
               :type="searchType === 'file' ? 'primary' : 'default'"
               checkable
               :checked="searchType === 'file'"
-              @update:checked="() => searchType = 'file'"
+              @update:checked="() => (searchType = 'file')"
             >
               文件
             </n-tag>
@@ -116,27 +118,28 @@
             <n-spin size="small" />
             <span>搜索中...</span>
           </div>
-          
+
           <div v-else-if="searchResults.length === 0 && searchQuery" class="search-empty">
             <n-empty description="未找到相关消息" size="small">
               <template #icon>
                 <n-icon>
                   <svg viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M15.5,12C18,12 20,14 20,16.5C20,17.38 19.75,18.21 19.31,18.9L22.39,22L21,23.39L17.88,20.32C17.19,20.75 16.37,21 15.5,21C13,21 11,19 11,16.5C11,14 13,12 15.5,12M15.5,14A2.5,2.5 0 0,0 13,16.5A2.5,2.5 0 0,0 15.5,19A2.5,2.5 0 0,0 18,16.5A2.5,2.5 0 0,0 15.5,14M6.5,2C8.43,2 10,3.57 10,5.5C10,6.38 9.75,7.21 9.31,7.9L10.39,9L9,10.39L7.88,9.32C7.19,9.75 6.37,10 5.5,10C3.57,10 2,8.43 2,6.5C2,4.57 3.57,3 5.5,3C6.38,3 7.21,3.25 7.9,3.69L9,2.61L10.39,4L9.32,5.12C9.75,5.81 10,6.63 10,7.5H8C8,6.67 7.33,6 6.5,6C5.67,6 5,6.67 5,7.5C5,8.33 5.67,9 6.5,9C7.33,9 8,8.33 8,7.5H10C10,9.43 8.43,11 6.5,11C4.57,11 3,9.43 3,7.5C3,5.57 4.57,4 6.5,4Z"/>
+                    <path
+                      fill="currentColor"
+                      d="M15.5,12C18,12 20,14 20,16.5C20,17.38 19.75,18.21 19.31,18.9L22.39,22L21,23.39L17.88,20.32C17.19,20.75 16.37,21 15.5,21C13,21 11,19 11,16.5C11,14 13,12 15.5,12M15.5,14A2.5,2.5 0 0,0 13,16.5A2.5,2.5 0 0,0 15.5,19A2.5,2.5 0 0,0 18,16.5A2.5,2.5 0 0,0 15.5,14M6.5,2C8.43,2 10,3.57 10,5.5C10,6.38 9.75,7.21 9.31,7.9L10.39,9L9,10.39L7.88,9.32C7.19,9.75 6.37,10 5.5,10C3.57,10 2,8.43 2,6.5C2,4.57 3.57,3 5.5,3C6.38,3 7.21,3.25 7.9,3.69L9,2.61L10.39,4L9.32,5.12C9.75,5.81 10,6.63 10,7.5H8C8,6.67 7.33,6 6.5,6C5.67,6 5,6.67 5,7.5C5,8.33 5.67,9 6.5,9C7.33,9 8,8.33 8,7.5H10C10,9.43 8.43,11 6.5,11C4.57,11 3,9.43 3,7.5C3,5.57 4.57,4 6.5,4Z"
+                    />
                   </svg>
                 </n-icon>
               </template>
             </n-empty>
           </div>
-          
+
           <div v-else-if="searchResults.length > 0" class="search-result-list">
             <div class="result-header">
               <span class="result-count">找到 {{ searchResults.length }} 条相关消息</span>
-              <n-button text size="small" @click="clearSearch">
-                清除搜索
-              </n-button>
+              <n-button text size="small" @click="clearSearch"> 清除搜索 </n-button>
             </div>
-            
+
             <div class="result-items">
               <div
                 v-for="result in searchResults"
@@ -154,13 +157,13 @@
                     {{ getUserInitials(result.senderId) }}
                   </n-avatar>
                 </div>
-                
+
                 <div class="result-content">
                   <div class="result-header-info">
                     <span class="result-sender">{{ getUserDisplayName(result.senderId) }}</span>
                     <span class="result-time">{{ formatTime(result.timestamp) }}</span>
                   </div>
-                  
+
                   <div class="result-message">
                     <div
                       v-if="result.type === 'text'"
@@ -170,7 +173,10 @@
                     <div v-else-if="result.type === 'image'" class="result-media">
                       <n-icon size="16">
                         <svg viewBox="0 0 24 24">
-                          <path fill="currentColor" d="M8.5,13.5L11,16.5L14.5,12L19,18H5M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19Z"/>
+                          <path
+                            fill="currentColor"
+                            d="M8.5,13.5L11,16.5L14.5,12L19,18H5M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19Z"
+                          />
                         </svg>
                       </n-icon>
                       <span>图片消息</span>
@@ -178,7 +184,10 @@
                     <div v-else-if="result.type === 'file'" class="result-media">
                       <n-icon size="16">
                         <svg viewBox="0 0 24 24">
-                          <path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                          <path
+                            fill="currentColor"
+                            d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"
+                          />
                         </svg>
                       </n-icon>
                       <span>文件消息</span>
@@ -235,11 +244,11 @@ const filteredMessages = computed(() => {
       console.warn('MessageSearch: messages prop is not a valid array:', props.messages)
       return []
     }
-    
+
     if (searchType.value === 'all') {
       return props.messages
     }
-    return props.messages.filter(msg => msg && msg.type === searchType.value)
+    return props.messages.filter((msg) => msg && msg.type === searchType.value)
   } catch (error) {
     console.error('MessageSearch: filteredMessages计算失败:', error)
     return []
@@ -263,34 +272,36 @@ const handleSearch = () => {
 
 const performSearch = async () => {
   searching.value = true
-  
+
   try {
     // 模拟搜索延迟
-    await new Promise(resolve => setTimeout(resolve, 300))
-    
+    await new Promise((resolve) => setTimeout(resolve, 300))
+
     const query = searchQuery.value.toLowerCase().trim()
     if (!query) {
       searchResults.value = []
       return
     }
-    
+
     const messages = filteredMessages.value
     if (!Array.isArray(messages)) {
       console.warn('MessageSearch: filteredMessages is not an array:', messages)
       searchResults.value = []
       return
     }
-    
-    const results = messages.filter(message => {
+
+    const results = messages.filter((message) => {
       try {
         if (!message) return false
-        
+
         if (message.type === 'text') {
           return message.content && message.content.toLowerCase().includes(query)
         } else if (message.type === 'image' || message.type === 'file') {
           // 对于媒体消息，可以搜索文件名或描述
-          return (message.metadata?.filename?.toLowerCase().includes(query)) ||
-                 (message.metadata?.description?.toLowerCase().includes(query))
+          return (
+            message.metadata?.filename?.toLowerCase().includes(query) ||
+            message.metadata?.description?.toLowerCase().includes(query)
+          )
         }
         return false
       } catch (error) {
@@ -298,7 +309,7 @@ const performSearch = async () => {
         return false
       }
     })
-    
+
     // 按时间倒序排列
     searchResults.value = results.sort((a, b) => {
       try {
@@ -328,7 +339,7 @@ const scrollToMessage = (messageId: string) => {
 
 const highlightSearchTerm = (text: string, term: string) => {
   if (!term) return text
-  
+
   const regex = new RegExp(`(${term})`, 'gi')
   return text.replace(regex, '<mark class="search-highlight">$1</mark>')
 }
@@ -345,7 +356,12 @@ const getDefaultAvatar = (userId: string) => {
 
 const getUserInitials = (userId: string) => {
   const displayName = getUserDisplayName(userId)
-  return displayName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+  return displayName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .substring(0, 2)
 }
 
 const getUserDisplayName = (userId: string) => {
@@ -381,10 +397,10 @@ watch(showSearch, (newVal) => {
 <style scoped lang="scss">
 .message-search {
   position: relative;
-  
+
   .active {
     background-color: rgba(24, 144, 255, 0.1);
-    color: #1890ff;
+    color: var(--color-primary);
   }
 }
 
@@ -410,26 +426,26 @@ watch(showSearch, (newVal) => {
   align-items: center;
   justify-content: space-between;
   padding: 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  
+  border-bottom: 1px solid var(--border-secondary);
+
   .search-title {
     display: flex;
     align-items: center;
     gap: 8px;
     font-size: 16px;
     font-weight: 600;
-    color: #212529;
+    color: var(--text-primary);
   }
 }
 
 .search-input-area {
   padding: 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid var(--border-secondary);
 }
 
 .search-filters {
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid var(--border-secondary);
 }
 
 .search-results {
@@ -445,7 +461,7 @@ watch(showSearch, (newVal) => {
   justify-content: center;
   gap: 8px;
   padding: 40px;
-  color: #6c757d;
+  color: var(--text-secondary);
 }
 
 .search-empty {
@@ -464,11 +480,11 @@ watch(showSearch, (newVal) => {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  
+  border-bottom: 1px solid var(--border-secondary);
+
   .result-count {
     font-size: 14px;
-    color: #6c757d;
+    color: var(--text-secondary);
   }
 }
 
@@ -483,58 +499,58 @@ watch(showSearch, (newVal) => {
   padding: 12px 16px;
   cursor: pointer;
   transition: background-color 0.2s ease;
-  
+
   &:hover {
-    background-color: #f8f9fa;
+    background-color: var(--bg-hover);
   }
-  
+
   .result-avatar {
     flex-shrink: 0;
   }
-  
+
   .result-content {
     flex: 1;
     min-width: 0;
   }
-  
+
   .result-header-info {
     display: flex;
     align-items: center;
     gap: 8px;
     margin-bottom: 4px;
-    
+
     .result-sender {
       font-size: 14px;
       font-weight: 500;
-      color: #212529;
+      color: var(--text-primary);
     }
-    
+
     .result-time {
       font-size: 12px;
-      color: #6c757d;
+      color: var(--text-tertiary);
     }
   }
-  
+
   .result-message {
     .result-text {
       font-size: 14px;
-      color: #495057;
+      color: var(--text-secondary);
       line-height: 1.4;
-      
+
       :deep(.search-highlight) {
-        background-color: #fff3cd;
-        color: #856404;
+        background-color: var(--color-warning);
+        color: var(--text-inverse);
         padding: 1px 2px;
         border-radius: 2px;
       }
     }
-    
+
     .result-media {
       display: flex;
       align-items: center;
       gap: 6px;
       font-size: 14px;
-      color: #6c757d;
+      color: var(--text-tertiary);
       font-style: italic;
     }
   }
@@ -550,5 +566,102 @@ watch(showSearch, (newVal) => {
 .search-panel-leave-to {
   opacity: 0;
   transform: translateY(-10px);
+}
+
+// Terminal主题特定样式
+[data-theme='terminal'] {
+  .search-panel {
+    background-color: var(--terminal-bg-secondary);
+    border: 2px solid var(--pixel-green);
+    box-shadow: var(--neon-glow-green);
+    border-radius: 0;
+  }
+
+  .search-header {
+    border-bottom: 1px solid var(--terminal-border);
+
+    .search-title {
+      color: var(--pixel-green);
+      font-family: var(--font-display);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+  }
+
+  .search-input-area,
+  .search-filters,
+  .result-header {
+    border-bottom: 1px solid var(--terminal-border);
+  }
+
+  .search-loading {
+    color: var(--terminal-text-secondary);
+    font-family: var(--font-mono);
+  }
+
+  .result-count {
+    color: var(--terminal-text-secondary);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+  }
+
+  .result-item {
+    &:hover {
+      background-color: var(--terminal-surface);
+    }
+
+    .result-sender {
+      color: var(--terminal-text);
+      font-family: var(--font-mono);
+    }
+
+    .result-time {
+      color: var(--terminal-text-tertiary);
+      font-family: var(--font-mono);
+    }
+
+    .result-text {
+      color: var(--terminal-text-secondary);
+      font-family: var(--font-mono);
+
+      :deep(.search-highlight) {
+        background-color: var(--pixel-yellow);
+        color: var(--terminal-bg);
+      }
+    }
+
+    .result-media {
+      color: var(--terminal-text-tertiary);
+      font-family: var(--font-mono);
+    }
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .search-panel {
+    width: 350px;
+    max-width: 95vw;
+    right: -10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .search-panel {
+    width: 300px;
+    right: -20px;
+  }
+
+  .search-header {
+    padding: 12px;
+  }
+
+  .search-input-area {
+    padding: 12px;
+  }
+
+  .result-item {
+    padding: 10px 12px;
+  }
 }
 </style>

@@ -5,8 +5,11 @@
         <!-- 当前认证状态 -->
         <div>
           <n-text strong>当前认证状态：</n-text>
-          <n-space style="margin-top: 8px;">
-            <n-statistic label="登录状态" :value="userStore.isAuthenticated ? '已登录' : '未登录'" />
+          <n-space style="margin-top: 8px">
+            <n-statistic
+              label="登录状态"
+              :value="userStore.isAuthenticated ? '已登录' : '未登录'"
+            />
             <n-statistic label="Token状态" :value="hasToken ? '有Token' : '无Token'" />
             <n-statistic label="Token长度" :value="tokenLength" />
           </n-space>
@@ -15,11 +18,17 @@
         <!-- Token信息显示 -->
         <div v-if="hasToken">
           <n-text strong>Token信息：</n-text>
-          <n-card size="small" style="margin-top: 8px;">
+          <n-card size="small" style="margin-top: 8px">
             <div class="token-info">
               <p><strong>Token前缀:</strong> {{ tokenPrefix }}</p>
-              <p><strong>完整Token:</strong> <code>{{ maskedToken }}</code></p>
-              <p><strong>用户信息:</strong> {{ userStore.currentUser?.displayName }} ({{ userStore.currentUser?.email }})</p>
+              <p>
+                <strong>完整Token:</strong> <code>{{ maskedToken }}</code>
+              </p>
+              <p>
+                <strong>用户信息:</strong> {{ userStore.currentUser?.displayName }} ({{
+                  userStore.currentUser?.email
+                }})
+              </p>
             </div>
           </n-card>
         </div>
@@ -27,7 +36,7 @@
         <!-- API测试按钮 -->
         <div>
           <n-text strong>API测试：</n-text>
-          <n-space style="margin-top: 8px;">
+          <n-space style="margin-top: 8px">
             <n-button @click="testAgentsAPI" :loading="isLoading" type="primary">
               测试Agents API
             </n-button>
@@ -40,26 +49,22 @@
             <n-button @click="testChatAPI" :loading="isLoading" type="success">
               测试Chat API
             </n-button>
-            <n-button @click="clearLogs" :disabled="testLogs.length === 0">
-              清除日志
-            </n-button>
+            <n-button @click="clearLogs" :disabled="testLogs.length === 0"> 清除日志 </n-button>
           </n-space>
         </div>
 
         <!-- 测试结果 -->
         <div>
           <n-text strong>测试结果：</n-text>
-          <n-card size="small" style="margin-top: 8px; max-height: 400px; overflow-y: auto;">
-            <div v-if="testLogs.length === 0" style="text-align: center; color: #999; padding: 20px;">
+          <n-card size="small" style="margin-top: 8px; max-height: 400px; overflow-y: auto">
+            <div
+              v-if="testLogs.length === 0"
+              style="text-align: center; color: #999; padding: 20px"
+            >
               暂无测试结果
             </div>
             <div v-else>
-              <div 
-                v-for="(log, index) in testLogs" 
-                :key="index"
-                class="log-item"
-                :class="log.type"
-              >
+              <div v-for="(log, index) in testLogs" :key="index" class="log-item" :class="log.type">
                 <div class="log-header">
                   <span class="log-time">{{ log.time }}</span>
                   <span class="log-type">{{ log.type.toUpperCase() }}</span>
@@ -77,7 +82,7 @@
         <!-- 错误处理说明 -->
         <div>
           <n-text strong>错误处理说明：</n-text>
-          <n-card size="small" style="margin-top: 8px;">
+          <n-card size="small" style="margin-top: 8px">
             <div class="error-examples">
               <div class="error-example">
                 <h4>401 未授权错误:</h4>
@@ -109,13 +114,15 @@ const message = useMessage()
 const isLoading = ref(false)
 
 // 测试日志
-const testLogs = ref<Array<{
-  time: string
-  type: 'info' | 'success' | 'error' | 'warning'
-  api: string
-  message: string
-  details?: any
-}>>([])
+const testLogs = ref<
+  Array<{
+    time: string
+    type: 'info' | 'success' | 'error' | 'warning'
+    api: string
+    message: string
+    details?: any
+  }>
+>([])
 
 // Token相关计算属性
 const hasToken = computed(() => !!userStore.token)
@@ -130,17 +137,22 @@ const maskedToken = computed(() => {
 
 // 错误示例
 const authErrorExample = {
-  error: "authorization header required",
-  message: "请在请求头中提供 Authorization token"
+  error: 'authorization header required',
+  message: '请在请求头中提供 Authorization token'
 }
 
 const correctHeaderExample = {
-  "Authorization": "Bearer f2d7475a2de7d92feb2868b16acb2d215f0c43273a531d64bc4c090b430f8ff9",
-  "Content-Type": "application/json"
+  Authorization: 'Bearer f2d7475a2de7d92feb2868b16acb2d215f0c43273a531d64bc4c090b430f8ff9',
+  'Content-Type': 'application/json'
 }
 
 // 添加日志
-const addLog = (type: 'info' | 'success' | 'error' | 'warning', api: string, message: string, details?: any) => {
+const addLog = (
+  type: 'info' | 'success' | 'error' | 'warning',
+  api: string,
+  message: string,
+  details?: any
+) => {
   testLogs.value.unshift({
     time: new Date().toLocaleTimeString(),
     type,
@@ -148,7 +160,7 @@ const addLog = (type: 'info' | 'success' | 'error' | 'warning', api: string, mes
     message,
     details
   })
-  
+
   // 限制日志数量
   if (testLogs.value.length > 50) {
     testLogs.value = testLogs.value.slice(0, 50)
@@ -159,10 +171,15 @@ const addLog = (type: 'info' | 'success' | 'error' | 'warning', api: string, mes
 const testAgentsAPI = async () => {
   isLoading.value = true
   addLog('info', 'Agents API', '开始测试获取智能体列表')
-  
+
   try {
     const result = await agentApi.getList('default')
-    addLog('success', 'Agents API', `成功获取智能体列表，共 ${result.items?.length || 0} 个智能体`, result)
+    addLog(
+      'success',
+      'Agents API',
+      `成功获取智能体列表，共 ${result.items?.length || 0} 个智能体`,
+      result
+    )
     message.success('Agents API测试成功')
   } catch (error: any) {
     const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message
@@ -177,10 +194,15 @@ const testAgentsAPI = async () => {
 const testNamespacesAPI = async () => {
   isLoading.value = true
   addLog('info', 'Namespaces API', '开始测试获取命名空间列表')
-  
+
   try {
     const result = await namespaceApi.getList()
-    addLog('success', 'Namespaces API', `成功获取命名空间列表，共 ${result.items?.length || 0} 个命名空间`, result)
+    addLog(
+      'success',
+      'Namespaces API',
+      `成功获取命名空间列表，共 ${result.items?.length || 0} 个命名空间`,
+      result
+    )
     message.success('Namespaces API测试成功')
   } catch (error: any) {
     const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message
@@ -195,10 +217,15 @@ const testNamespacesAPI = async () => {
 const testUsersAPI = async () => {
   isLoading.value = true
   addLog('info', 'Users API', '开始测试获取用户列表')
-  
+
   try {
     const result = await userApi.getList()
-    addLog('success', 'Users API', `成功获取用户列表，共 ${result.items?.length || 0} 个用户`, result)
+    addLog(
+      'success',
+      'Users API',
+      `成功获取用户列表，共 ${result.items?.length || 0} 个用户`,
+      result
+    )
     message.success('Users API测试成功')
   } catch (error: any) {
     const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message
@@ -213,7 +240,7 @@ const testUsersAPI = async () => {
 const testChatAPI = async () => {
   isLoading.value = true
   addLog('info', 'Chat API', '开始测试获取聊天历史')
-  
+
   try {
     const result = await chatApi.getChatHistory('default', 10)
     addLog('success', 'Chat API', `成功获取聊天历史，共 ${result.length || 0} 条消息`, result)
@@ -244,7 +271,7 @@ const clearLogs = () => {
 .token-info {
   p {
     margin: 8px 0;
-    
+
     code {
       background: var(--bg-tertiary);
       padding: 2px 6px;
@@ -260,31 +287,31 @@ const clearLogs = () => {
 .log-item {
   padding: 12px 0;
   border-bottom: 1px solid var(--border-secondary);
-  
+
   &:last-child {
     border-bottom: none;
   }
-  
+
   .log-header {
     display: flex;
     align-items: center;
     gap: 12px;
     margin-bottom: 4px;
-    
+
     .log-time {
       color: var(--text-tertiary);
       font-size: 11px;
       font-family: monospace;
       min-width: 80px;
     }
-    
+
     .log-type {
       font-size: 11px;
       font-weight: bold;
       font-family: monospace;
       min-width: 60px;
     }
-    
+
     .log-api {
       font-size: 12px;
       font-weight: 500;
@@ -292,19 +319,19 @@ const clearLogs = () => {
       min-width: 100px;
     }
   }
-  
+
   .log-message {
     color: var(--text-primary);
     font-size: 13px;
     margin-bottom: 8px;
   }
-  
+
   .log-details {
     background: var(--bg-tertiary);
     border-radius: 4px;
     padding: 8px;
     margin-top: 8px;
-    
+
     pre {
       margin: 0;
       font-size: 11px;
@@ -314,19 +341,19 @@ const clearLogs = () => {
       overflow-y: auto;
     }
   }
-  
+
   &.info .log-type {
     color: var(--color-info);
   }
-  
+
   &.success .log-type {
     color: var(--color-success);
   }
-  
+
   &.error .log-type {
     color: var(--color-error);
   }
-  
+
   &.warning .log-type {
     color: var(--color-warning);
   }
@@ -335,14 +362,14 @@ const clearLogs = () => {
 .error-examples {
   display: grid;
   gap: 16px;
-  
+
   .error-example {
     h4 {
       margin: 0 0 8px 0;
       color: var(--text-primary);
       font-size: 14px;
     }
-    
+
     pre {
       background: var(--bg-tertiary);
       padding: 12px;

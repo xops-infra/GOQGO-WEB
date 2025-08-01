@@ -3,6 +3,9 @@ import { useUserStore } from '@/stores/user'
 import Layout from '@/components/Layout.vue'
 import LoginView from '@/views/LoginView.vue'
 import ChatView from '@/views/ChatView.vue'
+import AgentsView from '@/views/AgentsView.vue'
+import TerminalDemo from '@/views/TerminalDemo.vue'
+import TextColorTest from '@/views/TextColorTest.vue'
 import DebugView from '@/views/DebugView.vue'
 import MessageParserTest from '@/views/MessageParserTest.vue'
 import ChatTest from '@/views/ChatTest.vue'
@@ -25,7 +28,7 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: LoginView,
-      meta: { 
+      meta: {
         title: '登录 - GoQGo',
         requiresAuth: false,
         hideForAuth: true // 已登录用户隐藏此页面
@@ -35,7 +38,7 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: Layout,
-      meta: { 
+      meta: {
         title: 'Q Chat Manager',
         requiresAuth: true
       }
@@ -44,16 +47,43 @@ const router = createRouter({
       path: '/chat',
       name: 'chat',
       component: ChatView,
-      meta: { 
+      meta: {
         title: '聊天室',
         requiresAuth: true
+      }
+    },
+    {
+      path: '/agents',
+      name: 'agents',
+      component: AgentsView,
+      meta: {
+        title: '智能体管理',
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/terminal-demo',
+      name: 'terminal-demo',
+      component: TerminalDemo,
+      meta: {
+        title: 'Terminal风格演示',
+        requiresAuth: false
+      }
+    },
+    {
+      path: '/text-color-test',
+      name: 'text-color-test',
+      component: TextColorTest,
+      meta: {
+        title: '文字颜色测试',
+        requiresAuth: false
       }
     },
     {
       path: '/debug',
       name: 'debug',
       component: DebugView,
-      meta: { 
+      meta: {
         title: 'WebSocket调试',
         requiresAuth: true
       }
@@ -62,7 +92,7 @@ const router = createRouter({
       path: '/test/auth',
       name: 'auth-test',
       component: AuthTest,
-      meta: { 
+      meta: {
         title: '认证系统测试',
         requiresAuth: true
       }
@@ -71,7 +101,7 @@ const router = createRouter({
       path: '/test/message-parser',
       name: 'message-parser-test',
       component: MessageParserTest,
-      meta: { 
+      meta: {
         title: '消息解析测试',
         requiresAuth: true
       }
@@ -80,7 +110,7 @@ const router = createRouter({
       path: '/test/chat',
       name: 'chat-test',
       component: ChatTest,
-      meta: { 
+      meta: {
         title: '聊天功能测试',
         requiresAuth: true
       }
@@ -89,7 +119,7 @@ const router = createRouter({
       path: '/test/websocket',
       name: 'websocket-debug',
       component: WebSocketDebug,
-      meta: { 
+      meta: {
         title: 'WebSocket调试',
         requiresAuth: true
       }
@@ -98,7 +128,7 @@ const router = createRouter({
       path: '/test/message-confirm',
       name: 'message-confirm-test',
       component: MessageConfirmTest,
-      meta: { 
+      meta: {
         title: '消息确认测试',
         requiresAuth: true
       }
@@ -107,7 +137,7 @@ const router = createRouter({
       path: '/test/message-confirm-debug',
       name: 'message-confirm-debug',
       component: MessageConfirmDebug,
-      meta: { 
+      meta: {
         title: '消息确认调试',
         requiresAuth: true
       }
@@ -116,7 +146,7 @@ const router = createRouter({
       path: '/test/message-timeout',
       name: 'message-timeout-test',
       component: MessageTimeoutTest,
-      meta: { 
+      meta: {
         title: '消息超时测试',
         requiresAuth: true
       }
@@ -125,7 +155,7 @@ const router = createRouter({
       path: '/test/divider',
       name: 'divider-test',
       component: DividerTest,
-      meta: { 
+      meta: {
         title: '分割线测试',
         requiresAuth: true
       }
@@ -134,7 +164,7 @@ const router = createRouter({
       path: '/test/empty-message',
       name: 'empty-message-test',
       component: EmptyMessageTest,
-      meta: { 
+      meta: {
         title: '空消息状态测试',
         requiresAuth: true
       }
@@ -143,7 +173,7 @@ const router = createRouter({
       path: '/test/login-status',
       name: 'login-status-test',
       component: LoginStatusTest,
-      meta: { 
+      meta: {
         title: '登录状态测试',
         requiresAuth: true
       }
@@ -152,7 +182,7 @@ const router = createRouter({
       path: '/test/login-error',
       name: 'login-error-test',
       component: LoginErrorTest,
-      meta: { 
+      meta: {
         title: '登录错误测试',
         requiresAuth: false // 允许未登录访问，用于测试登录错误
       }
@@ -161,7 +191,7 @@ const router = createRouter({
       path: '/test/api-auth',
       name: 'api-auth-test',
       component: ApiAuthTest,
-      meta: { 
+      meta: {
         title: 'API认证测试',
         requiresAuth: true
       }
@@ -170,7 +200,7 @@ const router = createRouter({
       path: '/test/websocket-auth',
       name: 'websocket-auth-test',
       component: WebSocketAuthTest,
-      meta: { 
+      meta: {
         title: 'WebSocket认证测试',
         requiresAuth: true
       }
@@ -185,28 +215,32 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach(async (to, from, next) => {
   const userStore = useUserStore()
-  
+
   // 设置页面标题
   if (to.meta.title) {
     document.title = to.meta.title as string
   }
-  
+
   // 如果是首次访问，尝试恢复登录状态
   if (!userStore.isAuthenticated) {
-    userStore.restoreAuth()
+    const restored = userStore.restoreAuth()
+    // 如果恢复失败，确保清除状态
+    if (!restored) {
+      userStore.clearAuth()
+    }
   }
-  
+
   const isAuthenticated = userStore.isAuthenticated
   const requiresAuth = to.meta.requiresAuth !== false // 默认需要认证
   const hideForAuth = to.meta.hideForAuth === true // 已登录用户隐藏
-  
+
   console.log('🛡️ 路由守卫:', {
     to: to.path,
     isAuthenticated,
     requiresAuth,
     hideForAuth
   })
-  
+
   if (requiresAuth && !isAuthenticated) {
     // 需要认证但未登录，跳转到登录页
     console.log('🔒 未登录，跳转到登录页')

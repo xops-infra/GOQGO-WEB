@@ -8,21 +8,21 @@
   --bg-active: #e8f0fe;
   --bg-modal: rgba(255, 255, 255, 0.95);
   --bg-overlay: rgba(0, 0, 0, 0.1);
-  
+
   --text-primary: #1f2937;
-  --text-secondary: #6b7280;
-  --text-tertiary: #9ca3af;
-  --text-disabled: #d1d5db;
+  --text-secondary: #4b5563;
+  --text-tertiary: #6b7280;
+  --text-disabled: #9ca3af;
   --text-inverse: #ffffff;
-  
+
   --border-primary: #e5e7eb;
   --border-secondary: #f3f4f6;
   --border-focus: #3b82f6;
-  
+
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  
+
   // 品牌色
   --color-primary: #3b82f6;
   --color-primary-hover: #2563eb;
@@ -31,6 +31,14 @@
   --color-warning: #f59e0b;
   --color-error: #ef4444;
   --color-info: #06b6d4;
+
+  // RGB值用于rgba函数
+  --color-primary-rgb: 59, 130, 246;
+  --color-success-rgb: 16, 185, 129;
+  --color-warning-rgb: 245, 158, 11;
+  --color-error-rgb: 239, 68, 68;
+  --color-info-rgb: 6, 182, 212;
+  --text-tertiary-rgb: 156, 163, 175;
 }
 
 // 深色主题
@@ -42,21 +50,21 @@
   --bg-active: #1e40af;
   --bg-modal: rgba(15, 23, 42, 0.95);
   --bg-overlay: rgba(0, 0, 0, 0.3);
-  
+
   --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-tertiary: #94a3b8;
-  --text-disabled: #64748b;
+  --text-secondary: #e2e8f0;
+  --text-tertiary: #cbd5e1;
+  --text-disabled: #94a3b8;
   --text-inverse: #0f172a;
-  
+
   --border-primary: #475569;
   --border-secondary: #334155;
   --border-focus: #60a5fa;
-  
+
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-  
+
   // 深色主题下的品牌色调整
   --color-primary: #60a5fa;
   --color-primary-hover: #3b82f6;
@@ -65,6 +73,14 @@
   --color-warning: #fbbf24;
   --color-error: #f87171;
   --color-info: #22d3ee;
+
+  // RGB值用于rgba函数
+  --color-primary-rgb: 96, 165, 250;
+  --color-success-rgb: 52, 211, 153;
+  --color-warning-rgb: 251, 191, 36;
+  --color-error-rgb: 248, 113, 113;
+  --color-info-rgb: 34, 211, 238;
+  --text-tertiary-rgb: 203, 213, 225;
 }
 
 // 全局基础样式
@@ -82,36 +98,75 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 // 通用类名
-.bg-primary { background-color: var(--bg-primary); }
-.bg-secondary { background-color: var(--bg-secondary); }
-.bg-tertiary { background-color: var(--bg-tertiary); }
-.bg-hover { background-color: var(--bg-hover); }
-.bg-active { background-color: var(--bg-active); }
+.bg-primary {
+  background-color: var(--bg-primary);
+}
+.bg-secondary {
+  background-color: var(--bg-secondary);
+}
+.bg-tertiary {
+  background-color: var(--bg-tertiary);
+}
+.bg-hover {
+  background-color: var(--bg-hover);
+}
+.bg-active {
+  background-color: var(--bg-active);
+}
 
-.text-primary { color: var(--text-primary); }
-.text-secondary { color: var(--text-secondary); }
-.text-tertiary { color: var(--text-tertiary); }
-.text-disabled { color: var(--text-disabled); }
-.text-inverse { color: var(--text-inverse); }
+.text-primary {
+  color: var(--text-primary);
+}
+.text-secondary {
+  color: var(--text-secondary);
+}
+.text-tertiary {
+  color: var(--text-tertiary);
+}
+.text-disabled {
+  color: var(--text-disabled);
+}
+.text-inverse {
+  color: var(--text-inverse);
+}
 
-.border-primary { border-color: var(--border-primary); }
-.border-secondary { border-color: var(--border-secondary); }
-.border-focus { border-color: var(--border-focus); }
+.border-primary {
+  border-color: var(--border-primary);
+}
+.border-secondary {
+  border-color: var(--border-secondary);
+}
+.border-focus {
+  border-color: var(--border-focus);
+}
 
-.shadow-sm { box-shadow: var(--shadow-sm); }
-.shadow-md { box-shadow: var(--shadow-md); }
-.shadow-lg { box-shadow: var(--shadow-lg); }
+.shadow-sm {
+  box-shadow: var(--shadow-sm);
+}
+.shadow-md {
+  box-shadow: var(--shadow-md);
+}
+.shadow-lg {
+  box-shadow: var(--shadow-lg);
+}
 
 // 过渡动画
 .theme-transition {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 // 滚动条样式

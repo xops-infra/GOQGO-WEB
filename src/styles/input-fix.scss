@@ -20,14 +20,14 @@
     border-color: var(--border-primary) !important;
     background-color: transparent !important;
   }
-  
+
   // 悬停状态
   &:hover {
     .n-input__state-border {
       border-color: var(--border-focus) !important;
     }
   }
-  
+
   // 焦点状态
   &.n-input--focus {
     .n-input__state-border {
@@ -35,7 +35,7 @@
       box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
     }
   }
-  
+
   // 占位符文本
   .n-input__input-el::placeholder,
   .n-input__textarea-el::placeholder {
@@ -56,7 +56,7 @@
 .chat-input .n-input,
 .message-input .n-input {
   background-color: var(--bg-secondary) !important;
-  
+
   .n-input__input-el,
   .n-input__textarea-el {
     background-color: var(--bg-secondary) !important;
@@ -73,17 +73,17 @@
 }
 
 // 确保所有输入相关的元素都应用主题
-input[type="text"],
-input[type="search"],
+input[type='text'],
+input[type='search'],
 textarea {
   background-color: var(--bg-secondary) !important;
   color: var(--text-primary) !important;
   border-color: var(--border-primary) !important;
-  
+
   &::placeholder {
     color: var(--text-tertiary) !important;
   }
-  
+
   &:focus {
     border-color: var(--color-primary) !important;
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
@@ -91,12 +91,12 @@ textarea {
 }
 
 // 修复可能的内联样式覆盖
-.n-input[style*="background"] {
+.n-input[style*='background'] {
   background-color: var(--bg-secondary) !important;
 }
 
-.n-input .n-input__input-el[style*="background"],
-.n-input .n-input__textarea-el[style*="background"] {
+.n-input .n-input__input-el[style*='background'],
+.n-input .n-input__textarea-el[style*='background'] {
   background-color: var(--bg-secondary) !important;
 }
 

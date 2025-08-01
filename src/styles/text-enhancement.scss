@@ -1,0 +1,282 @@
+// 文字颜色增强样式
+// 确保所有灰色文字在各种主题下都有足够的可读性
+
+// 全局文字颜色增强
+body {
+  // 确保基础文字颜色足够亮
+  color: var(--text-primary);
+
+  // 增强次要文字的可读性
+  .text-secondary,
+  .n-text.n-text--depth-2,
+  .n-form-item-label,
+  .n-card__header-extra,
+  .n-data-table-th,
+  .n-menu-item:not(.n-menu-item--selected) {
+    color: var(--text-secondary) !important;
+  }
+
+  // 增强三级文字的可读性
+  .text-tertiary,
+  .n-text.n-text--depth-3,
+  .n-input__placeholder,
+  .n-select__placeholder,
+  .n-data-table-empty {
+    color: var(--text-tertiary) !important;
+  }
+
+  // 禁用状态文字
+  .text-disabled,
+  .n-text.n-text--disabled,
+  .n-button--disabled,
+  .n-input--disabled {
+    color: var(--text-disabled) !important;
+  }
+}
+
+// 深色主题特定增强
+[data-theme='dark'] {
+  // 确保卡片内的文字足够亮
+  .n-card {
+    .n-card__header {
+      color: var(--text-primary) !important;
+    }
+
+    .n-card__content {
+      color: var(--text-secondary) !important;
+    }
+  }
+
+  // 增强表格文字可读性
+  .n-data-table {
+    .n-data-table-td {
+      color: var(--text-secondary) !important;
+    }
+
+    .n-data-table-th {
+      color: var(--text-primary) !important;
+    }
+  }
+
+  // 增强菜单项可读性
+  .n-menu-item {
+    color: var(--text-secondary) !important;
+
+    &:hover {
+      color: var(--text-primary) !important;
+    }
+
+    &.n-menu-item--selected {
+      color: var(--color-primary) !important;
+    }
+  }
+
+  // 增强按钮文字
+  .n-button:not(.n-button--primary):not(.n-button--success):not(.n-button--warning):not(
+      .n-button--error
+    ) {
+    color: var(--text-secondary) !important;
+
+    &:hover {
+      color: var(--text-primary) !important;
+    }
+  }
+
+  // 增强输入框文字
+  .n-input {
+    .n-input__input-el,
+    .n-input__textarea-el {
+      color: var(--text-primary) !important;
+
+      &::placeholder {
+        color: var(--text-tertiary) !important;
+      }
+    }
+  }
+
+  // 增强下拉选择器
+  .n-select {
+    .n-base-selection-label {
+      color: var(--text-primary) !important;
+    }
+
+    .n-base-selection-placeholder {
+      color: var(--text-tertiary) !important;
+    }
+  }
+
+  // 增强模态框文字
+  .n-modal {
+    .n-card {
+      .n-card__header {
+        color: var(--text-primary) !important;
+      }
+
+      .n-card__content {
+        color: var(--text-secondary) !important;
+      }
+    }
+  }
+
+  // 增强标签文字
+  .n-tag {
+    color: var(--text-primary) !important;
+  }
+
+  // 增强统计数字
+  .n-statistic {
+    .n-statistic-value {
+      color: var(--text-primary) !important;
+    }
+
+    .n-statistic-label {
+      color: var(--text-secondary) !important;
+    }
+  }
+}
+
+// Terminal主题特定增强
+[data-theme='terminal'] {
+  // 确保终端风格的文字足够亮
+  .terminal-text,
+  .terminal-output {
+    color: var(--terminal-text) !important;
+  }
+
+  .terminal-text-secondary {
+    color: var(--terminal-text-secondary) !important;
+  }
+
+  .terminal-text-tertiary {
+    color: var(--terminal-text-tertiary) !important;
+  }
+
+  // 增强终端表格
+  .terminal-table {
+    .n-data-table-td {
+      color: var(--terminal-text-secondary) !important;
+    }
+
+    .n-data-table-th {
+      color: var(--pixel-green) !important;
+    }
+  }
+
+  // 增强终端状态文字
+  .terminal-status {
+    &.status-running {
+      color: var(--terminal-success) !important;
+    }
+
+    &.status-idle {
+      color: var(--terminal-warning) !important;
+    }
+
+    &.status-error {
+      color: var(--terminal-error) !important;
+    }
+  }
+
+  // 增强终端表单
+  .terminal-form {
+    .n-form-item-label {
+      color: var(--terminal-text-secondary) !important;
+    }
+
+    .n-input,
+    .n-select {
+      color: var(--terminal-text) !important;
+    }
+  }
+}
+
+// 响应式文字大小调整
+@media (max-width: 768px) {
+  body {
+    // 移动端稍微增大文字以提高可读性
+    font-size: 15px;
+  }
+
+  .n-card {
+    .n-card__content {
+      font-size: 14px;
+    }
+  }
+
+  .n-data-table {
+    font-size: 13px;
+  }
+}
+
+// 高对比度模式支持
+@media (prefers-contrast: high) {
+  [data-theme='dark'] {
+    --text-secondary: #ffffff;
+    --text-tertiary: #e2e8f0;
+    --text-disabled: #cbd5e1;
+  }
+
+  [data-theme='terminal'] {
+    --terminal-text-secondary: #ffffff;
+    --terminal-text-tertiary: #c9d1d9;
+  }
+}
+
+// 减少动画模式下的文字效果
+@media (prefers-reduced-motion: reduce) {
+  .neon-text {
+    text-shadow: none !important;
+    animation: none !important;
+  }
+
+  .terminal-status {
+    text-shadow: none !important;
+  }
+}
+
+// 确保选中文字的对比度
+::selection {
+  background-color: var(--color-primary);
+  color: var(--text-inverse);
+}
+
+::-moz-selection {
+  background-color: var(--color-primary);
+  color: var(--text-inverse);
+}
+
+// 焦点状态的文字增强
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+// 链接文字增强
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--color-primary-hover);
+    text-decoration: underline;
+  }
+
+  &:visited {
+    color: var(--color-primary);
+  }
+}
+
+// 代码文字增强
+code,
+pre {
+  font-family: var(--font-mono);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  padding: 2px 4px;
+  border-radius: 3px;
+
+  [data-theme='terminal'] & {
+    background: var(--terminal-surface);
+    color: var(--pixel-green);
+  }
+}

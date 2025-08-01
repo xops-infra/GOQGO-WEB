@@ -11,7 +11,7 @@
           <h1 class="brand-title">GoQGo</h1>
           <p class="brand-subtitle">AI智能体协助开发平台</p>
         </div>
-        
+
         <!-- 特性介绍 -->
         <div class="features-list">
           <div class="feature-item">
@@ -21,7 +21,7 @@
               <p>支持多个AI智能体同时工作，提升开发效率</p>
             </div>
           </div>
-          
+
           <div class="feature-item">
             <div class="feature-icon">💬</div>
             <div class="feature-content">
@@ -29,7 +29,7 @@
               <p>类似微信的群聊功能，团队实时沟通协作</p>
             </div>
           </div>
-          
+
           <div class="feature-item">
             <div class="feature-icon">📁</div>
             <div class="feature-content">
@@ -37,7 +37,7 @@
               <p>统一管理多个项目模块，版本控制集成</p>
             </div>
           </div>
-          
+
           <div class="feature-item">
             <div class="feature-icon">🔄</div>
             <div class="feature-content">
@@ -46,14 +46,14 @@
             </div>
           </div>
         </div>
-        
+
         <!-- 版本信息 -->
         <div class="version-info">
           <span class="version-text">Version {{ version }}</span>
         </div>
       </div>
     </div>
-    
+
     <!-- 右侧登录区域 -->
     <div class="login-section">
       <div class="login-content">
@@ -63,24 +63,24 @@
             <h2 class="login-title">欢迎回来</h2>
             <p class="login-subtitle">请选择登录方式</p>
           </div>
-          
+
           <!-- 登录方式切换 -->
           <div class="login-tabs">
-            <button 
+            <button
               class="tab-button"
               :class="{ active: loginType === 'token' }"
               @click="loginType = 'token'"
             >
               Token登录
             </button>
-            <button 
+            <button
               class="tab-button"
               :class="{ active: loginType === 'password' }"
               @click="loginType = 'password'"
             >
               密码登录
             </button>
-            <button 
+            <button
               class="tab-button"
               :class="{ active: loginType === 'ad' }"
               @click="loginType = 'ad'"
@@ -90,15 +90,10 @@
               <span class="coming-soon">即将支持</span>
             </button>
           </div>
-          
+
           <!-- Token登录表单 -->
           <div v-if="loginType === 'token'" class="login-form">
-            <n-form
-              ref="tokenFormRef"
-              :model="tokenForm"
-              :rules="tokenRules"
-              size="large"
-            >
+            <n-form ref="tokenFormRef" :model="tokenForm" :rules="tokenRules" size="large">
               <n-form-item path="token" label="访问令牌">
                 <n-input
                   v-model:value="tokenForm.token"
@@ -111,13 +106,16 @@
                   <template #prefix>
                     <n-icon>
                       <svg viewBox="0 0 24 24">
-                        <path fill="currentColor" d="M7,14A2,2 0 0,1 5,12A2,2 0 0,1 7,10A2,2 0 0,1 9,12A2,2 0 0,1 7,14M12.65,10C11.83,7.67 9.61,6 7,6A6,6 0 0,0 1,12A6,6 0 0,0 7,18C9.61,18 11.83,16.33 12.65,14H17V18H21V14H23V10H12.65Z"/>
+                        <path
+                          fill="currentColor"
+                          d="M7,14A2,2 0 0,1 5,12A2,2 0 0,1 7,10A2,2 0 0,1 9,12A2,2 0 0,1 7,14M12.65,10C11.83,7.67 9.61,6 7,6A6,6 0 0,0 1,12A6,6 0 0,0 7,18C9.61,18 11.83,16.33 12.65,14H17V18H21V14H23V10H12.65Z"
+                        />
                       </svg>
                     </n-icon>
                   </template>
                 </n-input>
               </n-form-item>
-              
+
               <n-form-item>
                 <n-button
                   type="primary"
@@ -130,14 +128,17 @@
                 </n-button>
               </n-form-item>
             </n-form>
-            
+
             <!-- Token说明 -->
             <div class="token-help">
               <n-alert type="info" :show-icon="false">
                 <template #header>
-                  <n-icon style="margin-right: 8px;">
+                  <n-icon style="margin-right: 8px">
                     <svg viewBox="0 0 24 24">
-                      <path fill="currentColor" d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"/>
+                      <path
+                        fill="currentColor"
+                        d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"
+                      />
                     </svg>
                   </n-icon>
                   Token登录说明
@@ -151,15 +152,10 @@
               </n-alert>
             </div>
           </div>
-          
+
           <!-- 密码登录表单 -->
           <div v-if="loginType === 'password'" class="login-form">
-            <n-form
-              ref="passwordFormRef"
-              :model="passwordForm"
-              :rules="passwordRules"
-              size="large"
-            >
+            <n-form ref="passwordFormRef" :model="passwordForm" :rules="passwordRules" size="large">
               <n-form-item path="username" label="用户名">
                 <n-input
                   v-model:value="passwordForm.username"
@@ -170,13 +166,16 @@
                   <template #prefix>
                     <n-icon>
                       <svg viewBox="0 0 24 24">
-                        <path fill="currentColor" d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+                        <path
+                          fill="currentColor"
+                          d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
+                        />
                       </svg>
                     </n-icon>
                   </template>
                 </n-input>
               </n-form-item>
-              
+
               <n-form-item path="password" label="密码">
                 <n-input
                   v-model:value="passwordForm.password"
@@ -189,13 +188,16 @@
                   <template #prefix>
                     <n-icon>
                       <svg viewBox="0 0 24 24">
-                        <path fill="currentColor" d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"/>
+                        <path
+                          fill="currentColor"
+                          d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"
+                        />
                       </svg>
                     </n-icon>
                   </template>
                 </n-input>
               </n-form-item>
-              
+
               <n-form-item>
                 <n-button
                   type="primary"
@@ -209,13 +211,16 @@
               </n-form-item>
             </n-form>
           </div>
-          
+
           <!-- AD登录表单（预留） -->
           <div v-if="loginType === 'ad'" class="login-form">
             <div class="coming-soon-content">
-              <n-icon size="48" color="#ccc">
+              <n-icon size="48" :color="'var(--text-disabled)'">
                 <svg viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M12,7C13.4,7 14.8,8.6 14.8,10V11.5C15.4,11.5 16,12.4 16,13V16C16,17.4 15.4,18 14.8,18H9.2C8.6,18 8,17.4 8,16V13C8,12.4 8.6,11.5 9.2,11.5V10C9.2,8.6 10.6,7 12,7M12,8.2C11.2,8.2 10.5,8.7 10.5,10V11.5H13.5V10C13.5,8.7 12.8,8.2 12,8.2Z"/>
+                  <path
+                    fill="currentColor"
+                    d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M12,7C13.4,7 14.8,8.6 14.8,10V11.5C15.4,11.5 16,12.4 16,13V16C16,17.4 15.4,18 14.8,18H9.2C8.6,18 8,17.4 8,16V13C8,12.4 8.6,11.5 9.2,11.5V10C9.2,8.6 10.6,7 12,7M12,8.2C11.2,8.2 10.5,8.7 10.5,10V11.5H13.5V10C13.5,8.7 12.8,8.2 12,8.2Z"
+                  />
                 </svg>
               </n-icon>
               <h3>AD登录功能开发中</h3>
@@ -301,22 +306,21 @@ const passwordRules: FormRules = {
 // Token登录处理
 const handleTokenLogin = async () => {
   if (!tokenFormRef.value) return
-  
+
   try {
     await tokenFormRef.value.validate()
     isLoading.value = true
-    
+
     // 调用用户store的token登录方法
     await userStore.loginWithToken(tokenForm.token)
-    
+
     message.success('登录成功！')
-    
+
     // 跳转到主页面
     router.push('/')
-    
   } catch (error: any) {
     console.error('Token登录失败:', error)
-    
+
     if (error?.message) {
       message.error(error.message)
     } else if (typeof error === 'string') {
@@ -332,22 +336,21 @@ const handleTokenLogin = async () => {
 // 密码登录处理
 const handlePasswordLogin = async () => {
   if (!passwordFormRef.value) return
-  
+
   try {
     await passwordFormRef.value.validate()
     isLoading.value = true
-    
+
     // 调用用户store的密码登录方法
     await userStore.loginWithPassword(passwordForm.username, passwordForm.password)
-    
+
     message.success('登录成功！')
-    
+
     // 跳转到主页面
     router.push('/')
-    
   } catch (error: any) {
     console.error('密码登录失败:', error)
-    
+
     if (error?.message) {
       message.error(error.message)
     } else if (typeof error === 'string') {
@@ -388,7 +391,7 @@ onMounted(async () => {
   padding: 40px;
   position: relative;
   overflow: hidden;
-  
+
   // 背景装饰
   &::before {
     content: '';
@@ -397,14 +400,21 @@ onMounted(async () => {
     left: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
     animation: float 20s ease-in-out infinite;
   }
-  
+
   @keyframes float {
-    0%, 100% { transform: translate(0, 0) rotate(0deg); }
-    33% { transform: translate(30px, -30px) rotate(120deg); }
-    66% { transform: translate(-20px, 20px) rotate(240deg); }
+    0%,
+    100% {
+      transform: translate(0, 0) rotate(0deg);
+    }
+    33% {
+      transform: translate(30px, -30px) rotate(120deg);
+    }
+    66% {
+      transform: translate(-20px, 20px) rotate(240deg);
+    }
   }
 }
 
@@ -418,23 +428,28 @@ onMounted(async () => {
 
 .brand-header {
   margin-bottom: 60px;
-  
+
   .logo-container {
     margin-bottom: 24px;
-    
+
     .brand-logo {
       width: 120px;
       height: 120px;
       filter: brightness(0) invert(1);
       animation: pulse 2s ease-in-out infinite;
     }
-    
+
     @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.05); }
+      0%,
+      100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.05);
+      }
     }
   }
-  
+
   .brand-title {
     font-size: 4rem;
     font-weight: 700;
@@ -443,9 +458,9 @@ onMounted(async () => {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   }
-  
+
   .brand-subtitle {
     font-size: 1.25rem;
     opacity: 0.9;
@@ -458,7 +473,7 @@ onMounted(async () => {
   display: grid;
   gap: 24px;
   margin-bottom: 40px;
-  
+
   .feature-item {
     display: flex;
     align-items: flex-start;
@@ -469,27 +484,27 @@ onMounted(async () => {
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
     transition: all 0.3s ease;
-    
+
     &:hover {
       transform: translateY(-2px);
       background: rgba(255, 255, 255, 0.15);
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     }
-    
+
     .feature-icon {
       font-size: 2rem;
       flex-shrink: 0;
     }
-    
+
     .feature-content {
       text-align: left;
-      
+
       h3 {
         margin: 0 0 8px 0;
         font-size: 1.1rem;
         font-weight: 600;
       }
-      
+
       p {
         margin: 0;
         opacity: 0.8;
@@ -503,7 +518,7 @@ onMounted(async () => {
 .version-info {
   opacity: 0.7;
   font-size: 0.9rem;
-  
+
   .version-text {
     padding: 8px 16px;
     background: rgba(255, 255, 255, 0.1);
@@ -539,14 +554,14 @@ onMounted(async () => {
 .login-header {
   text-align: center;
   margin-bottom: 32px;
-  
+
   .login-title {
     font-size: 1.75rem;
     font-weight: 600;
     color: var(--text-primary);
     margin: 0 0 8px 0;
   }
-  
+
   .login-subtitle {
     color: var(--text-secondary);
     margin: 0;
@@ -561,7 +576,7 @@ onMounted(async () => {
   padding: 4px;
   background: var(--bg-tertiary);
   border-radius: 8px;
-  
+
   .tab-button {
     flex: 1;
     padding: 12px 16px;
@@ -574,23 +589,23 @@ onMounted(async () => {
     font-size: 0.9rem;
     font-weight: 500;
     position: relative;
-    
+
     &:hover:not(:disabled) {
       background: var(--bg-hover);
       color: var(--text-primary);
     }
-    
+
     &.active {
       background: var(--color-primary);
       color: white;
       box-shadow: var(--shadow-sm);
     }
-    
+
     &:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
-    
+
     .coming-soon {
       display: block;
       font-size: 0.7rem;
@@ -603,21 +618,21 @@ onMounted(async () => {
 .login-form {
   .token-help {
     margin-top: 24px;
-    
+
     .help-list {
       margin: 8px 0 0 0;
       padding-left: 16px;
-      
+
       li {
         margin-bottom: 4px;
         font-size: 0.85rem;
         line-height: 1.4;
-        
+
         &:last-child {
           margin-bottom: 0;
         }
       }
-      
+
       code {
         background: var(--bg-tertiary);
         padding: 2px 6px;
@@ -635,12 +650,12 @@ onMounted(async () => {
   text-align: center;
   padding: 40px 20px;
   color: var(--text-tertiary);
-  
+
   h3 {
     margin: 16px 0 8px 0;
     color: var(--text-secondary);
   }
-  
+
   p {
     margin: 0;
     font-size: 0.9rem;
@@ -653,26 +668,26 @@ onMounted(async () => {
   .login-container {
     flex-direction: column;
   }
-  
+
   .brand-section {
     flex: none;
     min-height: 40vh;
     padding: 20px;
-    
+
     .brand-header .brand-title {
       font-size: 3rem;
     }
-    
+
     .features-list {
       display: none; // 在小屏幕上隐藏特性列表
     }
   }
-  
+
   .login-section {
     flex: none;
     padding: 20px;
   }
-  
+
   .login-form-container {
     padding: 24px;
   }
@@ -682,7 +697,7 @@ onMounted(async () => {
   .brand-header .brand-title {
     font-size: 2.5rem;
   }
-  
+
   .login-form-container {
     padding: 20px;
   }

@@ -1,17 +1,21 @@
 <template>
-  <div class="chat-room" 
-       @dragover="handleDragOver" 
-       @drop="handleDrop"
-       @dragenter="handleDragEnter"
-       @dragleave="handleDragLeave"
-       :class="{ 'drag-active': isDragActive }">
-    
+  <div
+    class="chat-room"
+    @dragover="handleDragOver"
+    @drop="handleDrop"
+    @dragenter="handleDragEnter"
+    @dragleave="handleDragLeave"
+    :class="{ 'drag-active': isDragActive }"
+  >
     <!-- 拖拽覆盖层 -->
     <div v-if="isDragActive" class="drag-overlay">
       <div class="drag-content">
         <n-icon size="48" :color="'var(--color-success)'">
           <svg viewBox="0 0 24 24">
-            <path fill="currentColor" d="M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M21,19L16,10L11,17L7,13L3,19H21Z"/>
+            <path
+              fill="currentColor"
+              d="M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19M21,19L16,10L11,17L7,13L3,19H21Z"
+            />
           </svg>
         </n-icon>
         <h3>释放文件以上传图片</h3>
@@ -27,17 +31,14 @@
           <span class="message-count">{{ messages.length }} 条消息</span>
         </div>
         <div class="toolbar-right">
-          <MessageSearch 
-            :messages="messages" 
-            @scroll-to-message="scrollToMessage"
-          />
+          <MessageSearch :messages="messages" @scroll-to-message="scrollToMessage" />
         </div>
       </div>
-      
-      <div 
+
+      <div
         ref="messagesListRef"
         class="messages-list"
-        :class="{ 
+        :class="{
           'has-history-status': isLoadingHistory || (!hasMoreHistory && messages.length > 0),
           'no-scroll-animation': isInitialLoad
         }"
@@ -48,25 +49,30 @@
           <n-spin size="small" />
           <span>加载历史消息...</span>
         </div>
-        
-        <template v-for="(message, index) in visibleMessages" :key="message.id">
+
+        <template v-for="message in visibleMessages" :key="message.id">
           <div
-            :class="['message-item', {
-              'message-self': message.senderId === currentUser.username,
-              'message-other': message.senderId !== currentUser.username,
-            }]"
+            :class="[
+              'message-item',
+              {
+                'message-self': message.senderId === currentUser.username,
+                'message-other': message.senderId !== currentUser.username
+              }
+            ]"
           >
             <MessageItem :message="message" />
           </div>
         </template>
-        
+
         <!-- 历史消息分割线 -->
-        <div 
+        <div
           v-if="messages.length > 0 && shouldShowDivider && hiddenHistoryCount > 0"
           class="history-divider"
         >
           <div class="divider-content">
-            <span class="divider-text">{{ getDividerText }} · {{ hiddenHistoryCount }}条历史消息</span>
+            <span class="divider-text"
+              >{{ getDividerText }} · {{ hiddenHistoryCount }}条历史消息</span
+            >
           </div>
         </div>
       </div>
@@ -78,7 +84,10 @@
         <template #icon>
           <n-icon>
             <svg viewBox="0 0 24 24">
-              <path fill="currentColor" d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,9H13V7H11M11,17H13V11H11V17Z"/>
+              <path
+                fill="currentColor"
+                d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,9H13V7H11M11,17H13V11H11V17Z"
+              />
             </svg>
           </n-icon>
         </template>
@@ -92,8 +101,8 @@
     </div>
 
     <!-- 输入区域 -->
-    <ChatInput 
-      :is-connected="isConnected" 
+    <ChatInput
+      :is-connected="isConnected"
       :namespace="props.namespace"
       @send="handleSend"
       @send-image="handleSendImage"
@@ -127,7 +136,15 @@ const props = withDefaults(defineProps<Props>(), {
 // 状态管理
 const chatStore = useChatStore()
 const userStore = useUserStore()
-const { messages, onlineUsers, typingUsers, isConnected, isLoadingHistory, hasMoreHistory, sessionStartTime } = storeToRefs(chatStore)
+const {
+  messages,
+  // onlineUsers, // 暂未使用
+  // typingUsers, // 暂未使用
+  isConnected,
+  isLoadingHistory,
+  hasMoreHistory
+  // sessionStartTime // 暂未使用
+} = storeToRefs(chatStore)
 const { currentUser } = storeToRefs(userStore)
 const message = useMessage()
 
@@ -138,8 +155,7 @@ const isDragActive = ref(false)
 const dragCounter = ref(0)
 const isUserScrolling = ref(false)
 const shouldAutoScroll = ref(true)
-const showSearch = ref(false)
-const showStats = ref(false)
+// const showSearch = ref(false) // 暂未使用
 const isInitialLoad = ref(true) // 标记是否为初始加载
 
 // 默认显示的消息条数
@@ -151,10 +167,12 @@ const getHistoryMessageEndIndex = () => {
     // 如果总消息数不超过默认显示数，不显示分割线
     return -1
   }
-  
+
   // 返回第50条消息的索引（从后往前数）
   const endIndex = messages.value.length - DEFAULT_VISIBLE_MESSAGES - 1
-  console.log(`📊 按条数分割: 总消息${messages.value.length}条，分割点索引${endIndex}，显示最新${DEFAULT_VISIBLE_MESSAGES}条`)
+  console.log(
+    `📊 按条数分割: 总消息${messages.value.length}条，分割点索引${endIndex}，显示最新${DEFAULT_VISIBLE_MESSAGES}条`
+  )
   return endIndex
 }
 
@@ -164,11 +182,11 @@ const getDividerText = computed(() => {
   if (endIndex === -1 || messages.value.length === 0) {
     return '1小时前'
   }
-  
+
   if (endIndex === -1) {
     return '最近消息'
   }
-  
+
   // 获取历史消息数量
   const historyCount = endIndex + 1
   return `${historyCount}条历史消息`
@@ -185,7 +203,7 @@ const visibleMessages = computed(() => {
   if (messages.value.length <= DEFAULT_VISIBLE_MESSAGES) {
     return messages.value
   }
-  
+
   // 只显示最新的50条消息
   return messages.value.slice(-DEFAULT_VISIBLE_MESSAGES)
 })
@@ -196,7 +214,7 @@ const hiddenHistoryCount = computed(() => {
   if (messages.value.length === 0 || messages.value.length <= DEFAULT_VISIBLE_MESSAGES) {
     return 0
   }
-  
+
   return messages.value.length - DEFAULT_VISIBLE_MESSAGES
 })
 
@@ -235,10 +253,10 @@ const scrollToBottom = () => {
   if (messagesListRef.value) {
     const container = messagesListRef.value
     container.scrollTop = container.scrollHeight
-    console.log('📜 滚动到底部:', { 
-      scrollTop: container.scrollTop, 
+    console.log('📜 滚动到底部:', {
+      scrollTop: container.scrollTop,
       scrollHeight: container.scrollHeight,
-      clientHeight: container.clientHeight 
+      clientHeight: container.clientHeight
     })
   }
 }
@@ -247,12 +265,12 @@ const scrollToBottom = () => {
 const forceScrollToBottom = () => {
   // 立即滚动一次
   scrollToBottom()
-  
+
   // 使用nextTick再滚动一次，确保DOM更新完成
   nextTick(() => {
     scrollToBottom()
     shouldAutoScroll.value = true // 重置自动滚动标志
-    
+
     // 再用setTimeout确保完全渲染后滚动
     setTimeout(() => {
       scrollToBottom()
@@ -264,12 +282,12 @@ const forceScrollToBottom = () => {
 // 调试方法：检查滚动状态
 const checkScrollStatus = () => {
   console.log('🔍 开始检查滚动状态...')
-  
+
   if (messagesListRef.value) {
     const container = messagesListRef.value
     const { scrollTop, scrollHeight, clientHeight } = container
     const isAtBottom = scrollHeight - scrollTop - clientHeight < 10
-    
+
     console.log('🔍 滚动状态检查:', {
       scrollTop,
       scrollHeight,
@@ -279,7 +297,7 @@ const checkScrollStatus = () => {
       消息数量: messages.value.length,
       容器存在: !!container
     })
-    
+
     return isAtBottom
   } else {
     console.log('❌ messagesListRef不存在，无法检查滚动状态')
@@ -297,7 +315,7 @@ const testComponentStatus = () => {
   console.log('- isUserScrolling:', isUserScrolling.value)
   console.log('- currentUser:', currentUser.value.username)
   console.log('- namespace:', props.namespace)
-  
+
   if (messagesListRef.value) {
     const container = messagesListRef.value
     console.log('- 容器尺寸:', {
@@ -311,7 +329,7 @@ const testComponentStatus = () => {
 
 // 在开发环境下暴露测试方法到全局
 if (import.meta.env.DEV) {
-  (window as any).testChatRoom = {
+  ;(window as any).testChatRoom = {
     checkScrollStatus,
     testComponentStatus,
     scrollToBottom,
@@ -324,9 +342,9 @@ if (import.meta.env.DEV) {
 // 处理滚动事件
 const handleScroll = () => {
   if (!messagesListRef.value) return
-  
+
   const { scrollTop, scrollHeight, clientHeight } = messagesListRef.value
-  
+
   // 检查是否滚动到顶部
   if (scrollTop === 0) {
     // 如果还有更多历史消息，自动加载
@@ -335,17 +353,17 @@ const handleScroll = () => {
       loadMoreHistory()
     }
   }
-  
+
   // 检查用户是否在底部附近（允许一些误差）
   const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
   shouldAutoScroll.value = isNearBottom
-  
+
   // 标记用户正在滚动
   isUserScrolling.value = true
   setTimeout(() => {
     isUserScrolling.value = false
   }, 150)
-  
+
   console.log('📜 滚动状态:', {
     scrollTop,
     isNearBottom,
@@ -357,12 +375,12 @@ const handleScroll = () => {
 // 加载更多历史消息
 const loadMoreHistory = async () => {
   if (!messagesListRef.value) return
-  
+
   const previousScrollHeight = messagesListRef.value.scrollHeight
-  
+
   try {
     await chatStore.loadMoreHistory()
-    
+
     // 加载完成后，保持滚动位置
     nextTick(() => {
       if (messagesListRef.value) {
@@ -378,63 +396,73 @@ const loadMoreHistory = async () => {
 }
 
 // 监听消息变化，自动滚动到底部
-watch(messages, (newMessages, oldMessages) => {
-  console.log('📨 消息变化触发:', { 
-    新消息数量: newMessages.length, 
-    旧消息数量: oldMessages?.length || 0,
-    是否初始加载: isInitialLoad.value,
-    shouldAutoScroll: shouldAutoScroll.value,
-    isUserScrolling: isUserScrolling.value
-  })
-  
-  // 打印前几条消息内容用于调试
-  if (newMessages.length > 0) {
-    console.log('📋 消息列表预览:', newMessages.slice(0, 3).map(m => ({
-      id: m.id,
-      content: m.content?.substring(0, 50) + '...',
-      timestamp: m.timestamp
-    })))
-  }
-  
-  if (isInitialLoad.value) {
-    console.log('🔄 处理初始加载滚动...')
-    // 初始加载，等待DOM渲染完成后滚动
-    setTimeout(() => {
-      console.log('🔄 开始初始滚动...')
-      console.log('📦 messagesListRef状态:', messagesListRef.value ? '已绑定' : '未绑定')
-      
-      if (messagesListRef.value) {
-        checkScrollStatus() // 滚动前检查状态
-        forceScrollToBottom()
-        
-        // 滚动后再次检查
-        setTimeout(() => {
-          const isAtBottom = checkScrollStatus()
-          if (!isAtBottom) {
-            console.log('⚠️ 滚动后仍未到底部，再次尝试滚动')
-            scrollToBottom()
-          }
-          
-          // 完成初始加载，重新启用滚动动画
+watch(
+  messages,
+  (newMessages, oldMessages) => {
+    console.log('📨 消息变化触发:', {
+      新消息数量: newMessages.length,
+      旧消息数量: oldMessages?.length || 0,
+      是否初始加载: isInitialLoad.value,
+      shouldAutoScroll: shouldAutoScroll.value,
+      isUserScrolling: isUserScrolling.value
+    })
+
+    // 打印前几条消息内容用于调试
+    if (newMessages.length > 0) {
+      console.log(
+        '📋 消息列表预览:',
+        newMessages.slice(0, 3).map((m) => ({
+          id: m.id,
+          content: m.content?.substring(0, 50) + '...',
+          timestamp: m.timestamp
+        }))
+      )
+    }
+
+    if (isInitialLoad.value) {
+      console.log('🔄 处理初始加载滚动...')
+      // 初始加载，等待DOM渲染完成后滚动
+      setTimeout(() => {
+        console.log('🔄 开始初始滚动...')
+        console.log('📦 messagesListRef状态:', messagesListRef.value ? '已绑定' : '未绑定')
+
+        if (messagesListRef.value) {
+          checkScrollStatus() // 滚动前检查状态
+          forceScrollToBottom()
+
+          // 滚动后再次检查
+          setTimeout(() => {
+            const isAtBottom = checkScrollStatus()
+            if (!isAtBottom) {
+              console.log('⚠️ 滚动后仍未到底部，再次尝试滚动')
+              scrollToBottom()
+            }
+
+            // 完成初始加载，重新启用滚动动画
+            isInitialLoad.value = false
+            console.log('✅ 初始加载完成，已滚动到底部，重新启用滚动动画')
+          }, 100)
+        } else {
+          console.log('❌ messagesListRef未绑定，无法滚动')
+          // 即使失败也要重置状态
           isInitialLoad.value = false
-          console.log('✅ 初始加载完成，已滚动到底部，重新启用滚动动画')
-        }, 100)
-      } else {
-        console.log('❌ messagesListRef未绑定，无法滚动')
-        // 即使失败也要重置状态
-        isInitialLoad.value = false
-      }
-    }, 300) // 增加延迟时间
-  } else if (shouldAutoScroll.value && !isUserScrolling.value) {
-    console.log('📨 处理新消息滚动...')
-    // 新消息，立即滚动
-    setTimeout(() => {
-      scrollToBottom()
-    }, 50)
-  } else {
-    console.log('⏸️ 跳过滚动:', { shouldAutoScroll: shouldAutoScroll.value, isUserScrolling: isUserScrolling.value })
-  }
-}, { deep: true, flush: 'post' }) // 使用post flush确保DOM更新后执行
+        }
+      }, 300) // 增加延迟时间
+    } else if (shouldAutoScroll.value && !isUserScrolling.value) {
+      console.log('📨 处理新消息滚动...')
+      // 新消息，立即滚动
+      setTimeout(() => {
+        scrollToBottom()
+      }, 50)
+    } else {
+      console.log('⏸️ 跳过滚动:', {
+        shouldAutoScroll: shouldAutoScroll.value,
+        isUserScrolling: isUserScrolling.value
+      })
+    }
+  },
+  { deep: true, flush: 'post' }
+) // 使用post flush确保DOM更新后执行
 
 // 处理拖拽相关事件
 const handleDragEnter = (e: DragEvent) => {
@@ -462,38 +490,38 @@ const handleDrop = async (e: DragEvent) => {
   e.preventDefault()
   isDragActive.value = false
   dragCounter.value = 0
-  
+
   if (!e.dataTransfer?.files.length) return
-  
+
   const droppedFiles = Array.from(e.dataTransfer.files)
-  
+
   // 直接上传文件
   for (const file of droppedFiles) {
     if (!file.type.startsWith('image/')) {
       message.warning(`文件 ${file.name} 不是图片格式`)
       continue
     }
-    
+
     // 检查文件大小限制 (5MB)
     if (file.size > 5 * 1024 * 1024) {
       message.error(`图片 ${file.name} 超过5MB限制`)
       continue
     }
-    
+
     try {
       // 上传文件到服务器
       const formData = new FormData()
       formData.append('file', file)
-      
-      const response = await fetch(`http://localhost:8080/api/v1/users/${currentUser.value.username}/files`, {
+
+      const response = await fetch(`http://localhost:8080/api/v1/files`, {
         method: 'POST',
         body: formData
       })
-      
+
       if (!response.ok) throw new Error('上传失败')
-      
+
       const data = await response.json()
-      
+
       // 处理后端返回的数据结构
       if (data.success && data.files && data.files.length > 0) {
         const uploadedFile = data.files[0]
@@ -513,11 +541,11 @@ const handleDrop = async (e: DragEvent) => {
 const scrollToMessage = (messageId: string) => {
   const messageElement = document.querySelector(`[data-message-id="${messageId}"]`)
   if (messageElement && messagesListRef.value) {
-    messageElement.scrollIntoView({ 
-      behavior: 'smooth', 
-      block: 'center' 
+    messageElement.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
     })
-    
+
     // 高亮显示目标消息
     messageElement.classList.add('message-highlight')
     setTimeout(() => {
@@ -527,62 +555,71 @@ const scrollToMessage = (messageId: string) => {
 }
 
 // 监听namespace变化，重新连接聊天室
-watch(() => props.namespace, async (newNamespace, oldNamespace) => {
-  if (newNamespace !== oldNamespace && newNamespace) {
-    console.log('🔄 Namespace变化，重新连接聊天室:', { from: oldNamespace, to: newNamespace })
-    
-    try {
-      // 重置初始加载标志
-      isInitialLoad.value = true
-      
-      // 断开当前连接
-      chatStore.disconnect()
-      
-      // 等待一小段时间确保连接完全断开
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
-      // 连接到新的namespace
-      await chatStore.connect(newNamespace)
-      
-      // 连接成功后，等待消息加载完成再滚动
-      // 消息变化的watch会处理滚动
-      console.log('✅ 成功切换到新的聊天室:', newNamespace, '等待消息加载...')
-    } catch (error) {
-      console.error('❌ 切换聊天室失败:', error)
-      message.error(`切换到 ${newNamespace} 聊天室失败`)
+watch(
+  () => props.namespace,
+  async (newNamespace, oldNamespace) => {
+    if (newNamespace !== oldNamespace && newNamespace) {
+      console.log('🔄 Namespace变化，重新连接聊天室:', { from: oldNamespace, to: newNamespace })
+
+      try {
+        // 重置初始加载标志
+        isInitialLoad.value = true
+
+        // 断开当前连接
+        chatStore.disconnect()
+
+        // 等待一小段时间确保连接完全断开
+        await new Promise((resolve) => setTimeout(resolve, 100))
+
+        // 连接到新的namespace
+        await chatStore.connect(newNamespace)
+
+        // 连接成功后，等待消息加载完成再滚动
+        // 消息变化的watch会处理滚动
+        console.log('✅ 成功切换到新的聊天室:', newNamespace, '等待消息加载...')
+      } catch (error) {
+        console.error('❌ 切换聊天室失败:', error)
+        message.error(`切换到 ${newNamespace} 聊天室失败`)
+      }
     }
-  }
-}, { immediate: false })
+  },
+  { immediate: false }
+)
 
 // 生命周期
 onMounted(async () => {
   console.log('🚀 ChatRoom组件开始挂载')
   console.log('📋 Props:', { namespace: props.namespace, showStats: props.showStats })
   console.log('👤 当前用户:', currentUser.value.username)
-  
+
   try {
-    console.log('🚀 ChatRoom挂载，连接聊天室:', props.namespace, '用户:', currentUser.value.username)
-    
+    console.log(
+      '🚀 ChatRoom挂载，连接聊天室:',
+      props.namespace,
+      '用户:',
+      currentUser.value.username
+    )
+
     // 确保初始加载标志为true
     isInitialLoad.value = true
     console.log('🔄 设置初始加载标志为true')
-    
+
     // 检查messagesListRef是否正确绑定
     console.log('📦 messagesListRef引用:', messagesListRef.value)
-    
+
     await chatStore.connect(props.namespace)
-    
+
     // 连接成功后，等待消息加载完成再滚动
     // 消息变化的watch会处理滚动
     console.log('✅ 聊天室连接成功，等待消息加载...')
     console.log('📨 当前消息数量:', messages.value.length)
-    
+
     // 额外的保险措施：延迟检查并滚动
     setTimeout(() => {
       console.log('🔍 延迟检查滚动状态...')
       console.log('📦 messagesListRef引用检查:', messagesListRef.value)
       console.log('📨 消息数量检查:', messages.value.length)
-      
+
       if (messagesListRef.value && messages.value.length > 0) {
         const isAtBottom = checkScrollStatus()
         if (!isAtBottom) {
@@ -595,7 +632,6 @@ onMounted(async () => {
         console.log('messages.length:', messages.value.length)
       }
     }, 1000) // 1秒后检查
-    
   } catch (error) {
     console.error('❌ 连接聊天室失败:', error)
     message.error('连接失败')
@@ -616,8 +652,10 @@ onUnmounted(() => {
   color: var(--text-primary);
   position: relative;
   overflow: hidden; // 防止整体滚动
-  transition: background-color 0.3s ease, color 0.3s ease;
-  
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+
   &.drag-active {
     .drag-overlay {
       opacity: 1;
@@ -644,17 +682,17 @@ onUnmounted(() => {
   border: 3px dashed var(--color-success);
   border-radius: 8px;
   margin: 8px;
-  
+
   .drag-content {
     text-align: center;
     color: var(--color-success);
-    
+
     h3 {
       margin: 16px 0 8px 0;
       font-size: 20px;
       font-weight: 600;
     }
-    
+
     p {
       margin: 0;
       font-size: 14px;
@@ -669,7 +707,7 @@ onUnmounted(() => {
   flex-direction: column;
   overflow: hidden; // 防止容器本身滚动
   min-height: 0; // 允许flex子项收缩
-  
+
   .messages-toolbar {
     flex-shrink: 0; // 工具栏不收缩
     background-color: var(--bg-secondary);
@@ -680,8 +718,10 @@ onUnmounted(() => {
     align-items: center;
     justify-content: space-between;
     z-index: 10;
-    transition: background-color 0.3s ease, border-color 0.3s ease;
-    
+    transition:
+      background-color 0.3s ease,
+      border-color 0.3s ease;
+
     .toolbar-left {
       .message-count {
         font-size: 12px;
@@ -689,14 +729,14 @@ onUnmounted(() => {
         font-weight: 500;
       }
     }
-    
+
     .toolbar-right {
       display: flex;
       align-items: center;
       gap: 8px;
     }
   }
-  
+
   .messages-list {
     flex: 1;
     overflow-y: auto;
@@ -705,12 +745,12 @@ onUnmounted(() => {
     flex-direction: column;
     gap: 16px;
     scroll-behavior: smooth;
-    
+
     // 禁用滚动动画的类
     &.no-scroll-animation {
       scroll-behavior: auto !important;
     }
-    
+
     // 历史消息加载提示
     .loading-history {
       display: flex;
@@ -727,7 +767,7 @@ onUnmounted(() => {
       backdrop-filter: blur(4px);
       transition: all 0.3s ease;
     }
-    
+
     // 历史消息分割线
     .history-divider {
       display: flex;
@@ -736,7 +776,7 @@ onUnmounted(() => {
       padding: 16px 0;
       margin: 12px 0;
       position: relative;
-      
+
       .divider-content {
         display: flex;
         align-items: center;
@@ -749,53 +789,53 @@ onUnmounted(() => {
         border-radius: 20px;
         font-size: 12px;
         z-index: 2;
-        
+
         .divider-text {
           white-space: nowrap;
         }
-          font-size: 14px;
-          opacity: 0.7;
-          transition: all 0.3s ease;
-        }
-        
-        // 分割线效果
-        &::before {
-          content: '';
-          position: absolute;
-          top: 50%;
-          left: -200px;
-          right: -200px;
-          height: 1px;
-          background: linear-gradient(
-            to right,
-            transparent,
-            var(--border-primary) 20%,
-            var(--border-primary) 80%,
-            transparent
-          );
-          z-index: 1;
-        }
+        font-size: 14px;
+        opacity: 0.7;
+        transition: all 0.3s ease;
       }
-      
+
       // 分割线效果
       &::before {
         content: '';
         position: absolute;
         top: 50%;
-        left: 0;
-        right: 0;
+        left: -200px;
+        right: -200px;
         height: 1px;
         background: linear-gradient(
-          90deg,
-          transparent 0%,
+          to right,
+          transparent,
           var(--border-primary) 20%,
           var(--border-primary) 80%,
-          transparent 100%
+          transparent
         );
         z-index: 1;
       }
     }
-  
+
+    // 分割线效果
+    &::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        var(--border-primary) 20%,
+        var(--border-primary) 80%,
+        transparent 100%
+      );
+      z-index: 1;
+    }
+  }
+
   // 移除之前的悬浮样式
   .messages-list.has-history-status {
     // 不再需要额外的padding
@@ -832,7 +872,7 @@ onUnmounted(() => {
   &.message-self {
     align-self: flex-end;
   }
-  
+
   &.message-other {
     align-self: flex-start;
   }

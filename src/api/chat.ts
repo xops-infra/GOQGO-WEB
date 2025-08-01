@@ -16,7 +16,10 @@ export interface SendMessageResponse {
 
 export const chatApi = {
   // 发送消息到聊天室
-  sendMessage: async (namespace: string, data: SendMessageRequest): Promise<SendMessageResponse> => {
+  sendMessage: async (
+    namespace: string,
+    data: SendMessageRequest
+  ): Promise<SendMessageResponse> => {
     const response = await axios.post(`${API_BASE}/namespaces/${namespace}/chat/messages`, {
       content: data.message,
       type: data.type || 'user',
@@ -26,11 +29,15 @@ export const chatApi = {
   },
 
   // 获取聊天历史
-  getChatHistory: async (namespace: string, limit?: number, before?: string): Promise<ChatMessage[]> => {
+  getChatHistory: async (
+    namespace: string,
+    limit?: number,
+    before?: string
+  ): Promise<ChatMessage[]> => {
     const params = new URLSearchParams()
     if (limit) params.append('limit', limit.toString())
     if (before) params.append('before', before)
-    
+
     const response = await axios.get(`${API_BASE}/namespaces/${namespace}/chat/messages?${params}`)
     return response.items || []
   },

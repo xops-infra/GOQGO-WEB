@@ -1,0 +1,443 @@
+// Terminal & 8-bit 主题样式
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+
+// 8-bit 像素字体 (备用方案)
+@font-face {
+  font-family: 'PixelFont';
+  src: url('data:font/woff2;base64,') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+// Terminal 主题变量
+:root {
+  // Terminal 配色方案
+  --terminal-bg: #0d1117;
+  --terminal-bg-secondary: #161b22;
+  --terminal-bg-tertiary: #21262d;
+  --terminal-surface: #30363d;
+  --terminal-border: #21262d;
+  --terminal-border-active: #58a6ff;
+
+  // Terminal 文本颜色
+  --terminal-text: #f0f6fc;
+  --terminal-text-secondary: #c9d1d9;
+  --terminal-text-tertiary: #8b949e;
+  --terminal-text-muted: #6e7681;
+  --terminal-text-inverse: #0d1117;
+
+  // Terminal 命令行颜色
+  --terminal-prompt: #7ee787;
+  --terminal-command: #79c0ff;
+  --terminal-output: #f0f6fc;
+  --terminal-error: #ff7b72;
+  --terminal-warning: #ffa657;
+  --terminal-success: #7ee787;
+  --terminal-info: #39c5cf;
+
+  // 8-bit 游戏风格颜色
+  --pixel-green: #00ff41;
+  --pixel-blue: #0066ff;
+  --pixel-red: #ff0066;
+  --pixel-yellow: #ffff00;
+  --pixel-purple: #cc00ff;
+  --pixel-cyan: #00ffff;
+  --pixel-orange: #ff6600;
+  --pixel-pink: #ff66cc;
+
+  // 霓虹发光效果
+  --neon-glow-green: 0 0 5px #00ff41, 0 0 10px #00ff41, 0 0 15px #00ff41;
+  --neon-glow-blue: 0 0 5px #0066ff, 0 0 10px #0066ff, 0 0 15px #0066ff;
+  --neon-glow-red: 0 0 5px #ff0066, 0 0 10px #ff0066, 0 0 15px #ff0066;
+  --neon-glow-cyan: 0 0 5px #00ffff, 0 0 10px #00ffff, 0 0 15px #00ffff;
+
+  // Terminal 阴影
+  --terminal-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+  --terminal-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.9);
+
+  // 字体定义
+  --font-mono: 'JetBrains Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+  --font-display: 'Orbitron', 'JetBrains Mono', monospace;
+  --font-pixel: 'PixelFont', 'JetBrains Mono', monospace;
+}
+
+// Terminal 主题应用
+[data-theme='terminal'] {
+  --bg-primary: var(--terminal-bg);
+  --bg-secondary: var(--terminal-bg-secondary);
+  --bg-tertiary: var(--terminal-bg-tertiary);
+  --bg-hover: var(--terminal-surface);
+  --bg-active: var(--terminal-border-active);
+  --bg-modal: rgba(13, 17, 23, 0.95);
+  --bg-overlay: rgba(0, 0, 0, 0.8);
+
+  --text-primary: var(--terminal-text);
+  --text-secondary: var(--terminal-text-secondary);
+  --text-tertiary: var(--terminal-text-tertiary);
+  --text-disabled: var(--terminal-text-muted);
+  --text-inverse: var(--terminal-text-inverse);
+
+  --border-primary: var(--terminal-border);
+  --border-secondary: var(--terminal-surface);
+  --border-focus: var(--terminal-border-active);
+
+  --shadow-sm: var(--terminal-shadow);
+  --shadow-md: var(--terminal-shadow);
+  --shadow-lg: var(--terminal-shadow-lg);
+
+  --color-primary: var(--pixel-green);
+  --color-primary-hover: var(--pixel-cyan);
+  --color-primary-active: var(--pixel-blue);
+  --color-success: var(--terminal-success);
+  --color-warning: var(--terminal-warning);
+  --color-error: var(--terminal-error);
+  --color-info: var(--terminal-info);
+}
+
+// 全局字体应用
+body[data-theme='terminal'] {
+  font-family: var(--font-mono);
+  background: var(--terminal-bg);
+  color: var(--terminal-text);
+
+  // 添加扫描线效果
+  &::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(transparent 50%, rgba(0, 255, 65, 0.02) 50%);
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 1000;
+    animation: scanlines 0.1s linear infinite;
+  }
+
+  // 添加CRT显示器效果
+  &::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+      ellipse at center,
+      transparent 0%,
+      transparent 70%,
+      rgba(0, 0, 0, 0.2) 100%
+    );
+    pointer-events: none;
+    z-index: 999;
+  }
+}
+
+// 扫描线动画
+@keyframes scanlines {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(4px);
+  }
+}
+
+// Terminal 组件样式
+.terminal-window {
+  background: var(--terminal-bg);
+  border: 1px solid var(--terminal-border);
+  border-radius: 8px;
+  box-shadow: var(--terminal-shadow-lg);
+  overflow: hidden;
+
+  .terminal-header {
+    background: var(--terminal-bg-secondary);
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--terminal-border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .terminal-controls {
+      display: flex;
+      gap: 6px;
+
+      .control-btn {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+
+        &.close {
+          background: var(--terminal-error);
+        }
+        &.minimize {
+          background: var(--terminal-warning);
+        }
+        &.maximize {
+          background: var(--terminal-success);
+        }
+
+        &:hover {
+          filter: brightness(1.2);
+        }
+      }
+    }
+
+    .terminal-title {
+      color: var(--terminal-text-secondary);
+      font-size: 12px;
+      font-family: var(--font-mono);
+      margin-left: auto;
+    }
+  }
+
+  .terminal-content {
+    background: var(--terminal-bg);
+    padding: 16px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 1.4;
+    min-height: 200px;
+  }
+}
+
+// 8-bit 按钮样式
+.btn-8bit {
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: var(--terminal-bg-secondary);
+  color: var(--pixel-green);
+  border: 2px solid var(--pixel-green);
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+
+  &:hover {
+    background: var(--pixel-green);
+    color: var(--terminal-bg);
+    box-shadow: var(--neon-glow-green);
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &.btn-danger {
+    color: var(--pixel-red);
+    border-color: var(--pixel-red);
+
+    &:hover {
+      background: var(--pixel-red);
+      box-shadow: var(--neon-glow-red);
+    }
+  }
+
+  &.btn-info {
+    color: var(--pixel-cyan);
+    border-color: var(--pixel-cyan);
+
+    &:hover {
+      background: var(--pixel-cyan);
+      box-shadow: var(--neon-glow-cyan);
+    }
+  }
+
+  &.btn-warning {
+    color: var(--pixel-yellow);
+    border-color: var(--pixel-yellow);
+
+    &:hover {
+      background: var(--pixel-yellow);
+      color: var(--terminal-bg);
+    }
+  }
+}
+
+// 霓虹文字效果
+.neon-text {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+
+  &.neon-green {
+    color: var(--pixel-green);
+    text-shadow: var(--neon-glow-green);
+  }
+
+  &.neon-blue {
+    color: var(--pixel-blue);
+    text-shadow: var(--neon-glow-blue);
+  }
+
+  &.neon-red {
+    color: var(--pixel-red);
+    text-shadow: var(--neon-glow-red);
+  }
+
+  &.neon-cyan {
+    color: var(--pixel-cyan);
+    text-shadow: var(--neon-glow-cyan);
+  }
+}
+
+// 命令行提示符样式
+.terminal-prompt {
+  color: var(--terminal-prompt);
+  font-weight: 600;
+
+  &::before {
+    content: '$ ';
+    color: var(--terminal-text-secondary);
+  }
+}
+
+.terminal-command {
+  color: var(--terminal-command);
+}
+
+.terminal-output {
+  color: var(--terminal-output);
+}
+
+.terminal-error {
+  color: var(--terminal-error);
+}
+
+// 8-bit 卡片样式
+.card-8bit {
+  background: var(--terminal-bg-secondary);
+  border: 2px solid var(--terminal-border);
+  border-radius: 0;
+  box-shadow:
+    4px 4px 0 var(--terminal-surface),
+    8px 8px 0 var(--terminal-border);
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translate(-2px, -2px);
+    box-shadow:
+      6px 6px 0 var(--terminal-surface),
+      10px 10px 0 var(--terminal-border);
+  }
+}
+
+// 像素化图标
+.icon-pixel {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+// 闪烁动画
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.blink {
+  animation: blink 1s infinite;
+}
+
+// 打字机效果
+@keyframes typewriter {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.typewriter {
+  overflow: hidden;
+  border-right: 2px solid var(--pixel-green);
+  white-space: nowrap;
+  animation:
+    typewriter 2s steps(40, end),
+    blink 1s infinite step-end;
+}
+
+// 矩阵雨效果背景
+.matrix-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.1;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      var(--pixel-green) 2px,
+      var(--pixel-green) 4px
+    );
+    animation: matrix-rain 20s linear infinite;
+  }
+}
+
+@keyframes matrix-rain {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+// 响应式调整
+@media (max-width: 768px) {
+  .terminal-window {
+    border-radius: 0;
+
+    .terminal-header {
+      padding: 6px 12px;
+
+      .terminal-title {
+        font-size: 11px;
+      }
+    }
+
+    .terminal-content {
+      padding: 12px;
+      font-size: 13px;
+    }
+  }
+
+  .btn-8bit {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .neon-text {
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
+}

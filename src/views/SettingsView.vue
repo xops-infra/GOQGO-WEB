@@ -10,41 +10,35 @@
                 <n-radio value="dark">深色模式</n-radio>
               </n-radio-group>
             </n-form-item>
-            
+
             <n-form-item label="语言设置">
-              <n-select
-                v-model:value="language"
-                :options="languageOptions"
-                style="width: 200px"
-              />
+              <n-select v-model:value="language" :options="languageOptions" style="width: 200px" />
             </n-form-item>
-            
+
             <n-form-item label="自动保存">
               <n-switch v-model:value="autoSave" />
             </n-form-item>
           </n-form>
         </n-tab-pane>
-        
+
         <n-tab-pane name="api" tab="API配置">
           <n-form label-placement="left" label-width="120px">
             <n-form-item label="API地址">
               <n-input v-model:value="apiUrl" placeholder="http://localhost:8080" />
             </n-form-item>
-            
+
             <n-form-item label="超时时间">
               <n-input-number v-model:value="timeout" :min="1000" :max="60000" :step="1000">
                 <template #suffix>ms</template>
               </n-input-number>
             </n-form-item>
-            
+
             <n-form-item label="连接测试">
-              <n-button @click="testConnection" :loading="testing">
-                测试连接
-              </n-button>
+              <n-button @click="testConnection" :loading="testing"> 测试连接 </n-button>
             </n-form-item>
           </n-form>
         </n-tab-pane>
-        
+
         <n-tab-pane name="about" tab="关于">
           <n-space vertical size="large">
             <div class="about-section">
@@ -52,7 +46,7 @@
               <p>版本: 1.0.0</p>
               <p>GoQGo AI智能体协助开发平台的Web前端界面</p>
             </div>
-            
+
             <div class="about-section">
               <h4>技术栈</h4>
               <n-space>
@@ -63,7 +57,7 @@
                 <n-tag>Vite</n-tag>
               </n-space>
             </div>
-            
+
             <div class="about-section">
               <h4>功能特性</h4>
               <ul>
@@ -110,7 +104,7 @@ const testConnection = async () => {
   testing.value = true
   try {
     // 模拟API连接测试
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    await new Promise((resolve) => setTimeout(resolve, 2000))
     console.log('连接测试成功')
   } catch (error) {
     console.error('连接测试失败:', error)
@@ -128,22 +122,23 @@ onMounted(() => {
 <style scoped lang="scss">
 .settings-view {
   max-width: 800px;
-  
+
   .about-section {
-    h3, h4 {
+    h3,
+    h4 {
       margin: 0 0 12px 0;
       color: var(--n-text-color);
     }
-    
+
     p {
       margin: 4px 0;
       color: var(--n-text-color-disabled);
     }
-    
+
     ul {
       margin: 8px 0;
       padding-left: 20px;
-      
+
       li {
         margin: 4px 0;
         color: var(--n-text-color);

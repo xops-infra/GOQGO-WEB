@@ -12,7 +12,7 @@ import { storeToRefs } from 'pinia'
 // 获取当前命名空间
 const namespacesStore = useNamespacesStore()
 const { currentNamespace } = storeToRefs(namespacesStore)
-console.log("currentNamespace", currentNamespace.value)
+console.log('currentNamespace', currentNamespace.value)
 </script>
 
 <style scoped lang="scss">

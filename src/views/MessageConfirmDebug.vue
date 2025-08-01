@@ -5,16 +5,10 @@
         <!-- 连接状态 -->
         <div>
           <n-space>
-            <n-button 
-              type="primary" 
-              @click="connectChat"
-              :disabled="isConnected"
-            >
+            <n-button type="primary" @click="connectChat" :disabled="isConnected">
               连接聊天室
             </n-button>
-            <n-button @click="disconnectChat" :disabled="!isConnected">
-              断开连接
-            </n-button>
+            <n-button @click="disconnectChat" :disabled="!isConnected"> 断开连接 </n-button>
             <n-tag :type="isConnected ? 'success' : 'error'">
               {{ isConnected ? '已连接' : '未连接' }}
             </n-tag>
@@ -24,17 +18,13 @@
         <!-- 发送测试 -->
         <div>
           <n-space>
-            <n-input 
-              v-model:value="testMessage" 
-              placeholder="测试消息" 
-              style="width: 300px;"
+            <n-input
+              v-model:value="testMessage"
+              placeholder="测试消息"
+              style="width: 300px"
               @keyup.enter="sendTestMessage"
             />
-            <n-button 
-              type="primary" 
-              @click="sendTestMessage"
-              :disabled="!isConnected"
-            >
+            <n-button type="primary" @click="sendTestMessage" :disabled="!isConnected">
               发送消息
             </n-button>
           </n-space>
@@ -43,13 +33,11 @@
         <!-- 消息列表 -->
         <div>
           <n-text strong>消息列表：</n-text>
-          <n-card size="small" style="margin-top: 8px;">
-            <div v-if="messages.length === 0" style="text-align: center; color: #999;">
-              暂无消息
-            </div>
+          <n-card size="small" style="margin-top: 8px">
+            <div v-if="messages.length === 0" style="text-align: center; color: #999">暂无消息</div>
             <div v-else>
-              <div 
-                v-for="message in sortedMessages" 
+              <div
+                v-for="message in sortedMessages"
                 :key="message.id"
                 class="debug-message-item"
                 :class="message.status"
@@ -69,13 +57,9 @@
         <!-- 调试日志 -->
         <div>
           <n-text strong>调试日志：</n-text>
-          <n-card size="small" style="margin-top: 8px; max-height: 300px; overflow-y: auto;">
+          <n-card size="small" style="margin-top: 8px; max-height: 300px; overflow-y: auto">
             <div class="debug-logs">
-              <div 
-                v-for="(log, index) in debugLogs" 
-                :key="index"
-                class="debug-log-item"
-              >
+              <div v-for="(log, index) in debugLogs" :key="index" class="debug-log-item">
                 <span class="log-time">{{ log.time }}</span>
                 <span class="log-message">{{ log.message }}</span>
               </div>
@@ -98,7 +82,7 @@ const { messages, sortedMessages, isConnected } = storeToRefs(chatStore)
 const message = useMessage()
 
 const testMessage = ref('测试消息确认')
-const debugLogs = ref<Array<{time: string, message: string}>>([])
+const debugLogs = ref<Array<{ time: string; message: string }>>([])
 
 // 添加调试日志
 const addDebugLog = (msg: string) => {
@@ -106,7 +90,7 @@ const addDebugLog = (msg: string) => {
     time: new Date().toLocaleTimeString(),
     message: msg
   })
-  
+
   // 限制日志数量
   if (debugLogs.value.length > 50) {
     debugLogs.value.shift()
@@ -224,7 +208,7 @@ console.error = (...args) => {
   .message-info {
     div {
       margin-bottom: 4px;
-      
+
       strong {
         display: inline-block;
         width: 60px;
@@ -243,12 +227,12 @@ console.error = (...args) => {
 .debug-log-item {
   padding: 2px 0;
   border-bottom: 1px solid var(--border-secondary);
-  
+
   .log-time {
     color: #666;
     margin-right: 8px;
   }
-  
+
   .log-message {
     color: var(--text-primary);
   }

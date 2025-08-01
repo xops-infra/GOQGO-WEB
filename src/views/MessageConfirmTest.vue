@@ -5,26 +5,10 @@
         <!-- 连接状态 -->
         <div>
           <n-space>
-            <n-input 
-              v-model:value="namespace" 
-              placeholder="命名空间" 
-              style="width: 150px;"
-            />
-            <n-input 
-              v-model:value="username" 
-              placeholder="用户名" 
-              style="width: 150px;"
-            />
-            <n-button 
-              type="primary" 
-              @click="connect"
-              :disabled="isConnected"
-            >
-              连接
-            </n-button>
-            <n-button @click="disconnect" :disabled="!isConnected">
-              断开
-            </n-button>
+            <n-input v-model:value="namespace" placeholder="命名空间" style="width: 150px" />
+            <n-input v-model:value="username" placeholder="用户名" style="width: 150px" />
+            <n-button type="primary" @click="connect" :disabled="isConnected"> 连接 </n-button>
+            <n-button @click="disconnect" :disabled="!isConnected"> 断开 </n-button>
             <n-tag :type="isConnected ? 'success' : 'error'">
               {{ isConnected ? '已连接' : '未连接' }}
             </n-tag>
@@ -34,38 +18,19 @@
         <!-- 发送测试 -->
         <div>
           <n-space vertical>
-            <n-input 
-              v-model:value="testMessage" 
-              placeholder="测试消息" 
-              style="width: 400px;"
+            <n-input
+              v-model:value="testMessage"
+              placeholder="测试消息"
+              style="width: 400px"
               @keyup.enter="sendMessage"
             />
             <n-space>
-              <n-button 
-                type="primary" 
-                @click="sendMessage"
-                :disabled="!isConnected"
-              >
+              <n-button type="primary" @click="sendMessage" :disabled="!isConnected">
                 发送消息
               </n-button>
-              <n-button 
-                @click="simulateConfirm"
-                :disabled="!lastTempId"
-              >
-                模拟确认
-              </n-button>
-              <n-button 
-                @click="simulateError"
-                :disabled="!lastTempId"
-              >
-                模拟错误
-              </n-button>
-              <n-button 
-                @click="simulateDelivered"
-                :disabled="!lastMessageId"
-              >
-                模拟送达
-              </n-button>
+              <n-button @click="simulateConfirm" :disabled="!lastTempId"> 模拟确认 </n-button>
+              <n-button @click="simulateError" :disabled="!lastTempId"> 模拟错误 </n-button>
+              <n-button @click="simulateDelivered" :disabled="!lastMessageId"> 模拟送达 </n-button>
             </n-space>
           </n-space>
         </div>
@@ -73,13 +38,11 @@
         <!-- 消息状态显示 -->
         <div>
           <n-text strong>消息状态 ({{ messages.length }} 条)：</n-text>
-          <n-card size="small" style="margin-top: 8px; max-height: 300px; overflow-y: auto;">
-            <div v-if="messages.length === 0" style="text-align: center; color: #999;">
-              暂无消息
-            </div>
+          <n-card size="small" style="margin-top: 8px; max-height: 300px; overflow-y: auto">
+            <div v-if="messages.length === 0" style="text-align: center; color: #999">暂无消息</div>
             <div v-else>
-              <div 
-                v-for="message in messages" 
+              <div
+                v-for="message in messages"
                 :key="message.id"
                 class="message-status-item"
                 :class="message.status"
@@ -87,10 +50,7 @@
                 <div class="message-header">
                   <span class="message-id">{{ message.id }}</span>
                   <span class="temp-id" v-if="message.tempId">{{ message.tempId }}</span>
-                  <n-tag 
-                    :type="getStatusColor(message.status)" 
-                    size="small"
-                  >
+                  <n-tag :type="getStatusColor(message.status)" size="small">
                     {{ getStatusText(message.status) }}
                   </n-tag>
                 </div>
@@ -144,25 +104,25 @@ const connect = () => {
 
   const wsUrl = `ws://localhost:8080/ws/namespaces/${namespace.value}/chat?token=${token}`
   console.log('🔗 连接WebSocket:', wsUrl.replace(token, '***TOKEN***'))
-  
+
   ws = new WebSocket(wsUrl)
-  
+
   ws.onopen = () => {
     isConnected.value = true
     message.success('连接成功')
     console.log('✅ WebSocket连接成功')
   }
-  
+
   ws.onclose = () => {
     isConnected.value = false
     message.warning('连接关闭')
     console.log('⚠️ WebSocket连接关闭')
   }
-  
+
   ws.onerror = (error) => {
     message.error('连接错误')
   }
-  
+
   ws.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data)
@@ -185,7 +145,7 @@ const disconnect = () => {
 // 处理收到的消息
 const handleMessage = (data: any) => {
   console.log('收到消息:', data)
-  
+
   switch (data.type) {
     case 'message_confirm':
       // 消息确认
@@ -193,7 +153,7 @@ const handleMessage = (data: any) => {
       lastMessageId.value = data.data.messageId
       message.success('消息发送确认')
       break
-      
+
     case 'error':
       // 错误消息
       if (data.data.tempId) {
@@ -201,7 +161,7 @@ const handleMessage = (data: any) => {
       }
       message.error(`发送失败: ${data.data.error}`)
       break
-      
+
     case 'chat':
       // 聊天消息广播
       addMessage({
@@ -214,7 +174,7 @@ const handleMessage = (data: any) => {
         status: 'delivered'
       })
       break
-      
+
     case 'message_delivered':
       // 消息送达确认
       updateMessageStatusById(data.data.messageId, 'delivered')
@@ -261,9 +221,9 @@ const sendMessage = () => {
 // 模拟后台确认
 const simulateConfirm = () => {
   if (!lastTempId.value) return
-  
+
   const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-  
+
   const confirmData = {
     type: 'message_confirm',
     data: {
@@ -271,14 +231,14 @@ const simulateConfirm = () => {
       messageId
     }
   }
-  
+
   handleMessage(confirmData)
 }
 
 // 模拟错误
 const simulateError = () => {
   if (!lastTempId.value) return
-  
+
   const errorData = {
     type: 'error',
     data: {
@@ -287,21 +247,21 @@ const simulateError = () => {
       code: 'SEND_FAILED'
     }
   }
-  
+
   handleMessage(errorData)
 }
 
 // 模拟送达
 const simulateDelivered = () => {
   if (!lastMessageId.value) return
-  
+
   const deliveredData = {
     type: 'message_delivered',
     data: {
       messageId: lastMessageId.value
     }
   }
-  
+
   handleMessage(deliveredData)
 }
 
@@ -317,13 +277,13 @@ const addMessage = (msg: Partial<ChatMessage>) => {
     status: msg.status || 'sent',
     tempId: msg.tempId
   }
-  
+
   messages.value.push(fullMessage)
 }
 
 // 更新消息状态
 const updateMessageStatus = (tempId: string, status: ChatMessage['status'], realId?: string) => {
-  const messageIndex = messages.value.findIndex(m => m.tempId === tempId)
+  const messageIndex = messages.value.findIndex((m) => m.tempId === tempId)
   if (messageIndex !== -1) {
     messages.value[messageIndex] = {
       ...messages.value[messageIndex],
@@ -335,7 +295,7 @@ const updateMessageStatus = (tempId: string, status: ChatMessage['status'], real
 
 // 根据ID更新状态
 const updateMessageStatusById = (messageId: string, status: ChatMessage['status']) => {
-  const messageIndex = messages.value.findIndex(m => m.id === messageId)
+  const messageIndex = messages.value.findIndex((m) => m.id === messageId)
   if (messageIndex !== -1) {
     messages.value[messageIndex] = {
       ...messages.value[messageIndex],
@@ -347,22 +307,32 @@ const updateMessageStatusById = (messageId: string, status: ChatMessage['status'
 // 获取状态颜色
 const getStatusColor = (status?: string) => {
   switch (status) {
-    case 'sending': return 'warning'
-    case 'sent': return 'info'
-    case 'delivered': return 'success'
-    case 'error': return 'error'
-    default: return 'default'
+    case 'sending':
+      return 'warning'
+    case 'sent':
+      return 'info'
+    case 'delivered':
+      return 'success'
+    case 'error':
+      return 'error'
+    default:
+      return 'default'
   }
 }
 
 // 获取状态文本
 const getStatusText = (status?: string) => {
   switch (status) {
-    case 'sending': return '发送中'
-    case 'sent': return '已发送'
-    case 'delivered': return '已送达'
-    case 'error': return '发送失败'
-    default: return '未知'
+    case 'sending':
+      return '发送中'
+    case 'sent':
+      return '已发送'
+    case 'delivered':
+      return '已送达'
+    case 'error':
+      return '发送失败'
+    default:
+      return '未知'
   }
 }
 

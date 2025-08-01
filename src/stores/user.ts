@@ -40,12 +40,12 @@ export const useUserStore = defineStore('user', () => {
     try {
       const savedToken = localStorage.getItem('goqgo_token')
       const savedUser = localStorage.getItem('goqgo_user')
-      
+
       if (savedToken && savedUser && authManager.validateTokenFormat(savedToken)) {
         token.value = savedToken
         currentUser.value = JSON.parse(savedUser)
         isAuthenticated.value = true
-        
+
         console.log('✅ 恢复登录状态:', currentUser.value?.displayName)
         return true
       } else {
@@ -67,7 +67,7 @@ export const useUserStore = defineStore('user', () => {
     isLoading.value = true
     loading.value = true
     error.value = null
-    
+
     try {
       // 验证token格式
       if (!authManager.validateTokenFormat(userToken)) {
@@ -80,30 +80,29 @@ export const useUserStore = defineStore('user', () => {
         { token: userToken },
         { headers: { 'Content-Type': 'application/json' } }
       )
-      
+
       if (!response.data.success) {
         throw new Error(response.data.message || '登录失败')
       }
-      
+
       // 保存认证信息
       const user: User = {
         displayName: response.data.displayName,
         email: response.data.email
       }
-      
+
       token.value = response.data.bearer_token
       currentUser.value = user
       isAuthenticated.value = true
-      
+
       // 持久化存储
       localStorage.setItem('goqgo_token', response.data.bearer_token)
       localStorage.setItem('goqgo_user', JSON.stringify(user))
-      
+
       console.log('✅ Token登录成功:', response.data.displayName)
-      
     } catch (err: any) {
       console.error('❌ Token登录失败:', err)
-      
+
       // 处理API返回的错误格式 {"message":"invalid token","success":false}
       if (err.response?.data?.message) {
         error.value = err.response.data.message
@@ -115,7 +114,7 @@ export const useUserStore = defineStore('user', () => {
       } else {
         error.value = '登录失败，请检查令牌是否正确'
       }
-      
+
       clearAuth()
       throw new Error(error.value)
     } finally {
@@ -129,7 +128,7 @@ export const useUserStore = defineStore('user', () => {
     isLoading.value = true
     loading.value = true
     error.value = null
-    
+
     try {
       // 调用密码登录API（如果后台支持）
       const response = await axios.post<LoginResponse>(
@@ -137,30 +136,29 @@ export const useUserStore = defineStore('user', () => {
         { username, password },
         { headers: { 'Content-Type': 'application/json' } }
       )
-      
+
       if (!response.data.success) {
         throw new Error(response.data.message || '登录失败')
       }
-      
+
       // 保存认证信息
       const user: User = {
         displayName: response.data.displayName,
         email: response.data.email
       }
-      
+
       token.value = response.data.bearer_token
       currentUser.value = user
       isAuthenticated.value = true
-      
+
       // 持久化存储
       localStorage.setItem('goqgo_token', response.data.bearer_token)
       localStorage.setItem('goqgo_user', JSON.stringify(user))
-      
+
       console.log('✅ 密码登录成功:', response.data.displayName)
-      
     } catch (err: any) {
       console.error('❌ 密码登录失败:', err)
-      
+
       // 处理API返回的错误格式 {"message":"invalid credentials","success":false}
       if (err.response?.data?.message) {
         error.value = err.response.data.message
@@ -172,7 +170,7 @@ export const useUserStore = defineStore('user', () => {
       } else {
         error.value = '登录失败，请检查用户名和密码'
       }
-      
+
       clearAuth()
       throw new Error(error.value)
     } finally {
@@ -187,15 +185,14 @@ export const useUserStore = defineStore('user', () => {
     if (currentUser.value) {
       return
     }
-    
+
     loading.value = true
     error.value = null
-    
+
     try {
       // 这里可以调用获取用户详细信息的API
       // 目前直接使用已有的用户信息
       console.log('✅ 用户信息已存在:', username)
-      
     } catch (err: any) {
       console.error('❌ 获取用户信息失败:', err)
       error.value = err.message || '获取用户信息失败'
@@ -214,7 +211,7 @@ export const useUserStore = defineStore('user', () => {
     isLoading.value = true
     loading.value = true
     error.value = null
-    
+
     try {
       // TODO: 实现AD登录逻辑
       throw new Error('AD登录功能暂未实现')
@@ -240,7 +237,7 @@ export const useUserStore = defineStore('user', () => {
     token.value = ''
     isAuthenticated.value = false
     error.value = null
-    
+
     // 使用认证管理器清除认证信息
     authManager.clearAuth()
   }
@@ -264,13 +261,13 @@ export const useUserStore = defineStore('user', () => {
     isLoading,
     loading, // 兼容现有组件
     error,
-    
+
     // 计算属性
     userInfo,
     username,
     displayName,
     hasPermission,
-    
+
     // 方法
     restoreAuth,
     loginWithToken,

@@ -120,18 +120,18 @@ function isLocalServerFile(url: string): boolean {
  */
 export function parseMessage(content: string): ParsedMessage {
   const files: ParsedFile[] = []
-  let textContent = content
+  const textContent = content
 
   // 正则表达式匹配 http://localhost:8080 开头的文件链接
   const fileUrlRegex = /(https?:\/\/(?:localhost|127\.0\.0\.1):8080[^\s]+)/g
-  
+
   let match
   while ((match = fileUrlRegex.exec(content)) !== null) {
     const url = match[1]
     const extension = getFileExtension(url)
     const filename = getFilename(url)
     const type = getFileType(extension)
-    
+
     // 只处理本地服务器的文件
     if (isLocalServerFile(url)) {
       files.push({
@@ -160,7 +160,7 @@ export function formatParsedMessage(parsedMessage: ParsedMessage): string {
   const { files } = parsedMessage
 
   // 替换文件链接为HTML元素
-  files.forEach(file => {
+  files.forEach((file) => {
     const fileHtml = generateFileHtml(file)
     // 将原始URL替换为HTML
     text = text.replace(file.url, fileHtml)
@@ -168,7 +168,7 @@ export function formatParsedMessage(parsedMessage: ParsedMessage): string {
 
   // 处理 @mention
   text = text.replace(/@(\w+)(\s|$)/g, '<span class="mention">@$1</span>$2')
-  
+
   // 处理换行
   text = text.replace(/\n/g, '<br>')
 
@@ -187,7 +187,7 @@ function generateFileHtml(file: ParsedFile): string {
           <span class="image-label">${file.icon} ${file.label}</span>
         </div>
       </div>`
-    
+
     case 'video':
       return `<div class="file-link video-link">
         <a href="${file.url}" target="_blank" class="file-link-content">
@@ -198,7 +198,7 @@ function generateFileHtml(file: ParsedFile): string {
           </div>
         </a>
       </div>`
-    
+
     case 'audio':
       return `<div class="file-link audio-link">
         <a href="${file.url}" target="_blank" class="file-link-content">
@@ -209,7 +209,7 @@ function generateFileHtml(file: ParsedFile): string {
           </div>
         </a>
       </div>`
-    
+
     default:
       return `<div class="file-link generic-file">
         <a href="${file.url}" target="_blank" class="file-link-content">

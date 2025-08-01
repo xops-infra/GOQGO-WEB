@@ -5,16 +5,10 @@
         <!-- 连接状态 -->
         <div>
           <n-space>
-            <n-button 
-              type="primary" 
-              @click="connectChat"
-              :disabled="isConnected"
-            >
+            <n-button type="primary" @click="connectChat" :disabled="isConnected">
               连接聊天室
             </n-button>
-            <n-button @click="disconnectChat" :disabled="!isConnected">
-              断开连接
-            </n-button>
+            <n-button @click="disconnectChat" :disabled="!isConnected"> 断开连接 </n-button>
             <n-tag :type="isConnected ? 'success' : 'error'">
               {{ isConnected ? '已连接' : '未连接' }}
             </n-tag>
@@ -24,29 +18,20 @@
         <!-- 发送测试 -->
         <div>
           <n-space vertical>
-            <n-input 
-              v-model:value="testMessage" 
-              placeholder="测试消息" 
-              style="width: 400px;"
+            <n-input
+              v-model:value="testMessage"
+              placeholder="测试消息"
+              style="width: 400px"
               @keyup.enter="sendMessage"
             />
             <n-space>
-              <n-button 
-                type="primary" 
-                @click="sendMessage"
-                :disabled="!isConnected"
-              >
+              <n-button type="primary" @click="sendMessage" :disabled="!isConnected">
                 发送消息
               </n-button>
-              <n-button 
-                @click="sendMultipleMessages"
-                :disabled="!isConnected"
-              >
+              <n-button @click="sendMultipleMessages" :disabled="!isConnected">
                 发送5条消息
               </n-button>
-              <n-button @click="clearMessages">
-                清空消息
-              </n-button>
+              <n-button @click="clearMessages"> 清空消息 </n-button>
             </n-space>
           </n-space>
         </div>
@@ -64,24 +49,21 @@
         <!-- 消息列表 -->
         <div>
           <n-text strong>消息列表：</n-text>
-          <n-card size="small" style="margin-top: 8px; max-height: 400px; overflow-y: auto;">
-            <div v-if="messages.length === 0" style="text-align: center; color: #999;">
-              暂无消息
-            </div>
+          <n-card size="small" style="margin-top: 8px; max-height: 400px; overflow-y: auto">
+            <div v-if="messages.length === 0" style="text-align: center; color: #999">暂无消息</div>
             <div v-else>
-              <div 
-                v-for="message in sortedMessages" 
+              <div
+                v-for="message in sortedMessages"
                 :key="message.id"
                 class="timeout-message-item"
                 :class="message.status"
               >
                 <div class="message-header">
                   <span class="message-id">{{ message.id.substring(0, 20) }}...</span>
-                  <span class="temp-id" v-if="message.tempId">{{ message.tempId.substring(0, 15) }}...</span>
-                  <n-tag 
-                    :type="getStatusColor(message.status)" 
-                    size="small"
+                  <span class="temp-id" v-if="message.tempId"
+                    >{{ message.tempId.substring(0, 15) }}...</span
                   >
+                  <n-tag :type="getStatusColor(message.status)" size="small">
                     {{ getStatusText(message.status) }}
                   </n-tag>
                   <span class="message-time">{{ formatTime(message.timestamp) }}</span>
@@ -89,12 +71,12 @@
                 <div class="message-content">{{ message.content }}</div>
                 <!-- 超时倒计时 -->
                 <div v-if="message.status === 'sending'" class="timeout-countdown">
-                  <n-progress 
-                    type="line" 
-                    :percentage="getTimeoutProgress(message.timestamp)" 
+                  <n-progress
+                    type="line"
+                    :percentage="getTimeoutProgress(message.timestamp)"
                     :color="getProgressColor(getTimeoutProgress(message.timestamp))"
                     :show-indicator="false"
-                    style="width: 200px;"
+                    style="width: 200px"
                   />
                   <span class="countdown-text">{{ getCountdownText(message.timestamp) }}</span>
                 </div>
@@ -122,17 +104,13 @@ const currentTime = ref(Date.now())
 let timeUpdateInterval: number | null = null
 
 // 统计数据
-const sendingCount = computed(() => 
-  messages.value.filter(m => m.status === 'sending').length
+const sendingCount = computed(() => messages.value.filter((m) => m.status === 'sending').length)
+
+const confirmedCount = computed(
+  () => messages.value.filter((m) => m.status === 'sent' || m.status === 'delivered').length
 )
 
-const confirmedCount = computed(() => 
-  messages.value.filter(m => m.status === 'sent' || m.status === 'delivered').length
-)
-
-const timeoutCount = computed(() => 
-  messages.value.filter(m => m.status === 'error').length
-)
+const timeoutCount = computed(() => messages.value.filter((m) => m.status === 'error').length)
 
 // 连接聊天室
 const connectChat = async () => {
@@ -171,7 +149,7 @@ const sendMultipleMessages = async () => {
     try {
       await chatStore.sendMessage(`批量测试消息 ${i}/5 - ${new Date().toLocaleTimeString()}`)
       // 间隔100ms发送
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
     } catch (error) {
       console.error(`发送第${i}条消息失败:`, error)
     }
@@ -209,22 +187,32 @@ const getCountdownText = (timestamp: string) => {
 // 获取状态颜色
 const getStatusColor = (status?: string) => {
   switch (status) {
-    case 'sending': return 'warning'
-    case 'sent': return 'info'
-    case 'delivered': return 'success'
-    case 'error': return 'error'
-    default: return 'default'
+    case 'sending':
+      return 'warning'
+    case 'sent':
+      return 'info'
+    case 'delivered':
+      return 'success'
+    case 'error':
+      return 'error'
+    default:
+      return 'default'
   }
 }
 
 // 获取状态文本
 const getStatusText = (status?: string) => {
   switch (status) {
-    case 'sending': return '发送中'
-    case 'sent': return '已确认'
-    case 'delivered': return '已送达'
-    case 'error': return '超时失败'
-    default: return '未知'
+    case 'sending':
+      return '发送中'
+    case 'sent':
+      return '已确认'
+    case 'delivered':
+      return '已送达'
+    case 'error':
+      return '超时失败'
+    default:
+      return '未知'
   }
 }
 

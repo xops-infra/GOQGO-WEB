@@ -5,22 +5,14 @@
         <!-- 控制面板 -->
         <div>
           <n-space>
-            <n-button 
-              type="primary" 
-              @click="connectChat"
-              :disabled="isConnected"
-            >
+            <n-button type="primary" @click="connectChat" :disabled="isConnected">
               连接聊天室
             </n-button>
-            <n-button @click="disconnectChat" :disabled="!isConnected">
-              断开连接
-            </n-button>
+            <n-button @click="disconnectChat" :disabled="!isConnected"> 断开连接 </n-button>
             <n-button @click="generateTestMessages" :disabled="!isConnected">
               生成100条测试消息
             </n-button>
-            <n-button @click="clearMessages">
-              清空消息
-            </n-button>
+            <n-button @click="clearMessages"> 清空消息 </n-button>
             <n-tag :type="isConnected ? 'success' : 'error'">
               {{ isConnected ? '已连接' : '未连接' }}
             </n-tag>
@@ -38,14 +30,14 @@
         </div>
 
         <!-- 聊天室组件 -->
-        <div style="height: 500px; border: 1px solid var(--border-primary); border-radius: 8px;">
+        <div style="height: 500px; border: 1px solid var(--border-primary); border-radius: 8px">
           <ChatRoom :namespace="'default'" />
         </div>
 
         <!-- 调试信息 -->
         <div>
           <n-text strong>调试信息：</n-text>
-          <n-card size="small" style="margin-top: 8px;">
+          <n-card size="small" style="margin-top: 8px">
             <div class="debug-info">
               <div><strong>DEFAULT_VISIBLE_MESSAGES:</strong> 50</div>
               <div><strong>总消息数:</strong> {{ messages.length }}</div>
@@ -126,7 +118,7 @@ const generateTestMessages = async () => {
       await chatStore.sendMessage(`测试消息 ${i}/100 - ${new Date().toLocaleTimeString()}`)
       // 每10条消息暂停一下，避免发送过快
       if (i % 10 === 0) {
-        await new Promise(resolve => setTimeout(resolve, 100))
+        await new Promise((resolve) => setTimeout(resolve, 100))
       }
     }
     message.success('生成100条测试消息完成')
@@ -153,15 +145,15 @@ const clearMessages = () => {
   font-family: monospace;
   font-size: 12px;
   line-height: 1.6;
-  
+
   div {
     padding: 2px 0;
     border-bottom: 1px solid var(--border-secondary);
-    
+
     &:last-child {
       border-bottom: none;
     }
-    
+
     strong {
       color: var(--color-primary);
       display: inline-block;

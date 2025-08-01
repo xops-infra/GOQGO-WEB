@@ -16,33 +16,13 @@
 
         <!-- 连接配置 -->
         <n-space>
-          <n-input
-            v-model:value="namespace"
-            placeholder="命名空间"
-            style="width: 150px"
-          />
-          <n-input
-            v-model:value="chatName"
-            placeholder="聊天室名称"
-            style="width: 150px"
-          />
-          <n-input
-            v-model:value="username"
-            placeholder="用户名"
-            style="width: 150px"
-          />
-          <n-button
-            type="primary"
-            :loading="connecting"
-            @click="handleConnect"
-          >
+          <n-input v-model:value="namespace" placeholder="命名空间" style="width: 150px" />
+          <n-input v-model:value="chatName" placeholder="聊天室名称" style="width: 150px" />
+          <n-input v-model:value="username" placeholder="用户名" style="width: 150px" />
+          <n-button type="primary" :loading="connecting" @click="handleConnect">
             {{ isConnected ? '重新连接' : '连接' }}
           </n-button>
-          <n-button
-            type="error"
-            :disabled="!isConnected"
-            @click="handleDisconnect"
-          >
+          <n-button type="error" :disabled="!isConnected" @click="handleDisconnect">
             断开连接
           </n-button>
         </n-space>
@@ -55,18 +35,10 @@
             style="width: 300px"
             @keyup.enter="sendTestMessage"
           />
-          <n-button
-            type="primary"
-            :disabled="!isConnected"
-            @click="sendTestMessage"
-          >
+          <n-button type="primary" :disabled="!isConnected" @click="sendTestMessage">
             发送消息
           </n-button>
-          <n-button
-            type="info"
-            :disabled="!isConnected"
-            @click="requestHistory"
-          >
+          <n-button type="info" :disabled="!isConnected" @click="requestHistory">
             请求历史
           </n-button>
         </n-space>
@@ -78,11 +50,7 @@
             <n-button size="small" @click="clearLogs">清空日志</n-button>
           </div>
           <div class="logs-content" ref="logsContainer">
-            <div
-              v-for="(log, index) in logs"
-              :key="index"
-              :class="['log-item', `log-${log.type}`]"
-            >
+            <div v-for="(log, index) in logs" :key="index" :class="['log-item', `log-${log.type}`]">
               <span class="log-time">{{ log.time }}</span>
               <span class="log-type">{{ log.type.toUpperCase() }}</span>
               <span class="log-message">{{ log.message }}</span>
@@ -98,11 +66,7 @@
             <n-button size="small" @click="clearMessages">清空消息</n-button>
           </div>
           <div class="messages-list">
-            <div
-              v-for="message in messages"
-              :key="message.id"
-              class="message-debug-item"
-            >
+            <div v-for="message in messages" :key="message.id" class="message-debug-item">
               <div class="message-header">
                 <span class="message-sender">{{ message.senderId }}</span>
                 <span class="message-time">{{ formatTime(message.timestamp) }}</span>
@@ -119,11 +83,7 @@
             <span>在线用户 ({{ onlineUsers.length }})</span>
           </div>
           <n-space>
-            <n-tag
-              v-for="user in onlineUsers"
-              :key="user"
-              type="success"
-            >
+            <n-tag v-for="user in onlineUsers" :key="user" type="success">
               {{ user }}
             </n-tag>
           </n-space>
@@ -180,14 +140,14 @@ const addLog = (type: DebugLog['type'], msg: string, data?: any) => {
     data
   }
   logs.value.push(log)
-  
+
   // 自动滚动到底部
   nextTick(() => {
     if (logsContainer.value) {
       logsContainer.value.scrollTop = logsContainer.value.scrollHeight
     }
   })
-  
+
   // 限制日志数量
   if (logs.value.length > 100) {
     logs.value.splice(0, 10)
@@ -212,17 +172,17 @@ const handleConnect = async () => {
 
     // 创建新连接（不再需要username参数）
     chatSocket = new ChatSocket()
-    
+
     // 连接到聊天室
     chatSocket.connect(namespace.value, chatName.value, {
       onMessage: (msg) => {
         addLog('success', '收到新消息', msg)
         messages.value.push(msg)
       },
-      
+
       onHistoryLoaded: (historyMessages) => {
         addLog('info', `收到历史消息回调: ${historyMessages?.length || 0} 条`)
-        
+
         // 详细调试历史消息数据
         if (historyMessages && historyMessages.length > 0) {
           addLog('info', '历史消息数组类型检查:', {
@@ -230,13 +190,16 @@ const handleConnect = async () => {
             length: historyMessages.length,
             firstMessage: historyMessages[0]
           })
-          
+
           // 合并历史消息，避免重复
-          const existingIds = new Set(messages.value.map(m => m.id))
-          const newMessages = historyMessages.filter(m => m && m.id && !existingIds.has(m.id))
-          
-          addLog('info', `消息去重结果: 现有${messages.value.length}条，新增${newMessages.length}条`)
-          
+          const existingIds = new Set(messages.value.map((m) => m.id))
+          const newMessages = historyMessages.filter((m) => m && m.id && !existingIds.has(m.id))
+
+          addLog(
+            'info',
+            `消息去重结果: 现有${messages.value.length}条，新增${newMessages.length}条`
+          )
+
           if (newMessages.length > 0) {
             messages.value.unshift(...newMessages)
             addLog('success', `成功添加 ${newMessages.length} 条历史消息到列表`)
@@ -247,18 +210,18 @@ const handleConnect = async () => {
           addLog('warning', '历史消息为空或无效', historyMessages)
         }
       },
-      
+
       onHistoryInfo: (info) => {
         addLog('info', `历史消息元信息: hasMore=${info.hasMore}, count=${info.count}`)
       },
-      
+
       onUserJoin: (user) => {
         addLog('info', `用户加入: ${user}`)
         if (!onlineUsers.value.includes(user)) {
           onlineUsers.value.push(user)
         }
       },
-      
+
       onUserLeave: (user) => {
         addLog('info', `用户离开: ${user}`)
         const index = onlineUsers.value.indexOf(user)
@@ -266,15 +229,15 @@ const handleConnect = async () => {
           onlineUsers.value.splice(index, 1)
         }
       },
-      
+
       onTyping: (user, typing) => {
         addLog('info', `${user} ${typing ? '正在输入' : '停止输入'}`)
       },
-      
+
       onStatus: (connected) => {
         isConnected.value = connected
         connectionInfo.value = chatSocket?.getConnectionInfo() || connectionInfo.value
-        
+
         if (connected) {
           addLog('success', 'WebSocket连接成功')
           message.success('连接成功')
@@ -283,13 +246,12 @@ const handleConnect = async () => {
           message.error('连接断开')
         }
       },
-      
+
       onError: (error) => {
         addLog('error', 'WebSocket错误', error)
         message.error('连接错误')
       }
     })
-
   } catch (error) {
     addLog('error', '连接失败', error)
     message.error('连接失败')
@@ -369,19 +331,19 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .chat-debugger {
   padding: 16px;
-  
+
   .connection-status {
     padding: 12px;
     background: #f8f9fa;
     border-radius: 6px;
-    
+
     .status-text {
       font-family: monospace;
       font-size: 12px;
       color: #666;
     }
   }
-  
+
   .debug-logs {
     .logs-header {
       display: flex;
@@ -390,7 +352,7 @@ onUnmounted(() => {
       margin-bottom: 8px;
       font-weight: 600;
     }
-    
+
     .logs-content {
       max-height: 400px;
       overflow-y: auto;
@@ -399,26 +361,26 @@ onUnmounted(() => {
       padding: 12px;
       font-family: monospace;
       font-size: 12px;
-      
+
       .log-item {
         margin-bottom: 8px;
         display: flex;
         gap: 8px;
-        
+
         .log-time {
           color: #888;
           min-width: 80px;
         }
-        
+
         .log-type {
           min-width: 60px;
           font-weight: bold;
         }
-        
+
         .log-message {
           flex: 1;
         }
-        
+
         .log-data {
           margin-top: 4px;
           padding: 8px;
@@ -427,30 +389,46 @@ onUnmounted(() => {
           font-size: 11px;
           overflow-x: auto;
         }
-        
+
         &.log-info {
-          .log-type { color: #17a2b8; }
-          .log-message { color: #fff; }
+          .log-type {
+            color: #17a2b8;
+          }
+          .log-message {
+            color: #fff;
+          }
         }
-        
+
         &.log-success {
-          .log-type { color: #28a745; }
-          .log-message { color: #90ee90; }
+          .log-type {
+            color: #28a745;
+          }
+          .log-message {
+            color: #90ee90;
+          }
         }
-        
+
         &.log-warning {
-          .log-type { color: #ffc107; }
-          .log-message { color: #ffeb3b; }
+          .log-type {
+            color: #ffc107;
+          }
+          .log-message {
+            color: #ffeb3b;
+          }
         }
-        
+
         &.log-error {
-          .log-type { color: #dc3545; }
-          .log-message { color: #ff6b6b; }
+          .log-type {
+            color: #dc3545;
+          }
+          .log-message {
+            color: #ff6b6b;
+          }
         }
       }
     }
   }
-  
+
   .messages-section,
   .users-section {
     .section-header {
@@ -460,36 +438,36 @@ onUnmounted(() => {
       margin-bottom: 8px;
       font-weight: 600;
     }
-    
+
     .messages-list {
       max-height: 300px;
       overflow-y: auto;
-      
+
       .message-debug-item {
         padding: 8px;
         border: 1px solid #e0e0e0;
         border-radius: 6px;
         margin-bottom: 8px;
-        
+
         .message-header {
           display: flex;
           gap: 12px;
           margin-bottom: 4px;
           font-size: 12px;
           color: #666;
-          
+
           .message-sender {
             font-weight: 600;
             color: #007bff;
           }
-          
+
           .message-type {
             background: #f8f9fa;
             padding: 2px 6px;
             border-radius: 3px;
           }
         }
-        
+
         .message-content {
           font-size: 14px;
           word-break: break-word;

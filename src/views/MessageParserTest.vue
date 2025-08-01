@@ -10,16 +10,16 @@
             type="textarea"
             placeholder="输入包含文件链接的消息内容..."
             :rows="4"
-            style="margin-top: 8px;"
+            style="margin-top: 8px"
           />
         </div>
 
         <!-- 预设测试消息 -->
         <div>
           <n-text strong>预设测试消息：</n-text>
-          <n-space style="margin-top: 8px;">
-            <n-button 
-              v-for="preset in presetMessages" 
+          <n-space style="margin-top: 8px">
+            <n-button
+              v-for="preset in presetMessages"
               :key="preset.label"
               size="small"
               @click="testMessage = preset.content"
@@ -32,7 +32,7 @@
         <!-- 解析结果 -->
         <div>
           <n-text strong>解析结果：</n-text>
-          <n-card style="margin-top: 8px;" size="small">
+          <n-card style="margin-top: 8px" size="small">
             <pre>{{ JSON.stringify(parsedResult, null, 2) }}</pre>
           </n-card>
         </div>
@@ -40,7 +40,7 @@
         <!-- 渲染效果 -->
         <div>
           <n-text strong>渲染效果：</n-text>
-          <n-card style="margin-top: 8px;" size="small">
+          <n-card style="margin-top: 8px" size="small">
             <div class="rendered-content" v-html="renderedContent"></div>
           </n-card>
         </div>
@@ -53,28 +53,29 @@
 import { ref, computed } from 'vue'
 import { parseMessage, formatMessageContent } from '@/utils/messageParser'
 
-const testMessage = ref('你好啊 http://localhost:8080/api/v1/users/xops/files/image_20250731_223222.png')
+const testMessage = ref('你好啊 http://localhost:8080/api/v1/files/image_20250731_223222.png')
 
 const presetMessages = [
   {
     label: '图片消息',
-    content: '你好啊 http://localhost:8080/api/v1/users/xops/files/image_20250731_223222.png'
+    content: '你好啊 http://localhost:8080/api/v1/files/image_20250731_223222.png'
   },
   {
     label: '视频消息',
-    content: '看看这个视频 http://localhost:8080/api/v1/users/xops/files/video_demo.mp4'
+    content: '看看这个视频 http://localhost:8080/api/v1/files/video_demo.mp4'
   },
   {
     label: '文档消息',
-    content: '这是一个PDF文档 http://localhost:8080/api/v1/users/xops/files/document.pdf'
+    content: '这是一个PDF文档 http://localhost:8080/api/v1/files/document.pdf'
   },
   {
     label: '混合消息',
-    content: '你好 @张三，这里有个图片 http://localhost:8080/api/v1/users/xops/files/screenshot.png 和一个文档 http://localhost:8080/api/v1/users/xops/files/report.pdf'
+    content:
+      '你好 @张三，这里有个图片 http://localhost:8080/api/v1/files/screenshot.png 和一个文档 http://localhost:8080/api/v1/files/report.pdf'
   },
   {
     label: '音频消息',
-    content: '听听这个音频 http://localhost:8080/api/v1/users/xops/files/audio.mp3'
+    content: '听听这个音频 http://localhost:8080/api/v1/files/audio.mp3'
   }
 ]
 

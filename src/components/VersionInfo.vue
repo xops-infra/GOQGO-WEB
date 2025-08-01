@@ -8,23 +8,23 @@
     </span>
 
     <!-- 详细信息弹窗 -->
-    <n-modal v-model:show="showDetails" preset="card" title="版本信息" style="width: 500px;">
+    <n-modal v-model:show="showDetails" preset="card" title="版本信息" style="width: 500px">
       <div class="version-details">
         <div class="version-item">
           <span class="label">当前版本:</span>
           <span class="value">{{ localVersion?.version || 'unknown' }}</span>
         </div>
-        
+
         <div class="version-item">
           <span class="label">构建时间:</span>
           <span class="value">{{ buildTimeFormatted }}</span>
         </div>
-        
+
         <div class="version-item">
           <span class="label">提交信息:</span>
           <span class="value">{{ localVersion?.commitHash }} ({{ localVersion?.commitDate }})</span>
         </div>
-        
+
         <div class="version-item">
           <span class="label">环境:</span>
           <span class="value" :class="environmentClass">{{ localVersion?.environment }}</span>
@@ -36,42 +36,41 @@
           <div class="update-header">
             <n-icon color="#52c41a" size="20">
               <svg viewBox="0 0 24 24">
-                <path fill="currentColor" d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M11,16.5L6.5,12L7.91,10.59L11,13.67L16.59,8.09L18,9.5L11,16.5Z"/>
+                <path
+                  fill="currentColor"
+                  d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M11,16.5L6.5,12L7.91,10.59L11,13.67L16.59,8.09L18,9.5L11,16.5Z"
+                />
               </svg>
             </n-icon>
             <span class="update-title">发现新版本: {{ updateInfo.remoteVersion }}</span>
           </div>
-          
+
           <div class="version-item">
             <span class="label">发布时间:</span>
             <span class="value">{{ formatReleaseTime(updateInfo.updateInfo?.published_at) }}</span>
           </div>
-          
+
           <div v-if="updateInfo.updateInfo?.body" class="release-notes">
             <span class="label">更新说明:</span>
             <div class="notes-content">{{ updateInfo.updateInfo.body }}</div>
           </div>
-          
+
           <div class="update-actions">
-            <n-button 
-              type="primary" 
+            <n-button
+              type="primary"
               @click="openGitHubRelease"
               :disabled="!updateInfo.updateInfo?.html_url"
             >
               查看更新
             </n-button>
-            <n-button @click="checkUpdate" :loading="checking">
-              重新检查
-            </n-button>
+            <n-button @click="checkUpdate" :loading="checking"> 重新检查 </n-button>
           </div>
         </div>
-        
+
         <!-- 无更新时的检查按钮 -->
         <div v-else class="check-section">
           <n-divider />
-          <n-button @click="checkUpdate" :loading="checking" block>
-            检查更新
-          </n-button>
+          <n-button @click="checkUpdate" :loading="checking" block> 检查更新 </n-button>
         </div>
       </div>
     </n-modal>
@@ -81,12 +80,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { NIcon, NModal, NButton, NDivider, useMessage } from 'naive-ui'
-import { 
-  getLocalVersion, 
-  checkForUpdates, 
-  formatVersionDisplay, 
+import {
+  getLocalVersion,
+  checkForUpdates,
+  formatVersionDisplay,
   formatBuildTime,
-  type VersionInfo 
+  type VersionInfo
 } from '@/utils/version'
 
 // 响应式数据
@@ -130,7 +129,7 @@ const checkUpdate = async () => {
   try {
     const result = await checkForUpdates()
     updateInfo.value = result
-    
+
     // 移除文字提醒，只保留静默检查
     // if (result.hasUpdate) {
     //   message.success(`发现新版本 ${result.remoteVersion}`)

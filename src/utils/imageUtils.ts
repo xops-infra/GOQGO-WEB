@@ -5,7 +5,7 @@
 // 图片粘贴处理
 export const handleImagePaste = async (clipboardData: DataTransfer): Promise<string | null> => {
   const items = Array.from(clipboardData.items)
-  
+
   for (const item of items) {
     if (item.type.startsWith('image/')) {
       const file = item.getAsFile()
@@ -16,16 +16,16 @@ export const handleImagePaste = async (clipboardData: DataTransfer): Promise<str
         const extension = getFileExtension(file.type)
         const fileName = `image_${timestamp}_${randomId}.${extension}`
         const tempPath = `/Users/mikas/Library/Application Support/cliExtra/temp_images/${fileName}`
-        
+
         // 创建临时URL用于预览
         const tempUrl = URL.createObjectURL(file)
-        
+
         // 返回图片路径格式
         return tempPath
       }
     }
   }
-  
+
   return null
 }
 
@@ -33,7 +33,7 @@ export const handleImagePaste = async (clipboardData: DataTransfer): Promise<str
 const getFileExtension = (mimeType: string): string => {
   const mimeMap: Record<string, string> = {
     'image/jpeg': 'jpg',
-    'image/jpg': 'jpg', 
+    'image/jpg': 'jpg',
     'image/png': 'png',
     'image/gif': 'gif',
     'image/webp': 'webp',
@@ -49,7 +49,7 @@ export const saveImageToTemp = async (file: File): Promise<string> => {
   const extension = file.name.split('.').pop() || getFileExtension(file.type)
   const fileName = `image_${timestamp}_${randomId}.${extension}`
   const tempPath = `/Users/mikas/Library/Application Support/cliExtra/temp_images/${fileName}`
-  
+
   // 这里实际上需要通过API将文件保存到指定路径
   // 暂时返回模拟路径，实际实现需要调用后端API
   return tempPath
@@ -96,24 +96,28 @@ export const getImagePreviewUrl = (imagePath: string): string => {
 }
 
 // 压缩图片（可选功能）
-export const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.8): Promise<Blob> => {
+export const compressImage = (
+  file: File,
+  maxWidth: number = 800,
+  quality: number = 0.8
+): Promise<Blob> => {
   return new Promise((resolve) => {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')!
     const img = new Image()
-    
+
     img.onload = () => {
       const { width, height } = img
       const ratio = Math.min(maxWidth / width, maxWidth / height)
-      
+
       canvas.width = width * ratio
       canvas.height = height * ratio
-      
+
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-      
+
       canvas.toBlob(resolve, 'image/jpeg', quality)
     }
-    
+
     img.src = URL.createObjectURL(file)
   })
 }
