@@ -8,6 +8,7 @@ import WebSocketDebug from '@/views/WebSocketDebug.vue'
 import MessageConfirmTest from '@/views/MessageConfirmTest.vue'
 import MessageConfirmDebug from '@/views/MessageConfirmDebug.vue'
 import MessageTimeoutTest from '@/views/MessageTimeoutTest.vue'
+import DividerTest from '@/views/DividerTest.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -65,6 +66,12 @@ const router = createRouter({
       name: 'message-timeout-test',
       component: MessageTimeoutTest,
       meta: { title: '消息超时测试' }
+    },
+    {
+      path: '/test/divider',
+      name: 'divider-test',
+      component: DividerTest,
+      meta: { title: '分割线测试' }
     }
   ]
 })
