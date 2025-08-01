@@ -108,8 +108,12 @@ export const useUserStore = defineStore('user', () => {
     } catch (err: any) {
       console.error('❌ Token登录失败:', err)
       
+      // 处理API返回的错误格式 {"message":"invalid token","success":false}
       if (err.response?.data?.message) {
         error.value = err.response.data.message
+      } else if (err.response?.data) {
+        // 如果有data但没有message字段，尝试使用整个data作为错误信息
+        error.value = typeof err.response.data === 'string' ? err.response.data : '登录失败'
       } else if (err.message) {
         error.value = err.message
       } else {
@@ -164,8 +168,12 @@ export const useUserStore = defineStore('user', () => {
     } catch (err: any) {
       console.error('❌ 密码登录失败:', err)
       
+      // 处理API返回的错误格式 {"message":"invalid credentials","success":false}
       if (err.response?.data?.message) {
         error.value = err.response.data.message
+      } else if (err.response?.data) {
+        // 如果有data但没有message字段，尝试使用整个data作为错误信息
+        error.value = typeof err.response.data === 'string' ? err.response.data : '登录失败'
       } else if (err.message) {
         error.value = err.message
       } else {

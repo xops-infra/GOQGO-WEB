@@ -13,6 +13,7 @@ import MessageTimeoutTest from '@/views/MessageTimeoutTest.vue'
 import DividerTest from '@/views/DividerTest.vue'
 import EmptyMessageTest from '@/views/EmptyMessageTest.vue'
 import LoginStatusTest from '@/views/LoginStatusTest.vue'
+import LoginErrorTest from '@/views/LoginErrorTest.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -133,6 +134,15 @@ const router = createRouter({
       meta: { 
         title: '登录状态测试',
         requiresAuth: true
+      }
+    },
+    {
+      path: '/test/login-error',
+      name: 'login-error-test',
+      component: LoginErrorTest,
+      meta: { 
+        title: '登录错误测试',
+        requiresAuth: false // 允许未登录访问，用于测试登录错误
       }
     },
     {
