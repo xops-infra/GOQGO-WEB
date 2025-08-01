@@ -190,6 +190,28 @@ export function parseMessage(content: string): ParsedMessage {
     }
   }
   
+  // 合并连续的相同类型内容块
+  const mergedBlocks: ContentBlock[] = []
+  let currentBlock: ContentBlock | null = null
+  
+  for (const block of contentBlocks) {
+    if (!currentBlock) {
+      currentBlock = { ...block }
+    } else if (currentBlock.type === block.type && block.type === 'text') {
+      // 合并连续的文本块
+      currentBlock.content += ' ' + block.content
+    } else {
+      // 不同类型或非文本类型，添加当前块并开始新块
+      mergedBlocks.push(currentBlock)
+      currentBlock = { ...block }
+    }
+  }
+  
+  // 添加最后一个块
+  if (currentBlock) {
+    mergedBlocks.push(currentBlock)
+  }
+  
   // 重新组合文本内容（不包含URL的部分）
   const textContent = parts
     .filter(part => !part.startsWith(baseUrl))
@@ -200,7 +222,7 @@ export function parseMessage(content: string): ParsedMessage {
     text: textContent,
     files,
     hasFiles: files.length > 0,
-    contentBlocks
+    contentBlocks: mergedBlocks
   }
 }
 
