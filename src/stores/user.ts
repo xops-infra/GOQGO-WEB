@@ -1,281 +1,280 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { userApi, type User } from '@/api/users'
 
-export interface SimpleUser {
+export interface User {
+  id: string
   username: string
-  displayName: string
+  displayName?: string
+  email?: string
   avatar?: string
   role?: string
-  isOnline: boolean
-  lastSeen?: string
+  permissions?: string[]
+}
+
+export interface UserData {
+  metadata: {
+    name: string
+    namespace: string
+    annotations: {
+      description: string
+    }
+  }
+  spec: {
+    tokenExpiry: string
+  }
+}
+
+export interface LoginResponse {
+  user: User
+  token: string
+  expiresAt: string
 }
 
 export const useUserStore = defineStore('user', () => {
-  // 当前用户完整信息
-  const currentUserData = ref<User | null>(null)
-  
-  // 当前用户简化信息（向后兼容）
-  const currentUser = computed(() => {
-    if (!currentUserData.value) {
-      return {
-        username: 'xops',
-        displayName: 'XOps',
-        avatar: '',
-        role: 'developer',
-        isOnline: true
-      }
-    }
-    
-    const user = currentUserData.value
-    return {
-      username: user.metadata.name,
-      displayName: user.spec.displayName,
-      avatar: '', // 可以从annotations或其他地方获取
-      role: user.metadata.labels.role || 'user',
-      isOnline: user.status.phase === 'Active'
-    }
-  })
-  
-  // 在线用户列表
-  const onlineUsers = ref<SimpleUser[]>([])
-  
-  // 所有用户列表
-  const allUsers = ref<User[]>([])
-  
-  // 加载状态
-  const loading = ref(false)
+  // 状态
+  const currentUser = ref<User | null>(null)
+  const currentUserData = ref<UserData | null>(null)
+  const token = ref<string>('')
+  const isAuthenticated = ref(false)
+  const isLoading = ref(false)
+  const loading = ref(false) // 兼容现有组件
   const error = ref<string | null>(null)
-  
-  // 创建模拟用户数据
-  const createMockUserData = (username: string): User => {
-    return {
-      apiVersion: "v1",
-      kind: "User",
-      metadata: {
-        name: username,
-        creationTimestamp: new Date().toISOString(),
-        labels: {
-          department: "development",
-          role: "developer",
-          team: "frontend"
-        },
-        annotations: {
-          contact: `${username}@example.com`,
-          description: "前端开发工程师，专注于Vue.js和现代化Web应用开发"
-        }
-      },
-      spec: {
-        displayName: username === 'xops' ? 'XOps' : username.charAt(0).toUpperCase() + username.slice(1),
-        email: `${username}@example.com`,
-        password: "",
-        token: "",
-        tokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30天后过期
-        roles: [],
-        permissions: {
-          namespaces: [],
-          agents: {
-            create: true,
-            delete: false,
-            restart: true,
-            send: true,
-            logs: true
-          },
-          dags: {
-            create: true,
-            run: true,
-            delete: false
-          }
-        },
-        preferences: {
-          defaultNamespace: "default",
-          outputFormat: "json",
-          timezone: "Asia/Shanghai"
-        },
-        quotas: {
-          maxAgents: 10,
-          maxNamespaces: 3,
-          maxDags: 20
-        }
-      },
-      status: {
-        phase: "Active",
-        lastLoginTime: new Date().toISOString(),
-        agentCount: 0,
-        namespaceCount: 1,
-        dagCount: 0
+
+  // 计算属性
+  const userInfo = computed(() => currentUser.value)
+  const hasPermission = computed(() => (permission: string) => {
+    return currentUser.value?.permissions?.includes(permission) || false
+  })
+
+  // 从localStorage恢复登录状态
+  const restoreAuth = () => {
+    try {
+      const savedToken = localStorage.getItem('goqgo_token')
+      const savedUser = localStorage.getItem('goqgo_user')
+      
+      if (savedToken && savedUser) {
+        token.value = savedToken
+        currentUser.value = JSON.parse(savedUser)
+        isAuthenticated.value = true
+        
+        // 设置axios默认header
+        setAuthHeader(savedToken)
+        
+        console.log('✅ 恢复登录状态:', currentUser.value?.username)
+        return true
       }
+    } catch (error) {
+      console.error('恢复登录状态失败:', error)
+      clearAuth()
     }
+    return false
   }
-  
-  // 获取当前用户信息
-  const fetchCurrentUser = async (username: string = 'xops') => {
+
+  // 设置认证头
+  const setAuthHeader = (authToken: string) => {
+    // 这里可以设置axios的默认header
+    // axios.defaults.headers.common['Authorization'] = `Bearer ${authToken}`
+  }
+
+  // Token登录
+  const loginWithToken = async (userToken: string) => {
+    isLoading.value = true
     loading.value = true
     error.value = null
     
     try {
-      console.log('👤 获取用户信息:', username)
-      const userData = await userApi.get(username)
-      
-      // 检查用户数据是否有效（axios拦截器已经返回了data）
-      if (userData && userData.spec) {
-        currentUserData.value = userData
-        console.log('✅ 用户信息获取成功:', userData.spec.displayName)
-      } else {
-        console.warn('⚠️ 用户数据格式不正确:', userData)
-        throw new Error('用户数据格式不正确')
+      // 验证token格式
+      if (!userToken || userToken.length < 10) {
+        throw new Error('令牌格式不正确')
       }
+
+      // 这里应该调用后台API验证token
+      // 目前先模拟验证逻辑
+      const response = await validateToken(userToken)
+      
+      // 保存认证信息
+      token.value = userToken
+      currentUser.value = response.user
+      isAuthenticated.value = true
+      
+      // 持久化存储
+      localStorage.setItem('goqgo_token', userToken)
+      localStorage.setItem('goqgo_user', JSON.stringify(response.user))
+      
+      // 设置认证头
+      setAuthHeader(userToken)
+      
+      console.log('✅ Token登录成功:', response.user.username)
+      
+    } catch (err: any) {
+      console.error('❌ Token登录失败:', err)
+      error.value = err.message || '登录失败'
+      clearAuth()
+      throw err
+    } finally {
+      isLoading.value = false
+      loading.value = false
+    }
+  }
+
+  // 验证Token（模拟API调用）
+  const validateToken = async (userToken: string): Promise<LoginResponse> => {
+    // 模拟API延迟
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // 简单的token验证逻辑（实际应该调用后台API）
+    if (userToken.startsWith('goqgo_') || userToken.length >= 20) {
+      // 从token中解析用户信息（实际应该由后台返回）
+      const mockUser: User = {
+        id: 'user_' + Date.now(),
+        username: 'xops', // 可以从token中解析
+        displayName: 'xops',
+        email: 'user@goqgo.com',
+        avatar: '',
+        role: 'developer',
+        permissions: ['chat:read', 'chat:write', 'project:read']
+      }
+      
+      return {
+        user: mockUser,
+        token: userToken,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24小时后过期
+      }
+    } else {
+      throw new Error('无效的访问令牌，请检查令牌是否正确')
+    }
+  }
+
+  // 获取当前用户信息（兼容现有组件）
+  const fetchCurrentUser = async (username: string) => {
+    loading.value = true
+    error.value = null
+    
+    try {
+      // 模拟API调用获取用户详细信息
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // 模拟用户数据
+      currentUserData.value = {
+        metadata: {
+          name: username,
+          namespace: 'default',
+          annotations: {
+            description: 'GoQGo开发者，专注于AI智能体协助开发'
+          }
+        },
+        spec: {
+          tokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        }
+      }
+      
+      console.log('✅ 获取用户信息成功:', username)
+      
     } catch (err: any) {
       console.error('❌ 获取用户信息失败:', err)
       error.value = err.message || '获取用户信息失败'
       
-      // 如果是网络错误或API不可用，创建一个模拟的用户数据
-      if (err.code === 'ECONNREFUSED' || err.response?.status === 404 || !err.response) {
-        console.log('🔄 使用模拟用户数据作为fallback')
-        currentUserData.value = createMockUserData(username)
-        error.value = null // 清除错误，因为我们有fallback数据
-      } else {
-        // 使用默认用户信息作为fallback
-        currentUserData.value = null
+      // 提供fallback数据
+      currentUserData.value = {
+        metadata: {
+          name: username,
+          namespace: 'default',
+          annotations: {
+            description: '用户信息加载中...'
+          }
+        },
+        spec: {
+          tokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        }
       }
     } finally {
       loading.value = false
     }
   }
-  
-  // 获取所有用户列表
-  const fetchAllUsers = async () => {
+
+  // 获取用户显示名称（兼容现有组件）
+  const getUserDisplayName = (userId: string) => {
+    if (userId === currentUser.value?.username) {
+      return currentUser.value?.displayName || currentUser.value?.username || userId
+    }
+    return userId
+  }
+
+  // AD登录（预留）
+  const loginWithAD = async (username: string, password: string) => {
+    isLoading.value = true
     loading.value = true
     error.value = null
     
     try {
-      console.log('👥 获取用户列表')
-      const userListData = await userApi.list()
-      
-      // 检查数据格式（axios拦截器已经返回了data）
-      if (userListData && userListData.items) {
-        allUsers.value = userListData.items
-        console.log('✅ 用户列表获取成功:', userListData.items.length, '个用户')
-      } else {
-        console.warn('⚠️ 用户列表数据格式不正确:', userListData)
-        allUsers.value = []
-      }
+      // TODO: 实现AD登录逻辑
+      throw new Error('AD登录功能暂未实现')
     } catch (err: any) {
-      console.error('❌ 获取用户列表失败:', err)
-      error.value = err.message || '获取用户列表失败'
-      allUsers.value = []
+      console.error('❌ AD登录失败:', err)
+      error.value = err.message || 'AD登录失败'
+      throw err
     } finally {
+      isLoading.value = false
       loading.value = false
     }
   }
-  
-  // 设置当前用户（向后兼容）
-  const setCurrentUser = (user: Partial<SimpleUser>) => {
-    if (currentUserData.value) {
-      // 如果有完整用户数据，更新相应字段
-      if (user.displayName) {
-        currentUserData.value.spec.displayName = user.displayName
-      }
-    }
-    console.log('👤 设置当前用户:', user)
+
+  // 登出
+  const logout = () => {
+    clearAuth()
+    console.log('✅ 用户已登出')
   }
-  
-  // 更新在线用户列表
-  const updateOnlineUsers = (users: SimpleUser[]) => {
-    onlineUsers.value = users
-    console.log('👥 更新在线用户列表:', users.length, '人')
-  }
-  
-  // 添加在线用户
-  const addOnlineUser = (user: SimpleUser) => {
-    const existingIndex = onlineUsers.value.findIndex(u => u.username === user.username)
-    if (existingIndex !== -1) {
-      onlineUsers.value[existingIndex] = user
-    } else {
-      onlineUsers.value.push(user)
-    }
-    console.log('👤 用户上线:', user.username)
-  }
-  
-  // 移除在线用户
-  const removeOnlineUser = (username: string) => {
-    const index = onlineUsers.value.findIndex(u => u.username === username)
-    if (index !== -1) {
-      onlineUsers.value.splice(index, 1)
-      console.log('👤 用户下线:', username)
-    }
-  }
-  
-  // 获取用户显示名称
-  const getUserDisplayName = (username: string) => {
-    if (username === currentUser.value.username) {
-      return currentUser.value.displayName
-    }
+
+  // 清除认证信息
+  const clearAuth = () => {
+    currentUser.value = null
+    currentUserData.value = null
+    token.value = ''
+    isAuthenticated.value = false
+    error.value = null
     
-    // 先从在线用户中查找
-    const onlineUser = onlineUsers.value.find(u => u.username === username)
-    if (onlineUser) {
-      return onlineUser.displayName
-    }
+    // 清除本地存储
+    localStorage.removeItem('goqgo_token')
+    localStorage.removeItem('goqgo_user')
     
-    // 再从所有用户中查找
-    const allUser = allUsers.value.find(u => u.metadata.name === username)
-    if (allUser) {
-      return allUser.spec.displayName
-    }
-    
-    return username
+    // 清除认证头
+    // delete axios.defaults.headers.common['Authorization']
   }
-  
-  // 检查是否为当前用户
-  const isCurrentUser = (username: string) => {
-    return username === currentUser.value.username
+
+  // 检查token是否过期
+  const checkTokenExpiry = () => {
+    // TODO: 实现token过期检查
+    return true
   }
-  
-  // 获取用户详细信息
-  const getUserDetails = (username: string) => {
-    return allUsers.value.find(u => u.metadata.name === username)
+
+  // 刷新token
+  const refreshToken = async () => {
+    // TODO: 实现token刷新逻辑
   }
-  
-  // 获取用户权限信息
-  const getUserPermissions = (username: string) => {
-    const user = getUserDetails(username)
-    return user?.spec.permissions
-  }
-  
-  // 获取用户配额信息
-  const getUserQuotas = (username: string) => {
-    const user = getUserDetails(username)
-    return user?.spec.quotas
-  }
-  
-  // 获取用户状态统计
-  const getUserStats = (username: string) => {
-    const user = getUserDetails(username)
-    return user?.status
-  }
-  
+
   return {
     // 状态
     currentUser,
     currentUserData,
-    onlineUsers,
-    allUsers,
-    loading,
+    token,
+    isAuthenticated,
+    isLoading,
+    loading, // 兼容现有组件
     error,
     
+    // 计算属性
+    userInfo,
+    hasPermission,
+    
     // 方法
-    fetchCurrentUser,
-    fetchAllUsers,
-    setCurrentUser,
-    updateOnlineUsers,
-    addOnlineUser,
-    removeOnlineUser,
-    getUserDisplayName,
-    isCurrentUser,
-    getUserDetails,
-    getUserPermissions,
-    getUserQuotas,
-    getUserStats
+    restoreAuth,
+    loginWithToken,
+    loginWithAD,
+    fetchCurrentUser, // 兼容现有组件
+    getUserDisplayName, // 兼容现有组件
+    logout,
+    clearAuth,
+    checkTokenExpiry,
+    refreshToken
   }
 })

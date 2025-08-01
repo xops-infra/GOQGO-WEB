@@ -173,16 +173,19 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, h } from 'vue'
 import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useAgentsStore } from '@/stores/agents'
-import { useMessage } from 'naive-ui'
+import { useMessage, useDialog } from 'naive-ui'
 
 // 状态管理
+const router = useRouter()
 const userStore = useUserStore()
 const agentsStore = useAgentsStore()
 const { currentUser, currentUserData } = storeToRefs(userStore)
 const { agents } = storeToRefs(agentsStore)
 const message = useMessage()
+const dialog = useDialog()
 
 // 响应式数据
 const showUserDetails = ref(false)
@@ -321,7 +324,26 @@ const refreshUserInfo = async () => {
 }
 
 const handleLogout = () => {
-  message.info('退出登录功能开发中...')
+  // 使用确认对话框
+  const d = dialog.warning({
+    title: '确认退出',
+    content: '您确定要退出登录吗？',
+    positiveText: '确定',
+    negativeText: '取消',
+    onPositiveClick: () => {
+      try {
+        // 调用用户store的登出方法
+        userStore.logout()
+        message.success('已退出登录')
+        
+        // 跳转到登录页
+        router.push('/login')
+      } catch (error) {
+        console.error('登出失败:', error)
+        message.error('登出失败')
+      }
+    }
+  })
 }
 
 const formatTime = (timeString: string) => {
