@@ -180,6 +180,12 @@ export const useChatStore = defineStore('chat', () => {
       onError: (error) => {
         console.error('❌ 聊天室连接错误:', error)
         isConnected.value = false
+        
+        // 特殊处理消息过大错误
+        if (error.type === 'MESSAGE_TOO_LARGE') {
+          // 可以在这里添加特殊的用户提示逻辑
+          console.log('💡 建议：请减少消息内容或分段发送')
+        }
       }
     })
   }

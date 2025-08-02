@@ -71,7 +71,7 @@
               }
             ]"
           >
-            <MessageItem :message="message" />
+            <MessageItem :message="message" @resend="handleResendMessage" />
           </div>
         </template>
       </div>
@@ -219,6 +219,40 @@ const handleSendImage = async (imageUrl: string) => {
   } catch (error) {
     console.error('发送图片失败:', error)
     message.error('发送图片失败')
+  }
+}
+
+// 处理重新发送消息
+const handleResendMessage = async (failedMessage: any) => {
+  try {
+    // 显示重新发送提示
+    message.info('正在重新发送消息...')
+    
+    // 如果消息有tempId，先将状态设置为发送中
+    if (failedMessage.tempId) {
+      // 这里我们可以通过chatStore的方法来更新状态
+      // 但由于updateMessageStatus不是导出的，我们直接重新发送
+    }
+    
+    // 根据消息类型重新发送
+    if (failedMessage.messageType === 'image' || failedMessage.imageUrl) {
+      // 重新发送图片消息
+      const imageUrl = failedMessage.imageUrl || failedMessage.content
+      await chatStore.sendImageMessage(imageUrl)
+    } else {
+      // 重新发送文本消息
+      await chatStore.sendMessage(failedMessage.content)
+    }
+    
+    // 发送成功后滚动到底部
+    nextTick(() => {
+      scrollToBottom()
+    })
+    
+    message.success('消息重新发送成功')
+  } catch (error) {
+    console.error('重新发送消息失败:', error)
+    message.error('重新发送失败，请稍后再试')
   }
 }
 

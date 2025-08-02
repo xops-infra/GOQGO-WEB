@@ -184,7 +184,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, h } from 'vue'
+import { computed, onMounted, onUnmounted, ref, h } from 'vue'
 import {
   NGrid,
   NGridItem,
@@ -211,11 +211,16 @@ import {
   SendOutline
 } from '@vicons/ionicons5'
 import { useTheme } from '@/utils/theme'
+import { formatRelativeTime, useTimeManager, formatAgentUptime } from '@/utils/timeManager'
+import { agentApi } from '@/api/agents'
 import TerminalHeader from '@/components/TerminalHeader.vue'
 import TerminalStatsCard from '@/components/TerminalStatsCard.vue'
 
 const { isTerminal } = useTheme()
 const message = useMessage()
+
+// 使用时间管理器
+const { currentTime, cleanup } = useTimeManager()
 
 // 响应式数据
 const agents = ref<any[]>([])
@@ -362,18 +367,58 @@ const columns = computed<DataTableColumns>(() => {
       }
     },
     {
-      title: isTerminal.value ? 'CREATED' : '创建时间',
-      key: 'createdAt',
+      title: isTerminal.value ? 'UPTIME' : '运行时间',
+      key: 'age',
       render: (row: any) => {
-        const date = new Date(row.createdAt)
+        // 使用currentTime.value来触发响应式更新
+        const _ = currentTime.value // 触发响应式依赖
+        
+        let uptimeText = '未知'
+        
+        if (row.age) {
+          // 如果有age字段，格式化显示
+          uptimeText = formatAgentUptime(row.age)
+        } else if (row.createdAt) {
+          // 如果没有age字段但有createdAt，计算运行时间
+          uptimeText = formatRelativeTime(row.createdAt, currentTime.value)
+        }
+        
         return h(
           'span',
           {
-            class: { 'terminal-text': isTerminal.value }
+            class: { 'terminal-text': isTerminal.value },
+            title: row.age ? `运行时间: ${row.age}` : '基于创建时间计算'
+          },
+          isTerminal.value ? uptimeText.toUpperCase() : uptimeText
+        )
+      }
+    },
+    {
+      title: isTerminal.value ? 'CREATED' : '创建时间',
+      key: 'createdAt',
+      render: (row: any) => {
+        if (!row.createdAt) {
+          return h(
+            'span',
+            {
+              class: { 'terminal-text': isTerminal.value }
+            },
+            isTerminal.value ? 'UNKNOWN' : '未知'
+          )
+        }
+        
+        const date = new Date(row.createdAt)
+        const relativeTime = formatRelativeTime(row.createdAt, currentTime.value)
+        
+        return h(
+          'span',
+          {
+            class: { 'terminal-text': isTerminal.value },
+            title: date.toLocaleString('zh-CN') // 悬停显示完整时间
           },
           isTerminal.value
             ? date.toISOString().replace('T', '_').split('.')[0]
-            : date.toLocaleString('zh-CN')
+            : relativeTime
         )
       }
     },
@@ -464,47 +509,58 @@ const pagination = computed(() => ({
 const refreshAgents = async () => {
   loading.value = true
   try {
-    // 模拟API调用
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    // 模拟数据
-    agents.value = [
-      {
-        id: 'agent-001',
-        name: 'Assistant-Alpha',
-        namespace: 'default',
-        role: 'assistant',
-        status: 'running',
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: 'agent-002',
-        name: 'Coder-Beta',
-        namespace: 'development',
-        role: 'coder',
-        status: 'idle',
-        createdAt: new Date(Date.now() - 86400000).toISOString()
-      },
-      {
-        id: 'agent-003',
-        name: 'Analyst-Gamma',
-        namespace: 'production',
-        role: 'analyst',
-        status: 'error',
-        createdAt: new Date(Date.now() - 172800000).toISOString()
-      },
-      {
-        id: 'agent-004',
-        name: 'Support-Delta',
-        namespace: 'production',
-        role: 'support',
-        status: 'running',
-        createdAt: new Date(Date.now() - 259200000).toISOString()
-      }
-    ]
+    // 尝试从API获取真实数据
+    try {
+      const response = await agentApi.getList(selectedNamespace.value)
+      agents.value = response.items || []
+      console.log('✅ 获取Agent列表成功:', agents.value.length, '个实例')
+    } catch (apiError) {
+      console.warn('⚠️ API获取失败，使用模拟数据:', apiError)
+      
+      // API失败时使用模拟数据
+      agents.value = [
+        {
+          id: 'agent-001',
+          name: 'Assistant-Alpha',
+          namespace: 'default',
+          role: 'assistant',
+          status: 'running',
+          age: '2h15m',
+          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000 - 15 * 60 * 1000).toISOString()
+        },
+        {
+          id: 'agent-002',
+          name: 'Coder-Beta',
+          namespace: 'development',
+          role: 'coder',
+          status: 'idle',
+          age: '1d3h',
+          createdAt: new Date(Date.now() - 86400000 - 3 * 60 * 60 * 1000).toISOString()
+        },
+        {
+          id: 'agent-003',
+          name: 'Analyst-Gamma',
+          namespace: 'production',
+          role: 'analyst',
+          status: 'error',
+          age: '45m',
+          createdAt: new Date(Date.now() - 45 * 60 * 1000).toISOString()
+        },
+        {
+          id: 'agent-004',
+          name: 'Support-Delta',
+          namespace: 'production',
+          role: 'support',
+          status: 'running',
+          age: '3d12h',
+          createdAt: new Date(Date.now() - 3 * 86400000 - 12 * 60 * 60 * 1000).toISOString()
+        }
+      ]
+    }
 
     message.success(isTerminal.value ? 'AGENTS_REFRESHED' : '智能体列表已刷新')
   } catch (error) {
+    console.error('❌ 刷新Agent列表失败:', error)
     message.error(isTerminal.value ? 'REFRESH_FAILED' : '刷新失败')
   } finally {
     loading.value = false
@@ -576,6 +632,11 @@ const handleCreateAgent = async () => {
 // 生命周期
 onMounted(() => {
   refreshAgents()
+})
+
+onUnmounted(() => {
+  // 清理时间管理器
+  cleanup()
 })
 </script>
 

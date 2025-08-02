@@ -79,12 +79,64 @@ export class ChatSocket {
 
     this.ws.onclose = (event) => {
       console.log('❌ WebSocket连接关闭:', event.code, event.reason)
+      
+      // 根据错误码提供更详细的错误信息
+      let errorMessage = ''
+      switch (event.code) {
+        case 1000:
+          errorMessage = '正常关闭'
+          break
+        case 1001:
+          errorMessage = '端点离开'
+          break
+        case 1002:
+          errorMessage = '协议错误'
+          break
+        case 1003:
+          errorMessage = '不支持的数据类型'
+          break
+        case 1006:
+          errorMessage = '连接异常关闭'
+          break
+        case 1009:
+          errorMessage = '消息过大'
+          // 特别处理消息过大的情况
+          console.error('💥 WebSocket因消息过大而关闭，请检查发送的消息大小')
+          this.callbacks.onError?.({ 
+            code: event.code, 
+            message: '发送的消息过大，请减少消息内容后重试',
+            type: 'MESSAGE_TOO_LARGE'
+          })
+          break
+        case 1011:
+          errorMessage = '服务器错误'
+          break
+        case 1012:
+          errorMessage = '服务重启'
+          break
+        case 1013:
+          errorMessage = '稍后重试'
+          break
+        case 1014:
+          errorMessage = '网关错误'
+          break
+        case 1015:
+          errorMessage = 'TLS握手失败'
+          break
+        default:
+          errorMessage = `未知错误 (${event.code})`
+      }
+      
+      console.log('📋 关闭原因:', errorMessage)
       this.callbacks.onStatus?.(false)
       this.stopPing()
 
-      // 如果不是主动关闭，尝试重连
-      if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
+      // 如果不是主动关闭且不是消息过大错误，尝试重连
+      if (event.code !== 1000 && event.code !== 1009 && this.reconnectAttempts < this.maxReconnectAttempts) {
         this.reconnect()
+      } else if (event.code === 1009) {
+        // 消息过大时不重连，等待用户处理
+        console.log('🚫 因消息过大导致连接关闭，不进行自动重连')
       }
     }
 
@@ -230,6 +282,26 @@ export class ChatSocket {
   }
 
   sendMessage(content: string, messageType: string = 'text'): string {
+    // 检查消息大小限制 (64KB)
+    const maxMessageSize = 64 * 1024 // 64KB
+    const messageSize = new Blob([content]).size
+    
+    if (messageSize > maxMessageSize) {
+      console.error('❌ 消息过大:', {
+        size: messageSize,
+        maxSize: maxMessageSize,
+        content: content.substring(0, 100) + '...'
+      })
+      
+      // 触发错误回调
+      const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      setTimeout(() => {
+        this.callbacks.onMessageSent?.(tempId, '', 'error')
+      }, 100)
+      
+      return tempId
+    }
+
     // 生成临时ID用于消息确认
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
@@ -242,7 +314,31 @@ export class ChatSocket {
       }
     }
 
-    console.log('📤 发送消息:', message)
+    // 检查序列化后的消息大小
+    const serializedMessage = JSON.stringify(message)
+    const serializedSize = new Blob([serializedMessage]).size
+    
+    if (serializedSize > maxMessageSize) {
+      console.error('❌ 序列化后消息过大:', {
+        size: serializedSize,
+        maxSize: maxMessageSize,
+        message: serializedMessage.substring(0, 100) + '...'
+      })
+      
+      setTimeout(() => {
+        this.callbacks.onMessageSent?.(tempId, '', 'error')
+      }, 100)
+      
+      return tempId
+    }
+
+    console.log('📤 发送消息:', {
+      tempId,
+      contentLength: content.length,
+      messageSize: serializedSize,
+      type: messageType
+    })
+    
     this.send(message)
 
     // 设置10秒超时定时器

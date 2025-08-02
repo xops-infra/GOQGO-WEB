@@ -49,7 +49,12 @@
         <div class="time-info">
           <span class="message-time">{{ formattedTime }}</span>
           <!-- 消息状态图标 -->
-          <n-icon v-if="statusIcon" :class="statusIconClass" :title="statusTitle">
+          <n-icon 
+            v-if="statusIcon" 
+            :class="statusIconClass" 
+            :title="statusTitle"
+            @click="handleStatusClick"
+          >
             <component :is="statusIcon" />
           </n-icon>
         </div>
@@ -120,10 +125,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h } from 'vue'
+import { computed, h, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useChatStore } from '@/stores/chat'
-import { formatRelativeTime } from '@/utils/timeManager'
+import { formatRelativeTime, useTimeManager } from '@/utils/timeManager'
 import { formatMessageContent, parseMessage } from '@/utils/messageParser'
 import ImageMessage from './ImageMessage.vue'
 import type { ChatMessage } from '@/types/api'
@@ -136,12 +141,30 @@ interface Props {
 
 const props = defineProps<Props>()
 
+// Emit定义
+const emit = defineEmits<{
+  resend: [message: ChatMessage]
+}>()
+
 // 获取聊天store中的在线用户列表
 const chatStore = useChatStore()
 const { onlineUsers } = storeToRefs(chatStore)
 
 // 获取用户store中的当前用户名
 const userStore = useUserStore()
+
+// 使用时间管理器
+const { currentTime, cleanup } = useTimeManager()
+
+// 生命周期
+onMounted(() => {
+  // 时间管理器已在useTimeManager中自动启动
+})
+
+onUnmounted(() => {
+  // 清理时间管理器
+  cleanup()
+})
 
 // 基础验证
 const isValidMessage = computed(() => {
@@ -283,11 +306,13 @@ const typeLabel = computed(() => {
   }
 })
 
-// 时间格式化
+// 时间格式化 - 响应式更新
 const formattedTime = computed(() => {
   const timestamp = props.message?.timestamp
   if (!timestamp) return '未知时间'
-  return formatRelativeTime(timestamp, new Date()) // 修复：传入Date对象而不是字符串
+  
+  // 使用currentTime.value来触发响应式更新
+  return formatRelativeTime(timestamp, currentTime.value)
 })
 
 // 消息状态
@@ -327,7 +352,11 @@ const statusIcon = computed(() => {
       return h('svg', { viewBox: '0 0 16 16' }, [
         h('path', { 
           fill: 'currentColor', 
-          d: 'M8,0L9.5,6L16,7L9.5,8L8,14L6.5,8L0,7L6.5,6L8,0Z' 
+          d: 'M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z'
+        }),
+        h('path', { 
+          fill: 'currentColor', 
+          d: 'M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z'
         })
       ])
     default:
@@ -342,7 +371,8 @@ const statusIconClass = computed(() => {
     'sending': status === 'sending',
     'sent': status === 'sent',
     'delivered': status === 'delivered',
-    'error': status === 'error'
+    'error': status === 'error',
+    'clickable': status === 'error'
   }
 })
 
@@ -352,7 +382,7 @@ const statusTitle = computed(() => {
     case 'sending': return '发送中'
     case 'sent': return '已发送'
     case 'delivered': return '已送达'
-    case 'error': return '发送失败'
+    case 'error': return '发送失败，点击重新发送'
     default: return ''
   }
 })
@@ -382,6 +412,15 @@ const handleImageError = (event: Event) => {
   const img = event.target as HTMLImageElement
   img.style.display = 'none'
   console.error('图片加载失败:', imageUrl.value)
+}
+
+// 处理状态图标点击
+const handleStatusClick = () => {
+  const status = messageStatus.value
+  if (status === 'error') {
+    // 发送失败时，触发重新发送
+    emit('resend', props.message)
+  }
 }
 </script>
 
@@ -504,6 +543,7 @@ const handleImageError = (event: Event) => {
 
     .status-icon {
       font-size: 12px;
+      transition: all 0.2s ease;
 
       &.sending {
         color: var(--color-warning);
@@ -520,6 +560,21 @@ const handleImageError = (event: Event) => {
 
       &.error {
         color: var(--color-error);
+      }
+
+      &.clickable {
+        cursor: pointer;
+        padding: 2px;
+        border-radius: 3px;
+        
+        &:hover {
+          background-color: var(--bg-hover);
+          transform: scale(1.1);
+        }
+        
+        &:active {
+          transform: scale(0.95);
+        }
       }
     }
   }

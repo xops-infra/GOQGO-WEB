@@ -56,7 +56,58 @@ export const useTimeManager = () => {
   }
 }
 
-// 格式化相对时间的工具函数
+// 格式化Agent运行时间（如 "2h15m" 格式）
+export const formatAgentUptime = (ageString: string): string => {
+  if (!ageString) return '未知'
+  
+  // 如果已经是格式化的字符串（如 "2h15m"），直接返回
+  if (/^\d+[dhms]+/.test(ageString)) {
+    return ageString
+  }
+  
+  // 如果是时间戳，转换为相对时间
+  try {
+    const date = new Date(ageString)
+    if (!isNaN(date.getTime())) {
+      return formatRelativeTime(ageString, new Date())
+    }
+  } catch (error) {
+    console.warn('无法解析运行时间:', ageString)
+  }
+  
+  return ageString
+}
+
+// 解析运行时间字符串为毫秒数（用于排序等）
+export const parseUptimeToMs = (ageString: string): number => {
+  if (!ageString) return 0
+  
+  let totalMs = 0
+  const regex = /(\d+)([dhms])/g
+  let match
+  
+  while ((match = regex.exec(ageString)) !== null) {
+    const value = parseInt(match[1])
+    const unit = match[2]
+    
+    switch (unit) {
+      case 'd':
+        totalMs += value * 24 * 60 * 60 * 1000
+        break
+      case 'h':
+        totalMs += value * 60 * 60 * 1000
+        break
+      case 'm':
+        totalMs += value * 60 * 1000
+        break
+      case 's':
+        totalMs += value * 1000
+        break
+    }
+  }
+  
+  return totalMs
+}
 export const formatRelativeTime = (timestamp: string, now: Date = new Date()) => {
   try {
     // 验证参数

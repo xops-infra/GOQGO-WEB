@@ -1,5 +1,57 @@
 <template>
   <div class="chat-input-container">
+    <!-- @ 提及选择器 -->
+    <div
+      v-if="showMentionSelector"
+      class="mention-selector"
+      :style="mentionSelectorStyle"
+    >
+      <div class="mention-header">
+        <n-icon size="16">
+          <svg viewBox="0 0 24 24">
+            <path fill="currentColor" d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M7,9A2,2 0 0,1 9,7A2,2 0 0,1 11,9A2,2 0 0,1 9,11A2,2 0 0,1 7,9M15,9A2,2 0 0,1 17,7A2,2 0 0,1 19,9A2,2 0 0,1 17,11A2,2 0 0,1 15,9M12,17.5C14.33,17.5 16.31,16.04 17.11,14H6.89C7.69,16.04 9.67,17.5 12,17.5Z"/>
+          </svg>
+        </n-icon>
+        <span>选择要提及的实例</span>
+      </div>
+      <div class="mention-list">
+        <div
+          v-for="(agent, index) in filteredAgents"
+          :key="agent.name"
+          :class="[
+            'mention-item',
+            { 'mention-item-selected': index === selectedMentionIndex }
+          ]"
+          @click="selectMention(agent)"
+          @mouseenter="selectedMentionIndex = index"
+        >
+          <div class="mention-avatar">
+            <n-icon size="20">
+              <svg viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+              </svg>
+            </n-icon>
+          </div>
+          <div class="mention-info">
+            <div class="mention-name">{{ agent.name }}</div>
+            <div class="mention-role">{{ agent.role }}</div>
+          </div>
+          <div class="mention-status">
+            <div :class="['status-dot', `status-${agent.status}`]"></div>
+            <span class="status-text">{{ getStatusText(agent.status) }}</span>
+          </div>
+        </div>
+      </div>
+      <div v-if="filteredAgents.length === 0" class="mention-empty">
+        <n-icon size="24" color="var(--text-tertiary)">
+          <svg viewBox="0 0 24 24">
+            <path fill="currentColor" d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,9H13V7H11M11,17H13V11H11V17Z"/>
+          </svg>
+        </n-icon>
+        <p>没有找到匹配的实例</p>
+      </div>
+    </div>
+
     <div
       class="chat-input"
       @dragover="handleDragOver"
@@ -42,22 +94,6 @@
               </n-icon>
             </template>
           </n-button>
-
-          <!-- 图片上传按钮 -->
-          <!-- <n-button
-            text
-            @click="handleImageUpload"
-            class="image-button"
-            :disabled="!isConnected"
-          >
-            <template #icon>
-              <n-icon>
-                <svg viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M8.5,13.5L11,16.5L14.5,12L19,18H5M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19Z"/>
-                </svg>
-              </n-icon>
-            </template>
-          </n-button> -->
         </div>
 
         <!-- 输入框 -->
@@ -70,36 +106,61 @@
           :disabled="!isConnected"
           @keydown="handleKeyDown"
           @paste="handlePaste"
+          @input="handleInput"
           class="message-input"
         />
 
         <!-- 发送按钮 -->
-        <n-button
-          type="primary"
-          @click="handleSendMessage"
-          :disabled="!canSendMessage"
-          class="send-button"
-        >
-          <template #icon>
-            <n-icon>
-              <svg viewBox="0 0 24 24">
-                <path fill="currentColor" d="M2,21L23,12L2,3V10L17,12L2,14V21Z" />
-              </svg>
-            </n-icon>
-          </template>
-          发送
-        </n-button>
+        <div class="send-area">
+          <!-- 消息长度指示器 -->
+          <div 
+            v-if="messageLength > 0" 
+            class="message-length-indicator"
+            :class="{
+              'warning': messageSizeInfo.warningLevel === 'warning',
+              'error': messageSizeInfo.warningLevel === 'danger'
+            }"
+          >
+            <span class="length-text">
+              {{ messageSizeInfo.charCount }}/{{ MESSAGE_LIMITS.MAX_CHARS }}
+            </span>
+            <span v-if="messageSizeInfo.byteSize > 1024" class="size-text">
+              ({{ Math.round(messageSizeInfo.byteSize / 1024) }}KB)
+            </span>
+            <span v-if="!messageSizeInfo.isValid" class="error-text">
+              过大
+            </span>
+          </div>
+          
+          <n-button
+            type="primary"
+            @click="handleSendMessage"
+            :disabled="!canSendMessage"
+            class="send-button"
+          >
+            <template #icon>
+              <n-icon>
+                <svg viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M2,21L23,12L2,3V10L17,12L2,14V21Z" />
+                </svg>
+              </n-icon>
+            </template>
+            发送
+          </n-button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
 import { useMessage } from 'naive-ui'
 import { formatFileSize } from '@/utils/file'
 import { filesApi } from '@/api/files'
 import { useUserStore } from '@/stores/user'
+import { agentApi, type Agent } from '@/api/agents'
+import { checkMessageSize, splitLongMessage, getMessageSizeWarningLevel, MESSAGE_LIMITS } from '@/utils/messageUtils'
 
 const props = defineProps<{
   isConnected: boolean
@@ -120,6 +181,14 @@ const inputMessage = ref('')
 const inputRef = ref()
 const isDragOver = ref(false)
 
+// @ 功能相关状态
+const showMentionSelector = ref(false)
+const mentionQuery = ref('')
+const selectedMentionIndex = ref(0)
+const mentionStartPos = ref(0)
+const agents = ref<Agent[]>([])
+const mentionSelectorStyle = ref({})
+
 // 计算属性
 const canSendMessage = computed(() => {
   return inputMessage.value.trim() && props.isConnected
@@ -129,27 +198,276 @@ const placeholderText = computed(() => {
   if (!props.isConnected) {
     return '连接断开，无法发送消息...'
   }
-  return '输入消息... (支持拖拽文件上传)'
+  return '输入消息... (支持拖拽文件上传，输入@提及实例)'
 })
 
-// 发送消息
-const handleSendMessage = () => {
-  if (!canSendMessage.value) return
+// 消息长度统计
+const messageLength = computed(() => {
+  return inputMessage.value.length
+})
 
-  const text = inputMessage.value.trim()
-  if (text) {
-    emit('send', text)
-    inputMessage.value = ''
+const messageSizeInfo = computed(() => {
+  const text = inputMessage.value
+  const sizeCheck = checkMessageSize(text)
+  const warningLevel = getMessageSizeWarningLevel(text)
+  
+  return {
+    ...sizeCheck,
+    warningLevel,
+    charPercentage: (sizeCheck.charCount / MESSAGE_LIMITS.MAX_CHARS) * 100,
+    bytePercentage: (sizeCheck.byteSize / MESSAGE_LIMITS.MAX_BYTES) * 100
   }
+})
+
+// 过滤的Agent列表
+const filteredAgents = computed(() => {
+  if (!mentionQuery.value) {
+    return agents.value
+  }
+  
+  const query = mentionQuery.value.toLowerCase()
+  return agents.value.filter(agent => 
+    agent.name.toLowerCase().includes(query) ||
+    agent.role.toLowerCase().includes(query)
+  )
+})
+
+// 获取状态文本
+const getStatusText = (status: string) => {
+  const statusMap = {
+    running: '运行中',
+    idle: '空闲',
+    error: '错误',
+    Creating: '创建中',
+    Terminating: '终止中'
+  }
+  return statusMap[status] || status
+}
+
+// 加载Agent列表
+const loadAgents = async () => {
+  if (!props.namespace) return
+  
+  try {
+    const response = await agentApi.getList(props.namespace)
+    agents.value = response.items || []
+  } catch (error) {
+    console.error('加载实例列表失败:', error)
+    agents.value = []
+  }
+}
+
+// 处理输入事件
+const handleInput = (value: string) => {
+  checkMentionTrigger(value)
+}
+
+// 检查@触发
+const checkMentionTrigger = (value: string) => {
+  const input = getInputElement()
+  if (!input) return
+
+  const cursorPos = input.selectionStart || 0
+  const textBeforeCursor = value.substring(0, cursorPos)
+  
+  // 查找最后一个@符号的位置
+  const lastAtIndex = textBeforeCursor.lastIndexOf('@')
+  
+  if (lastAtIndex === -1) {
+    hideMentionSelector()
+    return
+  }
+  
+  // 检查@符号前是否为空格或行首
+  const charBeforeAt = lastAtIndex > 0 ? textBeforeCursor[lastAtIndex - 1] : ' '
+  if (charBeforeAt !== ' ' && charBeforeAt !== '\n' && lastAtIndex !== 0) {
+    hideMentionSelector()
+    return
+  }
+  
+  // 获取@后的查询文本
+  const queryText = textBeforeCursor.substring(lastAtIndex + 1)
+  
+  // 检查查询文本是否包含空格（如果包含空格，说明已经完成了一个@提及）
+  if (queryText.includes(' ') || queryText.includes('\n')) {
+    hideMentionSelector()
+    return
+  }
+  
+  // 如果只有一个实例，不显示选择器
+  if (agents.value.length <= 1) {
+    hideMentionSelector()
+    return
+  }
+  
+  // 显示提及选择器
+  mentionStartPos.value = lastAtIndex
+  mentionQuery.value = queryText
+  selectedMentionIndex.value = 0
+  showMentionSelector.value = true
+  
+  // 计算选择器位置
+  nextTick(() => {
+    updateMentionSelectorPosition()
+  })
+}
+
+// 获取输入框元素
+const getInputElement = () => {
+  if (!inputRef.value) return null
+  
+  return (
+    inputRef.value.inputElRef ||
+    inputRef.value.textareaElRef ||
+    inputRef.value.$el?.querySelector('textarea') ||
+    inputRef.value.$el?.querySelector('input')
+  )
+}
+
+// 更新选择器位置
+const updateMentionSelectorPosition = () => {
+  const input = getInputElement()
+  if (!input) return
+  
+  // 简单的位置计算，将选择器放在输入框上方
+  const inputRect = input.getBoundingClientRect()
+  mentionSelectorStyle.value = {
+    position: 'fixed',
+    bottom: `${window.innerHeight - inputRect.top + 8}px`,
+    left: `${inputRect.left}px`,
+    width: `${Math.min(320, inputRect.width)}px`,
+    zIndex: 1000
+  }
+}
+
+// 选择提及
+const selectMention = (agent: Agent) => {
+  const currentValue = inputMessage.value
+  const beforeMention = currentValue.substring(0, mentionStartPos.value)
+  const afterMention = currentValue.substring(mentionStartPos.value + 1 + mentionQuery.value.length)
+  
+  // 插入@提及
+  const newValue = `${beforeMention}@${agent.name} ${afterMention}`
+  inputMessage.value = newValue
+  
+  // 设置光标位置
+  nextTick(() => {
+    const input = getInputElement()
+    if (input) {
+      const newCursorPos = mentionStartPos.value + agent.name.length + 2 // @name + space
+      input.setSelectionRange(newCursorPos, newCursorPos)
+      input.focus()
+    }
+  })
+  
+  hideMentionSelector()
+}
+
+// 隐藏提及选择器
+const hideMentionSelector = () => {
+  showMentionSelector.value = false
+  mentionQuery.value = ''
+  selectedMentionIndex.value = 0
 }
 
 // 处理键盘事件
 const handleKeyDown = (e: KeyboardEvent) => {
+  // 如果提及选择器显示，处理导航键
+  if (showMentionSelector.value) {
+    switch (e.key) {
+      case 'ArrowUp':
+        e.preventDefault()
+        selectedMentionIndex.value = Math.max(0, selectedMentionIndex.value - 1)
+        break
+      case 'ArrowDown':
+        e.preventDefault()
+        selectedMentionIndex.value = Math.min(
+          filteredAgents.value.length - 1,
+          selectedMentionIndex.value + 1
+        )
+        break
+      case 'Enter':
+        e.preventDefault()
+        if (filteredAgents.value[selectedMentionIndex.value]) {
+          selectMention(filteredAgents.value[selectedMentionIndex.value])
+        }
+        break
+      case 'Escape':
+        e.preventDefault()
+        hideMentionSelector()
+        break
+      case 'Tab':
+        e.preventDefault()
+        if (filteredAgents.value[selectedMentionIndex.value]) {
+          selectMention(filteredAgents.value[selectedMentionIndex.value])
+        }
+        break
+      default:
+        // 其他键继续正常处理
+        break
+    }
+    return
+  }
+  
+  // 正常的发送消息处理
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault()
     handleSendMessage()
   }
 }
+
+// 发送消息
+const handleSendMessage = async () => {
+  if (!canSendMessage.value) return
+
+  const text = inputMessage.value.trim()
+  if (!text) return
+
+  try {
+    // 直接发送消息
+    emit('send', text)
+    inputMessage.value = ''
+    hideMentionSelector()
+  } catch (error) {
+    console.error('❌ 发送过程中出错:', error)
+  }
+}
+
+// 监听namespace变化，重新加载Agent列表
+watch(
+  () => props.namespace,
+  (newNamespace) => {
+    if (newNamespace) {
+      loadAgents()
+    }
+  },
+  { immediate: true }
+)
+
+// 点击外部隐藏选择器
+const handleClickOutside = (e: Event) => {
+  if (showMentionSelector.value) {
+    const target = e.target as Element
+    const selector = document.querySelector('.mention-selector')
+    const input = getInputElement()
+    
+    if (selector && !selector.contains(target) && input && !input.contains(target)) {
+      hideMentionSelector()
+    }
+  }
+}
+
+// 生命周期
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+  if (props.namespace) {
+    loadAgents()
+  }
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 
 // 上传文件并插入链接到输入框
 const uploadAndInsertFile = async (file: File) => {
@@ -378,6 +696,156 @@ const handleDrop = async (e: DragEvent) => {
   position: relative;
 }
 
+// @ 提及选择器样式
+.mention-selector {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(8px);
+  max-height: 280px;
+  overflow: hidden;
+  animation: mentionFadeIn 0.2s ease-out;
+
+  .mention-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-primary);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .mention-list {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 4px 0;
+
+    .mention-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-left: 3px solid transparent;
+
+      &:hover,
+      &.mention-item-selected {
+        background-color: var(--bg-hover);
+        border-left-color: var(--color-primary);
+      }
+
+      .mention-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        background-color: var(--bg-tertiary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-secondary);
+        flex-shrink: 0;
+      }
+
+      .mention-info {
+        flex: 1;
+        min-width: 0;
+
+        .mention-name {
+          font-weight: 500;
+          color: var(--text-primary);
+          font-size: 14px;
+          margin-bottom: 2px;
+        }
+
+        .mention-role {
+          font-size: 12px;
+          color: var(--text-tertiary);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      }
+
+      .mention-status {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+
+        .status-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          
+          &.status-running {
+            background-color: var(--color-success);
+            box-shadow: 0 0 4px rgba(var(--color-success-rgb), 0.4);
+          }
+          
+          &.status-idle {
+            background-color: var(--color-warning);
+          }
+          
+          &.status-error {
+            background-color: var(--color-error);
+          }
+          
+          &.status-Creating,
+          &.status-Terminating {
+            background-color: var(--color-info);
+            animation: pulse 1.5s infinite;
+          }
+        }
+
+        .status-text {
+          font-size: 11px;
+          color: var(--text-tertiary);
+          font-weight: 500;
+        }
+      }
+    }
+  }
+
+  .mention-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+    color: var(--text-tertiary);
+
+    p {
+      margin: 8px 0 0 0;
+      font-size: 14px;
+    }
+  }
+}
+
+@keyframes mentionFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
 .chat-input {
   background-color: var(--bg-primary);
   border-top: 1px solid var(--border-primary);
@@ -516,6 +984,51 @@ const handleDrop = async (e: DragEvent) => {
     resize: none !important;
     min-height: 36px !important;
     max-height: 144px !important;
+  }
+}
+
+.send-area {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+
+  .message-length-indicator {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    background-color: var(--bg-tertiary);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    &.warning {
+      color: var(--color-warning);
+      background-color: rgba(var(--color-warning-rgb), 0.1);
+    }
+
+    &.error {
+      color: var(--color-error);
+      background-color: rgba(var(--color-error-rgb), 0.1);
+    }
+
+    .length-text {
+      font-weight: 500;
+    }
+
+    .size-text {
+      opacity: 0.8;
+      font-size: 10px;
+    }
+
+    .error-text {
+      color: var(--color-error);
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
   }
 }
 
