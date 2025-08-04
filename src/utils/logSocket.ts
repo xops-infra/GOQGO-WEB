@@ -9,6 +9,9 @@ export interface LogSocketCallbacks {
   onInitial?: (logs: LogEntry[]) => void
   onAppend?: (log: LogEntry) => void
   onHistory?: (logs: LogEntry[], hasMore: boolean) => void
+  onFollowToggled?: (follow: boolean) => void
+  onRefreshed?: (lines: number) => void
+  onSessionClosed?: (message: string) => void
   onError?: (error: string) => void
   onConnect?: () => void
   onDisconnect?: () => void
@@ -179,10 +182,31 @@ export class LogSocket {
         if (message.data) {
           console.log('📜 收到历史日志数据:', message.data)
           const logEntries = this.parseLogContent(message.data)
-          console.log('📜 解析出历史日志:', logEntries.length, '条, hasMore:', message.hasMore)
-          this.callbacks.onHistory?.(logEntries, message.hasMore || false)
+          console.log('📜 解析出历史日志:', logEntries.length, '条, hasMore:', message.data.hasMore)
+          this.callbacks.onHistory?.(logEntries, message.data.hasMore || false)
         } else {
           console.warn('⚠️ 历史日志数据为空:', message.data)
+        }
+        break
+
+      case 'follow_toggled':
+        if (message.data) {
+          console.log('🔄 收到跟踪模式切换确认:', message.data.follow)
+          this.callbacks.onFollowToggled?.(message.data.follow)
+        }
+        break
+
+      case 'refreshed':
+        if (message.data) {
+          console.log('🔄 收到刷新确认:', message.data.lines)
+          this.callbacks.onRefreshed?.(message.data.lines)
+        }
+        break
+
+      case 'session_closed':
+        if (message.data) {
+          console.log('❌ 会话已关闭:', message.data.message)
+          this.callbacks.onSessionClosed?.(message.data.message)
         }
         break
 
@@ -209,7 +233,13 @@ export class LogSocket {
     }
 
     // 处理后端返回的格式
-    if (data.content && typeof data.content === 'string') {
+    if (data.content !== undefined) {
+      // 如果content为空字符串或null，返回空数组
+      if (!data.content || data.content.trim() === '') {
+        console.log('📜 日志内容为空')
+        return []
+      }
+
       const logLines = data.content.split('\n').filter((line) => line.trim())
       return logLines.map((line) => {
         // 尝试解析时间戳和消息
@@ -248,7 +278,7 @@ export class LogSocket {
       ]
     }
 
-    console.warn('⚠️ 无法解析日志内容:', data)
+    console.warn('⚠️ 无法解析日志内容或内容为空:', data)
     return []
   }
 

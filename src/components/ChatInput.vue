@@ -106,7 +106,7 @@
           :disabled="!isConnected"
           @keydown="handleKeyDown"
           @paste="handlePaste"
-          @input="handleInput"
+          @input="handleInputChange"
           class="message-input"
         />
 
@@ -150,17 +150,31 @@
         </div>
       </div>
     </div>
+
+    <!-- Agent自动补全 -->
+    <AgentAutocomplete
+      :agents="agents"
+      :query="currentMentionQuery"
+      :position="agentAutocompletePosition"
+      :visible="showAgentAutocomplete"
+      @select="selectAgent"
+      @close="hideAgentAutocomplete"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useMessage } from 'naive-ui'
 import { formatFileSize } from '@/utils/file'
 import { filesApi } from '@/api/files'
 import { useUserStore } from '@/stores/user'
-import { agentApi, type Agent } from '@/api/agents'
+import { useAgentsStore } from '@/stores/agents'
+import type { Agent } from '@/types/api'
 import { checkMessageSize, splitLongMessage, getMessageSizeWarningLevel, MESSAGE_LIMITS } from '@/utils/messageUtils'
+import { AgentMentionParser } from '@/utils/agentMentionParser'
+import AgentAutocomplete from './AgentAutocomplete.vue'
 
 const props = defineProps<{
   isConnected: boolean
@@ -168,13 +182,15 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  send: [message: string]
+  send: [message: string, mentionedAgents?: string[]]
   'send-image': [url: string]
 }>()
 
 // 状态管理
 const message = useMessage()
 const userStore = useUserStore()
+const agentsStore = useAgentsStore()
+const { agents } = storeToRefs(agentsStore)
 
 // 响应式数据
 const inputMessage = ref('')
@@ -186,7 +202,6 @@ const showMentionSelector = ref(false)
 const mentionQuery = ref('')
 const selectedMentionIndex = ref(0)
 const mentionStartPos = ref(0)
-const agents = ref<Agent[]>([])
 const mentionSelectorStyle = ref({})
 
 // 计算属性
@@ -244,67 +259,72 @@ const getStatusText = (status: string) => {
   return statusMap[status] || status
 }
 
-// 加载Agent列表
-const loadAgents = async () => {
-  if (!props.namespace) return
-  
-  try {
-    const response = await agentApi.getList(props.namespace)
-    agents.value = response.items || []
-  } catch (error) {
-    console.error('加载实例列表失败:', error)
-    agents.value = []
-  }
-}
-
-// 处理输入事件
-const handleInput = (value: string) => {
-  checkMentionTrigger(value)
-}
-
 // 检查@触发
 const checkMentionTrigger = (value: string) => {
+  console.log('🔍 checkMentionTrigger 被调用')
+  console.log('📝 检查的值:', value)
+  console.log('🤖 当前agents数量:', agents.value.length)
+  
   const input = getInputElement()
-  if (!input) return
+  if (!input) {
+    console.warn('⚠️ 未找到input元素')
+    return
+  }
 
   const cursorPos = input.selectionStart || 0
   const textBeforeCursor = value.substring(0, cursorPos)
+  console.log('📍 光标前文本:', textBeforeCursor)
   
   // 查找最后一个@符号的位置
   const lastAtIndex = textBeforeCursor.lastIndexOf('@')
+  console.log('📍 最后@符号位置:', lastAtIndex)
   
   if (lastAtIndex === -1) {
+    console.log('❌ 未找到@符号，隐藏选择器')
     hideMentionSelector()
     return
   }
   
   // 检查@符号前是否为空格或行首
   const charBeforeAt = lastAtIndex > 0 ? textBeforeCursor[lastAtIndex - 1] : ' '
+  console.log('📍 @符号前字符:', charBeforeAt)
   if (charBeforeAt !== ' ' && charBeforeAt !== '\n' && lastAtIndex !== 0) {
+    console.log('❌ @符号前字符不符合条件，隐藏选择器')
     hideMentionSelector()
     return
   }
   
   // 获取@后的查询文本
   const queryText = textBeforeCursor.substring(lastAtIndex + 1)
+  console.log('🔍 查询文本:', queryText)
   
   // 检查查询文本是否包含空格（如果包含空格，说明已经完成了一个@提及）
   if (queryText.includes(' ') || queryText.includes('\n')) {
+    console.log('❌ 查询文本包含空格/换行，隐藏选择器')
     hideMentionSelector()
     return
   }
   
   // 如果只有一个实例，不显示选择器
   if (agents.value.length <= 1) {
+    console.log('❌ agents数量不足，隐藏选择器')
     hideMentionSelector()
     return
   }
   
+  console.log('✅ 显示提及选择器')
   // 显示提及选择器
   mentionStartPos.value = lastAtIndex
   mentionQuery.value = queryText
   selectedMentionIndex.value = 0
   showMentionSelector.value = true
+  
+  console.log('📊 选择器状态:', {
+    mentionStartPos: mentionStartPos.value,
+    mentionQuery: mentionQuery.value,
+    showMentionSelector: showMentionSelector.value,
+    filteredAgentsCount: filteredAgents.value.length
+  })
   
   // 计算选择器位置
   nextTick(() => {
@@ -424,21 +444,115 @@ const handleSendMessage = async () => {
   if (!text) return
 
   try {
-    // 直接发送消息
-    emit('send', text)
+    // 解析Agent提及
+    const agentMentions = AgentMentionParser.extractUniqueAgents(text)
+    const mentionedAgentNames = agentMentions.map(mention => `${mention.agentName}.${mention.namespace}`)
+
+    // 发送消息，包含Agent提及信息
+    emit('send', text, mentionedAgentNames)
     inputMessage.value = ''
     hideMentionSelector()
+    hideAgentAutocomplete()
   } catch (error) {
     console.error('❌ 发送过程中出错:', error)
   }
 }
 
-// 监听namespace变化，重新加载Agent列表
+// Agent自动补全相关
+const showAgentAutocomplete = ref(false)
+const agentAutocompletePosition = ref({ x: 0, y: 0 })
+const currentMentionQuery = ref('')
+const currentMentionStart = ref(-1)
+
+// 处理输入变化，统一的@agent语法检测
+const handleInputChange = () => {
+  console.log('🔍 handleInputChange 被调用')
+  console.log('📝 当前输入内容:', inputMessage.value)
+  
+  const textarea = inputRef.value?.$el?.querySelector('textarea')
+  if (!textarea) {
+    console.warn('⚠️ 未找到textarea元素')
+    return
+  }
+
+  const cursorPosition = textarea.selectionStart
+  console.log('📍 光标位置:', cursorPosition)
+  
+  // 首先检查旧的@提及逻辑
+  checkMentionTrigger(inputMessage.value)
+  
+  // 然后检查新的Agent提及逻辑
+  const currentMention = AgentMentionParser.getCurrentMention(inputMessage.value, cursorPosition)
+  console.log('🤖 Agent提及检测结果:', currentMention)
+
+  if (currentMention && currentMention.isInMention) {
+    console.log('✅ 检测到Agent提及，显示自动补全')
+    // 显示自动补全
+    currentMentionQuery.value = currentMention.agentName
+    currentMentionStart.value = currentMention.mentionStart
+    showAgentAutocomplete.value = true
+    
+    // 计算下拉框位置
+    updateAutocompletePosition(textarea, currentMention.mentionStart)
+  } else {
+    console.log('❌ 未检测到Agent提及，隐藏自动补全')
+    // 隐藏自动补全
+    hideAgentAutocomplete()
+  }
+}
+
+// 更新自动补全位置
+const updateAutocompletePosition = (textarea: HTMLTextAreaElement, mentionStart: number) => {
+  const rect = textarea.getBoundingClientRect()
+  const textBeforeMention = inputMessage.value.substring(0, mentionStart)
+  
+  // 简单估算位置（实际项目中可能需要更精确的计算）
+  const lines = textBeforeMention.split('\n')
+  const lineHeight = 20
+  const charWidth = 8
+  
+  const x = rect.left + (lines[lines.length - 1].length * charWidth)
+  const y = rect.top + (lines.length - 1) * lineHeight + lineHeight
+  
+  agentAutocompletePosition.value = { x, y }
+}
+
+// 隐藏Agent自动补全
+const hideAgentAutocomplete = () => {
+  showAgentAutocomplete.value = false
+  currentMentionQuery.value = ''
+  currentMentionStart.value = -1
+}
+
+// 选择Agent
+const selectAgent = (agent: Agent) => {
+  const textarea = inputRef.value?.$el?.querySelector('textarea')
+  if (!textarea) return
+
+  const cursorPosition = textarea.selectionStart
+  const replacement = AgentMentionParser.replaceMention(
+    inputMessage.value,
+    currentMentionStart.value,
+    cursorPosition,
+    agent.name,
+    agent.namespace
+  )
+
+  inputMessage.value = replacement.content
+  hideAgentAutocomplete()
+
+  // 设置新的光标位置
+  nextTick(() => {
+    textarea.focus()
+    textarea.setSelectionRange(replacement.cursorPosition, replacement.cursorPosition)
+  })
+}
 watch(
   () => props.namespace,
   (newNamespace) => {
     if (newNamespace) {
-      loadAgents()
+      // agents store 会自动监听 namespace 变化并更新数据
+      console.log('🔄 namespace 变化，agents store 将自动更新:', newNamespace)
     }
   },
   { immediate: true }
@@ -460,9 +574,7 @@ const handleClickOutside = (e: Event) => {
 // 生命周期
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
-  if (props.namespace) {
-    loadAgents()
-  }
+  // agents store 会自动加载数据，不需要手动调用
 })
 
 onUnmounted(() => {

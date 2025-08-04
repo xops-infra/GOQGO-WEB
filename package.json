@@ -14,9 +14,12 @@
     "version:check": "node scripts/build-version.js"
   },
   "dependencies": {
+    "@types/markdown-it": "^14.1.2",
     "@vicons/ionicons5": "^0.12.0",
     "@vue/runtime-core": "^3.5.18",
     "axios": "^1.6.2",
+    "highlight.js": "^11.11.1",
+    "markdown-it": "^14.1.0",
     "naive-ui": "^2.38.1",
     "pinia": "^2.1.7",
     "socket.io-client": "^4.7.4",

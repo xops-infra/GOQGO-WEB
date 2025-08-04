@@ -20,6 +20,9 @@ import LoginErrorTest from '@/views/LoginErrorTest.vue'
 import ApiAuthTest from '@/views/ApiAuthTest.vue'
 import WebSocketAuthTest from '@/views/WebSocketAuthTest.vue'
 import AuthTest from '@/views/AuthTest.vue'
+import MarkdownTest from '@/views/MarkdownTest.vue'
+import MentionTest from '@/views/MentionTest.vue'
+import LogsTest from '@/views/LogsTest.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -197,11 +200,29 @@ const router = createRouter({
       }
     },
     {
-      path: '/test/websocket-auth',
-      name: 'websocket-auth-test',
-      component: WebSocketAuthTest,
+      path: '/test/mention',
+      name: 'mention-test',
+      component: MentionTest,
       meta: {
-        title: 'WebSocket认证测试',
+        title: '@ 功能测试',
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/test/markdown',
+      name: 'markdown-test',
+      component: MarkdownTest,
+      meta: {
+        title: 'Markdown 渲染测试',
+        requiresAuth: false
+      }
+    },
+    {
+      path: '/test/logs',
+      name: 'logs-test',
+      component: LogsTest,
+      meta: {
+        title: '日志功能测试',
         requiresAuth: true
       }
     },
