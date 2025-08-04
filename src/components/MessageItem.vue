@@ -62,8 +62,23 @@
 
       <!-- 消息内容框 -->
       <div class="message-content-box">
-        <!-- Markdown 渲染内容 -->
-        <div class="markdown-content">
+        <!-- 思考状态消息 -->
+        <div v-if="message.isThinking" class="thinking-content">
+          <div class="simple-thinking-display">
+            <div class="thinking-header">
+              <div class="agent-name">{{ message.senderName }}</div>
+              <div class="thinking-animation">
+                <span class="dot">●</span>
+                <span class="dot">●</span>
+                <span class="dot">●</span>
+                <span class="thinking-text">{{ cleanThinkingContent(message.thinkingContent) || '正在思考...' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 普通消息内容 -->
+        <div v-else class="markdown-content">
           <MarkdownRenderer :content="message.content || ''" />
         </div>
       </div>
@@ -77,6 +92,7 @@ import { storeToRefs } from 'pinia'
 import { useChatStore } from '@/stores/chat'
 import { formatRelativeTime, useTimeManager } from '@/utils/timeManager'
 import MarkdownRenderer from './MarkdownRenderer.vue'
+import ThinkingMessage from './ThinkingMessage.vue'
 import type { ChatMessage } from '@/types/api'
 import { useUserStore } from '@/stores/user'
 
@@ -101,6 +117,19 @@ const userStore = useUserStore()
 
 // 使用时间管理器
 const { currentTime, cleanup } = useTimeManager()
+
+// 清理ANSI转义序列的方法
+const cleanThinkingContent = (content: string | undefined): string => {
+  if (!content) return '正在思考...'
+  
+  // 移除ANSI转义序列
+  // \x1B 是ESC字符，[?25l 是隐藏光标，[?25h 是显示光标等
+  return content
+    .replace(/\x1B\[[?]?[0-9;]*[a-zA-Z]/g, '') // 移除ANSI转义序列
+    .replace(/\x1B\[[?]?[0-9;]*[hlm]/g, '')    // 移除其他控制序列
+    .replace(/[\x00-\x1F\x7F]/g, '')           // 移除其他控制字符
+    .trim() || '正在思考...'
+}
 
 // 生命周期
 onMounted(() => {
@@ -292,6 +321,13 @@ const statusTitle = computed(() => {
   }
 })
 
+// 提取命名空间
+const extractNamespace = (senderName: string): string => {
+  // 如果senderName包含点号，提取命名空间部分
+  const parts = senderName.split('.')
+  return parts.length > 1 ? parts[parts.length - 1] : 'default'
+}
+
 // 处理状态图标点击
 const handleStatusClick = () => {
   const status = messageStatus.value
@@ -335,6 +371,69 @@ const handleStatusClick = () => {
       color: var(--color-warning);
       font-weight: 600;
     }
+  }
+
+  // 思考状态消息样式
+  .thinking-content {
+    padding: 8px 0;
+    
+    // 为思考消息添加特殊的背景色
+    .message-card {
+      background-color: rgba(24, 144, 255, 0.02);
+      border-left: 3px solid var(--color-info);
+    }
+    
+    .simple-thinking-display {
+      padding: 12px 16px;
+      background-color: rgba(24, 144, 255, 0.05);
+      border-radius: 8px;
+      border-left: 3px solid var(--color-info);
+      
+      .thinking-header {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        
+        .agent-name {
+          font-weight: 600;
+          color: var(--color-info);
+          font-size: 14px;
+        }
+        
+        .thinking-animation {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          
+          .dot {
+            color: var(--color-info);
+            animation: thinking-pulse 1.5s infinite;
+            
+            &:nth-child(1) { animation-delay: 0s; }
+            &:nth-child(2) { animation-delay: 0.3s; }
+            &:nth-child(3) { animation-delay: 0.6s; }
+          }
+          
+          .thinking-text {
+            margin-left: 8px;
+            color: var(--text-secondary);
+            font-style: italic;
+            font-size: 13px;
+          }
+        }
+      }
+    }
+  }
+}
+
+@keyframes thinking-pulse {
+  0%, 60%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.2);
   }
 }
 

@@ -62,7 +62,7 @@
 
         <template v-for="(message, index) in visibleMessages" :key="message.id || message.tempId || `msg-${index}`">
           <div
-            v-if="message && message.content"
+            v-if="message && (message.content || message.isThinking)"
             :class="[
               'message-item',
               {
@@ -196,9 +196,10 @@ const hiddenHistoryCount = computed(() => {
 })
 
 // 处理发送消息
-const handleSend = async (text: string) => {
+const handleSend = async (text: string, mentionedAgents?: string[]) => {
   try {
-    await chatStore.sendMessage(text)
+    console.log('📤 发送消息:', { text, mentionedAgents })
+    await chatStore.sendMessage(text, mentionedAgents)
     // 发送消息后立即滚动到底部
     nextTick(() => {
       scrollToBottom()
@@ -508,8 +509,6 @@ const handleDrop = async (e: DragEvent) => {
     }
   }
 }
-
-
 
 // 判断是否为自己的消息（忽略大小写）
 const isOwnMessage = (message: any) => {

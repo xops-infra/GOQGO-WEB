@@ -235,13 +235,20 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useMessage, type FormInst, type FormRules } from 'naive-ui'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
+const route = useRoute()
 const message = useMessage()
 const userStore = useUserStore()
+
+// 获取重定向路径
+const getRedirectPath = () => {
+  const redirect = route.query.redirect as string
+  return redirect && redirect !== '/login' ? decodeURIComponent(redirect) : '/'
+}
 
 // 版本信息
 const version = ref('v0.1.1')
@@ -316,8 +323,9 @@ const handleTokenLogin = async () => {
 
     message.success('登录成功！')
 
-    // 跳转到主页面
-    router.push('/')
+    // 跳转到重定向页面或主页面
+    const redirectPath = getRedirectPath()
+    router.push(redirectPath)
   } catch (error: any) {
     console.error('Token登录失败:', error)
 
@@ -346,8 +354,9 @@ const handlePasswordLogin = async () => {
 
     message.success('登录成功！')
 
-    // 跳转到主页面
-    router.push('/')
+    // 跳转到重定向页面或主页面
+    const redirectPath = getRedirectPath()
+    router.push(redirectPath)
   } catch (error: any) {
     console.error('密码登录失败:', error)
 

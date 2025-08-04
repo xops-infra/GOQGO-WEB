@@ -29,7 +29,6 @@
       </div>
       <div class="header-right">
         <n-space>
-          <!-- 实时输出开关 -->
           <n-tooltip>
             <template #trigger>
               <n-button
@@ -53,8 +52,75 @@
             </template>
             {{ isRealTimeEnabled ? '关闭实时' : '开启实时' }}
           </n-tooltip>
-          
-          <!-- 清空日志 -->
+          <n-tooltip>
+            <template #trigger>
+              <n-button
+                size="small"
+                quaternary
+                :type="isFollowing ? 'primary' : 'default'"
+                @click="toggleFollow"
+                :disabled="!isConnected || !isRealTimeEnabled"
+              >
+                <template #icon>
+                  <n-icon>
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        fill="currentColor"
+                        d="M7,10L12,15L17,10H7Z"
+                      />
+                    </svg>
+                  </n-icon>
+                </template>
+              </n-button>
+            </template>
+            {{ isFollowing ? '停止跟随' : '跟随日志' }}
+          </n-tooltip>
+          <n-tooltip>
+            <template #trigger>
+              <n-button
+                size="small"
+                quaternary
+                @click="loadHistoryLogs"
+                :loading="isLoadingHistory"
+                :disabled="!isConnected || hasReachedTop"
+              >
+                <template #icon>
+                  <n-icon>
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        fill="currentColor"
+                        d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M11,8H13V12L16.2,14.2L15.2,15.8L11,13V8Z"
+                      />
+                    </svg>
+                  </n-icon>
+                </template>
+              </n-button>
+            </template>
+            {{ hasReachedTop ? '已到顶部' : '加载历史' }}
+          </n-tooltip>
+          <n-tooltip>
+            <template #trigger>
+              <n-button
+                size="small"
+                quaternary
+                @click="refreshLogs"
+                :loading="isRefreshing"
+                :disabled="!isConnected"
+              >
+                <template #icon>
+                  <n-icon>
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        fill="currentColor"
+                        d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"
+                      />
+                    </svg>
+                  </n-icon>
+                </template>
+              </n-button>
+            </template>
+            刷新日志
+          </n-tooltip>
           <n-tooltip>
             <template #trigger>
               <n-button size="small" quaternary @click="clearLogs">
@@ -72,8 +138,23 @@
             </template>
             清空日志
           </n-tooltip>
-          
-          <!-- 一键复制 -->
+          <n-tooltip>
+            <template #trigger>
+              <n-button size="small" quaternary @click="focusAndSelectAll" :disabled="logs.length === 0">
+                <template #icon>
+                  <n-icon>
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        fill="currentColor"
+                        d="M3,5H9V11H3V5M5,7V9H7V7H5M11,7H21V9H11V7M11,15H21V17H11V15M5,20L1.5,16.5L2.91,15.09L5,17.18L9.59,12.59L11,14L5,20Z"
+                      />
+                    </svg>
+                  </n-icon>
+                </template>
+              </n-button>
+            </template>
+            全选日志 (Ctrl+A)
+          </n-tooltip>
           <n-tooltip>
             <template #trigger>
               <n-button size="small" quaternary @click="copyAllLogs" :disabled="logs.length === 0">
@@ -89,10 +170,8 @@
                 </template>
               </n-button>
             </template>
-            一键复制
+            复制所有日志
           </n-tooltip>
-          
-          <!-- 关闭 -->
           <n-button size="small" quaternary @click="closeModal">
             <template #icon>
               <n-icon>
@@ -119,10 +198,22 @@
 
       <div 
         ref="logsContainerRef" 
-        class="logs-container"
+        :class="['logs-container', { active: isLogsContainerActive }]"
         @scroll="handleScroll"
+        @mousedown="handleLogsMouseDown"
+        @click="handleLogsClick"
         tabindex="0"
       >
+        <!-- 隐藏的 textarea 用于捕获 Ctrl+A -->
+        <textarea
+          ref="hiddenTextareaRef"
+          v-model="logsTextContent"
+          class="hidden-textarea"
+          @keydown.stop="handleTextareaKeydown"
+          @focus="handleTextareaFocus"
+          @blur="handleTextareaBlur"
+          readonly
+        ></textarea>
         <div class="logs-content" ref="logsContentRef">
           <div
             v-for="(log, index) in logs"
@@ -163,11 +254,14 @@
         <n-tag :type="getConnectionStatus().type" size="small" round>
           {{ getConnectionStatus().text }}
         </n-tag>
-        <n-tag :type="isRealTimeEnabled ? 'success' : 'default'" size="small" round>
-          {{ isRealTimeEnabled ? '实时追踪' : '已暂停' }}
+        <n-tag :type="isRealTimeEnabled ? 'success' : 'warning'" size="small" round>
+          {{ isRealTimeEnabled ? '实时输出' : '暂停输出' }}
         </n-tag>
         <span class="log-count">共 {{ logs.length }} 条日志</span>
-        <span v-if="hasReachedTop" class="history-status">已加载全部历史</span>
+        <span v-if="initialLines" class="initial-lines">初始加载: {{ initialLines }} 行</span>
+        <span class="shortcuts-hint">
+          {{ isLogsContainerActive ? '已激活 - 按 Ctrl+A 全选' : '点击日志区域激活快捷键' }}
+        </span>
       </div>
       <div class="footer-right">
         <span class="last-update" v-if="lastUpdateTime">
@@ -221,20 +315,25 @@ const modalRef = ref<HTMLElement>()
 const headerRef = ref<HTMLElement>()
 const logsContainerRef = ref<HTMLElement>()
 const logsContentRef = ref<HTMLElement>()
+const hiddenTextareaRef = ref<HTMLTextAreaElement>()
 const message = useMessage()
 
 // 日志相关状态
 const logs = ref<LogEntry[]>([])
-const initialLines = ref(1000) // 初始加载的日志行数
-const isRealTimeEnabled = ref(true) // 实时输出开关
+const isFollowing = ref(true)
+const isRealTimeEnabled = ref(true) // 新增：实时输出开关
 const isConnected = ref(false)
 const isConnecting = ref(false)
 const isLoadingHistory = ref(false)
-const loadingTimeoutId = ref<number | null>(null) // loading超时ID
+const isRefreshing = ref(false) // 新增：刷新状态
+const loadingTimeoutId = ref<number | null>(null) // 新增：loading超时ID
 const hasReachedTop = ref(false)
 const lastUpdateTime = ref<string>()
+const initialLines = ref<number>(100)
 const logSocket = ref<LogSocket | null>(null)
-const isConnectionPending = ref(false) // 连接状态标记
+const isConnectionPending = ref(false) // 添加连接状态标记
+const isLogsContainerActive = ref(false) // 日志容器是否处于活跃状态
+const logsTextContent = ref('') // 用于 textarea 的日志文本内容
 
 // 模态框位置和大小
 const modalPosition = ref({ x: 0, y: 0 })
@@ -246,8 +345,17 @@ const isResizing = ref(false)
 const dragStart = ref({ x: 0, y: 0 })
 const resizeStart = ref({ x: 0, y: 0, width: 0, height: 0 })
 
-// 日志容器状态
-const isLogsContainerActive = ref(false) // 日志容器是否处于活跃状态
+// 同步日志内容到 textarea
+watch(logs, (newLogs) => {
+  logsTextContent.value = newLogs
+    .map(log => {
+      const timestamp = formatTimestamp(log.timestamp)
+      const level = log.level.toUpperCase()
+      const source = log.source ? `[${log.source}]` : ''
+      return `${timestamp} ${level} ${source} ${log.message}`
+    })
+    .join('\n')
+}, { deep: true })
 
 // 连接WebSocket获取实时日志
 const connectLogStream = async () => {
@@ -398,8 +506,8 @@ const connectLogStream = async () => {
           logs.value.push(newLog)
           lastUpdateTime.value = new Date().toISOString()
 
-          // 如果开启实时追踪，自动滚动到底部
-          if (isRealTimeEnabled.value) {
+          // 如果正在跟随，自动滚动到底部
+          if (isFollowing.value && isRealTimeEnabled.value) {
             nextTick(() => {
               scrollToBottom()
             })
@@ -455,6 +563,14 @@ const connectLogStream = async () => {
             }
           })
         },
+        onFollowToggled: (follow) => {
+          console.log('🔄 收到跟踪模式切换确认:', follow)
+          isRealTimeEnabled.value = follow
+          if (!follow) {
+            isFollowing.value = false
+          }
+          message.info(follow ? '已开启实时输出' : '已关闭实时输出')
+        },
         onRefreshed: (lines) => {
           console.log('🔄 收到刷新确认:', lines)
           message.success(`日志已刷新 (${lines} 行)`)
@@ -465,18 +581,6 @@ const connectLogStream = async () => {
           isConnected.value = false
           isConnecting.value = false
           isConnectionPending.value = false
-        },
-        onFollowToggled: (data) => {
-          console.log('🔄 收到实时跟踪状态切换:', data)
-          // 更新前端的实时跟踪状态（WebSocket确认）
-          // 后端返回的字段是 follow，不是 enabled
-          const followState = data.follow !== undefined ? data.follow : data.enabled
-          isRealTimeEnabled.value = followState
-          console.log('🔄 WebSocket状态同步:', { 
-            received: data, 
-            followState, 
-            currentUI: isRealTimeEnabled.value 
-          })
         },
         onError: (error) => {
           console.error('📡 日志流错误:', error)
@@ -538,6 +642,40 @@ const clearLoadingTimeout = () => {
   }
 }
 
+// 解析历史日志响应
+const parseHistoryResponse = (data: any): LogEntry[] => {
+  console.log('🔄 解析历史日志响应:', data)
+
+  // 如果content为空字符串或null，返回空数组
+  if (!data.content || data.content.trim() === '') {
+    console.log('📜 历史日志内容为空')
+    return []
+  }
+
+  const logLines = data.content.split('\n').filter((line: string) => line.trim())
+  return logLines.map((line: string) => {
+    // 尝试解析时间戳和消息
+    const match = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}):\s*(.+)$/)
+    if (match) {
+      return {
+        timestamp: new Date(match[1]).toISOString(),
+        level: 'info' as const,
+        message: match[2],
+        source: data.agent || 'unknown'
+      }
+    } else {
+      return {
+        timestamp: data.timestamp
+          ? new Date(data.timestamp * 1000).toISOString()
+          : new Date().toISOString(),
+        level: 'info' as const,
+        message: line,
+        source: data.agent || 'unknown'
+      }
+    }
+  })
+}
+
 // 获取日志状态 - 由于没有专门的status端点，这里返回默认状态
 const getLogStatus = async () => {
   if (!props.agent) {
@@ -560,6 +698,50 @@ const getLogStatus = async () => {
 }
 
 // 刷新日志
+const refreshLogs = async () => {
+  if (!props.agent || !isConnected.value || isRefreshing.value) {
+    return
+  }
+
+  try {
+    isRefreshing.value = true
+    setLoadingTimeout('refresh') // 设置超时保护
+    console.log('🔄 刷新日志')
+
+    // 使用正确的日志获取API
+    const response = await logsApi.getHistory(
+      props.agent.namespace, 
+      props.agent.name, 
+      { lines: initialLines.value }
+    )
+
+    console.log('✅ 日志刷新API响应:', response)
+    
+    // 清空现有日志并显示新的日志
+    logs.value = []
+    hasReachedTop.value = false
+    
+    if (response.content) {
+      const logLines = response.content.split('\n').filter(line => line.trim())
+      logLines.forEach(line => {
+        logs.value.push({
+          content: line,
+          timestamp: new Date().toISOString(),
+          source: 'refresh'
+        })
+      })
+    }
+
+    message.success('日志刷新成功')
+  } catch (error) {
+    console.error('❌ 刷新日志失败:', error)
+    message.error('刷新日志失败: ' + (error as Error).message)
+  } finally {
+    clearLoadingTimeout()
+    isRefreshing.value = false
+  }
+}
+
 // 加载历史日志
 const loadHistoryLogs = async () => {
   if (!props.agent || !isConnected.value || isLoadingHistory.value || hasReachedTop.value) {
@@ -655,17 +837,7 @@ const toggleRealTime = async () => {
       return
     }
 
-    // 先保存当前状态，再计算新状态
-    const currentState = isRealTimeEnabled.value
-    const newRealTimeState = !currentState
-    
-    console.log('🔄 切换实时状态:', { 
-      current: currentState, 
-      new: newRealTimeState 
-    })
-    
-    // 立即更新UI状态，提供即时反馈
-    isRealTimeEnabled.value = newRealTimeState
+    const newRealTimeState = !isRealTimeEnabled.value
     
     // 调用后端API切换Follow模式 - 使用正确的接口
     const response = await fetch(
@@ -684,8 +856,6 @@ const toggleRealTime = async () => {
     )
 
     if (!response.ok) {
-      // API调用失败，回滚状态
-      isRealTimeEnabled.value = currentState
       const errorText = await response.text()
       throw new Error(`API调用失败: ${response.status} ${errorText}`)
     }
@@ -693,14 +863,8 @@ const toggleRealTime = async () => {
     const result = await response.json()
     console.log('🔄 实时输出切换API响应:', result)
 
-    // 显示状态切换成功的消息
-    if (newRealTimeState) {
-      message.success('实时跟踪已开启')
-    } else {
-      message.info('实时跟踪已暂停')
-    }
-
-    // WebSocket的 follow_toggled 消息会进一步确认状态，如果不一致会自动同步
+    // WebSocket会收到 follow_toggled 消息来更新状态，所以这里不需要手动更新
+    // 状态更新会在 onFollowToggled 回调中处理
   } catch (error) {
     console.error('❌ 切换实时输出失败:', error)
     message.error('切换实时输出失败: ' + (error as Error).message)
@@ -708,6 +872,18 @@ const toggleRealTime = async () => {
 }
 
 // 切换跟随模式
+const toggleFollow = async () => {
+  if (!isRealTimeEnabled.value) {
+    message.warning('请先开启实时输出')
+    return
+  }
+  
+  isFollowing.value = !isFollowing.value
+  if (isFollowing.value) {
+    scrollToBottom()
+  }
+}
+
 // 清空日志
 const clearLogs = () => {
   logs.value = []
@@ -730,17 +906,130 @@ const handleScroll = () => {
   const isAtTop = scrollTop < 10
 
   // 如果用户手动滚动到非底部位置，停止自动跟随
+  if (!isAtBottom && isFollowing.value) {
+    isFollowing.value = false
+  }
+
   // 如果滚动到顶部且有更多历史日志，自动加载
   if (isAtTop && !isLoadingHistory.value && !hasReachedTop.value && isConnected.value) {
     loadHistoryLogs()
   }
 }
+
+// 处理隐藏 textarea 的键盘事件
+const handleTextareaKeydown = (e: KeyboardEvent) => {
+  console.log('🎯 Textarea 键盘事件:', e.key, 'Ctrl:', e.ctrlKey, '活跃状态:', isLogsContainerActive.value)
+  
+  if (e.ctrlKey && e.key === 'a' && isLogsContainerActive.value) {
+    console.log('📋 在 textarea 中捕获到 Ctrl+A，执行全选')
+    // 让 textarea 自然处理 Ctrl+A，然后将选择应用到可视区域
+    setTimeout(() => {
+      selectAllLogsText()
+    }, 0)
+  }
+}
+
+// 处理 textarea 获得焦点
+const handleTextareaFocus = () => {
+  console.log('🎯 隐藏 textarea 获得焦点')
+  // 不自动选择文本，只是获得焦点
+}
+
+// 处理 textarea 失去焦点
+const handleTextareaBlur = () => {
+  console.log('🔄 隐藏 textarea 失去焦点')
+}
+
+// 处理日志区域鼠标按下事件
+const handleLogsMouseDown = (e: MouseEvent) => {
+  // 确保点击的是日志容器内部
+  if (logsContainerRef.value && logsContainerRef.value.contains(e.target as Node)) {
+    isLogsContainerActive.value = true
+    // 让隐藏的 textarea 获得焦点，但不选择文本
+    if (hiddenTextareaRef.value) {
+      hiddenTextareaRef.value.focus()
+      // 清除任何现有的选择，确保不会自动全选
+      setTimeout(() => {
+        if (hiddenTextareaRef.value) {
+          hiddenTextareaRef.value.setSelectionRange(0, 0)
+        }
+      }, 0)
+    }
+    console.log('🎯 日志容器激活（鼠标按下），textarea 获得焦点但不选择文本')
+  }
+}
+
+// 处理日志区域点击事件
+const handleLogsClick = (e: MouseEvent) => {
+  // 确保点击的是日志容器内部
+  if (logsContainerRef.value && logsContainerRef.value.contains(e.target as Node)) {
+    focusLogsContainer()
+    isLogsContainerActive.value = true
+    // 让隐藏的 textarea 获得焦点，但不选择文本
+    if (hiddenTextareaRef.value) {
+      hiddenTextareaRef.value.focus()
+      // 清除任何现有的选择，确保不会自动全选
+      setTimeout(() => {
+        if (hiddenTextareaRef.value) {
+          hiddenTextareaRef.value.setSelectionRange(0, 0)
+        }
+        // 同时清除可视区域的选择
+        const selection = window.getSelection()
+        if (selection) {
+          selection.removeAllRanges()
+        }
+      }, 0)
+    }
+    console.log('🎯 日志容器激活（点击），textarea 获得焦点但不选择文本')
+  }
+}
+
+// 全局点击事件处理 - 点击日志容器外部时取消活跃状态
+const handleGlobalClick = (e: MouseEvent) => {
+  if (logsContainerRef.value && !logsContainerRef.value.contains(e.target as Node)) {
+    if (isLogsContainerActive.value) {
+      isLogsContainerActive.value = false
+      console.log('🔄 日志容器失去活跃状态（点击外部）')
+    }
+  }
+}
+
 // 点击日志容器时获得焦点
 const focusLogsContainer = () => {
   if (logsContainerRef.value) {
     logsContainerRef.value.focus()
     console.log('🎯 日志容器获得焦点')
   }
+}
+
+// 焦点并全选
+const focusAndSelectAll = () => {
+  isLogsContainerActive.value = true
+  if (hiddenTextareaRef.value) {
+    hiddenTextareaRef.value.focus()
+    // 明确调用全选
+    setTimeout(() => {
+      if (hiddenTextareaRef.value) {
+        hiddenTextareaRef.value.select()
+      }
+      selectAllLogsText()
+    }, 0)
+  }
+}
+
+// 全选日志文本内容
+const selectAllLogsText = () => {
+  if (!logsContentRef.value) return
+  
+  const selection = window.getSelection()
+  if (!selection) return
+  
+  const range = document.createRange()
+  range.selectNodeContents(logsContentRef.value)
+  selection.removeAllRanges()
+  selection.addRange(range)
+  
+  console.log('📋 已全选日志内容')
 }
 
 // 复制所有日志内容
@@ -1001,9 +1290,11 @@ watch(
 
       // 重置日志相关状态
       logs.value = []
+      isFollowing.value = true
       isRealTimeEnabled.value = true // 重置实时输出状态
       hasReachedTop.value = false
       lastUpdateTime.value = undefined
+      isLogsContainerActive.value = false
 
       // 连接日志流
       try {
@@ -1076,6 +1367,9 @@ onMounted(() => {
     show: props.show,
     visible: visible.value
   })
+  
+  // 添加全局点击监听器来管理活跃状态
+  document.addEventListener('click', handleGlobalClick, true)
 })
 
 onUnmounted(() => {
@@ -1084,6 +1378,7 @@ onUnmounted(() => {
   clearLoadingTimeout() // 清除超时保护
   
   // 清理事件监听器
+  document.removeEventListener('click', handleGlobalClick, true)
   document.removeEventListener('mousemove', handleDrag)
   document.removeEventListener('mouseup', stopDrag)
   document.removeEventListener('mousemove', handleResize)

@@ -1,12 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import Layout from '@/components/Layout.vue'
+import AppLayout from '@/components/AppLayout.vue'
 import LoginView from '@/views/LoginView.vue'
 import ChatView from '@/views/ChatView.vue'
 import AgentsView from '@/views/AgentsView.vue'
+import RolesView from '@/views/RolesView.vue'
 import TerminalDemo from '@/views/TerminalDemo.vue'
 import TextColorTest from '@/views/TextColorTest.vue'
-import DebugView from '@/views/DebugView.vue'
 import MessageConfirmDebug from '@/views/MessageConfirmDebug.vue'
 import MessageTimeoutTest from '@/views/MessageTimeoutTest.vue'
 import DividerTest from '@/views/DividerTest.vue'
@@ -17,6 +18,7 @@ import ApiAuthTest from '@/views/ApiAuthTest.vue'
 import AuthTest from '@/views/AuthTest.vue'
 import MarkdownTest from '@/views/MarkdownTest.vue'
 import MentionTest from '@/views/MentionTest.vue'
+import ThinkingTest from '@/views/ThinkingTest.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -59,6 +61,21 @@ const router = createRouter({
       }
     },
     {
+      path: '/roles',
+      name: 'roles',
+      component: AppLayout,
+      meta: {
+        title: '角色管理',
+        requiresAuth: true
+      },
+      children: [
+        {
+          path: '',
+          component: RolesView
+        }
+      ]
+    },
+    {
       path: '/terminal-demo',
       name: 'terminal-demo',
       component: TerminalDemo,
@@ -74,15 +91,6 @@ const router = createRouter({
       meta: {
         title: '文字颜色测试',
         requiresAuth: false
-      }
-    },
-    {
-      path: '/debug',
-      name: 'debug',
-      component: DebugView,
-      meta: {
-        title: 'WebSocket调试',
-        requiresAuth: true
       }
     },
     {
@@ -163,6 +171,15 @@ const router = createRouter({
       component: MentionTest,
       meta: {
         title: '@ 功能测试',
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/test/thinking',
+      name: 'thinking-test',
+      component: ThinkingTest,
+      meta: {
+        title: '思考消息测试',
         requiresAuth: true
       }
     },

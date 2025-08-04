@@ -14,6 +14,19 @@ export interface SocketCallbacks {
   // 消息发送确认回调，支持错误状态
   onMessageSent?: (tempId: string, messageId: string, status?: 'success' | 'error') => void
   onMessageDelivered?: (messageId: string) => void
+  // Agent思考状态回调，支持tempId关联
+  onAgentThinking?: (data: { 
+    conversationId: string; 
+    agentName: string; 
+    status: 'start' | 'continue' | 'end';
+    tempId?: string;
+  }) => void
+  onAgentThinkingStream?: (data: { 
+    conversationId: string; 
+    content?: string; 
+    progress?: number;
+    tempId?: string;
+  }) => void
 }
 
 export class ChatSocket {
@@ -164,6 +177,7 @@ export class ChatSocket {
     switch (data.type) {
       case 'chat': {
         // 处理聊天消息，转换字段格式
+        console.log('📨 收到chat消息原始数据:', JSON.stringify(data.data, null, 2))
         const chatMessage = this.normalizeMessage(data.data)
         if (chatMessage) {
           this.callbacks.onMessage?.(chatMessage)
@@ -265,6 +279,34 @@ export class ChatSocket {
         console.log('💓 收到心跳响应')
         break
       }
+      case 'agent_thinking': {
+        // Agent开始思考
+        console.log('🤖 Agent开始思考:', data.data)
+        const { conversationId, agentName, tempId } = data.data
+        if (conversationId && agentName) {
+          this.callbacks.onAgentThinking?.({
+            conversationId,
+            agentName,
+            status: 'start',
+            tempId // 传递tempId用于关联原始消息
+          })
+        }
+        break
+      }
+      case 'agent_thinking_stream': {
+        // Agent思考过程中的流式更新
+        console.log('🤖 Agent思考流式更新:', data.data)
+        const { conversationId, content, progress, tempId } = data.data
+        if (conversationId) {
+          this.callbacks.onAgentThinkingStream?.({
+            conversationId,
+            content,
+            progress,
+            tempId // 传递tempId用于关联
+          })
+        }
+        break
+      }
 
       default:
         console.warn('未知的消息类型:', data.type, data)
@@ -284,7 +326,7 @@ export class ChatSocket {
     this.requestHistory(limit, beforeMessageId)
   }
 
-  sendMessage(content: string, messageType: string = 'text'): string {
+  sendMessage(content: string, messageType: string = 'text', mentionedAgents?: string[]): string {
     // 检查消息大小限制 (64KB)
     const maxMessageSize = 64 * 1024 // 64KB
     const messageSize = new Blob([content]).size
@@ -313,9 +355,17 @@ export class ChatSocket {
       data: {
         tempId, // 添加临时ID
         content,
-        type: messageType
+        type: messageType,
+        mentionedAgents // 添加Agent提及信息
       }
     }
+
+    console.log('📤 准备发送消息到WebSocket:', {
+      tempId,
+      content: content.substring(0, 50) + '...',
+      messageType,
+      mentionedAgents
+    })
 
     // 检查序列化后的消息大小
     const serializedMessage = JSON.stringify(message)
@@ -411,20 +461,24 @@ export class ChatSocket {
       messageType: messageType,
       imageUrl: imageUrl,
       imagePath: serverMessage.imagePath,
-      tempId: serverMessage.tempId // 保留临时ID用于消息确认
+      tempId: serverMessage.tempId, // 保留临时ID用于消息确认
+      conversationId: serverMessage.conversationId, // 添加对话ID支持
+      mentionedAgents: serverMessage.mentionedAgents // 添加Agent提及信息
     }
 
     console.log('🔄 消息格式化完成:', {
       原始: {
         id: serverMessage.id,
         username: serverMessage.username,
-        content: serverMessage.content?.substring(0, 30) + '...'
+        content: serverMessage.content?.substring(0, 30) + '...',
+        conversationId: serverMessage.conversationId
       },
       格式化后: {
         id: normalizedMessage.id,
         senderName: normalizedMessage.senderName,
         content: normalizedMessage.content?.substring(0, 30) + '...',
-        messageType: normalizedMessage.messageType
+        messageType: normalizedMessage.messageType,
+        conversationId: normalizedMessage.conversationId
       }
     })
 

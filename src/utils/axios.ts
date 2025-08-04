@@ -133,11 +133,18 @@ instance.interceptors.response.use(
       switch (status) {
         case 401:
           // 未授权 - 统一处理认证错误
-          console.error('🔒 未授权访问')
+          console.error('🔒 未授权访问:', {
+            url,
+            error: data?.error || data?.message || '认证失败'
+          })
 
           // 如果不是登录相关的API，处理认证错误
           if (!authManager.shouldSkipAuth(url)) {
-            authManager.handleAuthError(error)
+            // 避免重复处理同一个401错误
+            if (!error._handled) {
+              error._handled = true
+              authManager.handleAuthError(error)
+            }
           }
           break
 

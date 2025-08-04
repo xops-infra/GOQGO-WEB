@@ -84,6 +84,9 @@
           placeholder="请选择实例的专业角色（可选）"
           clearable
           filterable
+          :loading="rolesLoading"
+          :render-label="renderRoleLabel"
+          :render-option="renderRoleOption"
         />
         <div class="section-tip">
           <n-icon size="16">
@@ -94,7 +97,20 @@
               />
             </svg>
           </n-icon>
-          <span>选择实例的专业角色（可选）</span>
+          <span>选择角色将为实例配置专业的AI能力和行为模式</span>
+        </div>
+        
+        <!-- 选中角色的详细信息 -->
+        <div v-if="selectedRoleInfo" class="selected-role-info">
+          <div class="role-info-header">
+            <n-icon size="16" class="role-icon">
+              <svg viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            </n-icon>
+            <span class="role-name">{{ selectedRoleInfo.displayName }}</span>
+          </div>
+          <div class="role-description">{{ selectedRoleInfo.description }}</div>
         </div>
       </div>
 
@@ -213,8 +229,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, h } from 'vue'
 import { useMessage } from 'naive-ui'
+import { rolesApi } from '@/api/roles'
+import { API_ENDPOINTS, apiConfig } from '@/config/api'
+import type { Role } from '@/types/api'
 import { useNamespacesStore } from '@/stores/namespaces'
 import { useAgentsStore } from '@/stores/agents'
 import { storeToRefs } from 'pinia'
@@ -246,6 +265,8 @@ const showModal = computed({
 
 const loading = ref(false)
 const browsing = ref(false)
+const rolesLoading = ref(false)
+const roles = ref<Role[]>([])
 
 // 表单数据
 const formData = ref({
@@ -255,21 +276,20 @@ const formData = ref({
   path: ''
 })
 
-// 角色选项
-const roleOptions = [
-  { label: '前端开发工程师', value: 'frontend-engineer' },
-  { label: '后端开发工程师', value: 'backend-engineer' },
-  { label: '全栈开发工程师', value: 'fullstack-engineer' },
-  { label: 'DevOps工程师', value: 'devops-engineer' },
-  { label: '测试工程师', value: 'test-engineer' },
-  { label: '产品经理', value: 'product-manager' },
-  { label: '项目经理', value: 'project-manager' },
-  { label: 'UI/UX设计师', value: 'ui-ux-designer' },
-  { label: '数据分析师', value: 'data-analyst' },
-  { label: '架构师', value: 'architect' },
-  { label: '技术顾问', value: 'technical-consultant' },
-  { label: '通用助手', value: 'general-assistant' }
-]
+// 角色选项 - 从API动态获取
+const roleOptions = computed(() => {
+  return roles.value.map(role => ({
+    label: role.displayName,
+    value: role.name,
+    description: role.description
+  }))
+})
+
+// 选中角色的详细信息
+const selectedRoleInfo = computed(() => {
+  if (!formData.value.role) return null
+  return roles.value.find(role => role.name === formData.value.role) || null
+})
 
 // 计算属性
 const pathPlaceholder = computed(() => {
@@ -289,6 +309,72 @@ const canCreate = computed(() => {
 })
 
 // 方法
+const renderRoleLabel = (option: any) => {
+  return option.label
+}
+
+const renderRoleOption = ({ node, option }: any) => {
+  return h('div', { class: 'role-option' }, [
+    h('div', { class: 'role-option-name' }, option.label),
+    h('div', { class: 'role-option-description' }, option.description)
+  ])
+}
+
+const loadRoles = async () => {
+  rolesLoading.value = true
+  console.log('🎭 开始加载角色列表...')
+  console.log('API端点:', API_ENDPOINTS.ROLES.LIST)
+  console.log('完整URL:', `${apiConfig.baseURL}${API_ENDPOINTS.ROLES.LIST}`)
+  
+  try {
+    const response = await rolesApi.getList()
+    console.log('✅ API响应原始数据:', response)
+    
+    roles.value = response.roles || []
+    
+    console.log('✅ 角色列表加载成功:', {
+      total: response.total,
+      loaded: roles.value.length,
+      roles: roles.value.map(r => ({ name: r.name, displayName: r.displayName }))
+    })
+    
+    if (roles.value.length === 0) {
+      console.warn('⚠️ API返回的角色列表为空')
+      message.warning('未获取到角色列表，使用默认选项')
+      // 设置默认角色
+      roles.value = [
+        { name: 'general-assistant', displayName: '通用助手', description: '通用AI助手', prompt: '' },
+        { name: 'frontend-engineer', displayName: '前端开发工程师', description: '专业的前端开发工程师', prompt: '' },
+        { name: 'backend-engineer', displayName: '后端开发工程师', description: '专业的后端开发工程师', prompt: '' },
+        { name: 'architect', displayName: '架构师', description: '系统架构师', prompt: '' }
+      ]
+    } else {
+      message.success(`成功加载 ${roles.value.length} 个角色`)
+    }
+  } catch (error: any) {
+    console.error('❌ 加载角色列表失败:', error)
+    console.error('错误详情:', {
+      message: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      config: error.config
+    })
+    
+    // 如果API失败，使用默认角色选项作为后备
+    roles.value = [
+      { name: 'general-assistant', displayName: '通用助手', description: '通用AI助手', prompt: '' },
+      { name: 'frontend-engineer', displayName: '前端开发工程师', description: '专业的前端开发工程师', prompt: '' },
+      { name: 'backend-engineer', displayName: '后端开发工程师', description: '专业的后端开发工程师', prompt: '' },
+      { name: 'architect', displayName: '架构师', description: '系统架构师', prompt: '' }
+    ]
+    message.error(`角色列表加载失败: ${error.message}`)
+  } finally {
+    rolesLoading.value = false
+    console.log('🏁 角色加载完成，当前角色数量:', roles.value.length)
+  }
+}
+
 const handleClose = () => {
   if (loading.value) return
   showModal.value = false
@@ -380,12 +466,20 @@ const handleCreate = async () => {
   }
 }
 
+// 生命周期
+onMounted(() => {
+  loadRoles()
+})
+
 // 监听显示状态变化
 watch(
   () => props.show,
   (newShow) => {
     if (newShow) {
+      console.log('🎭 模态框显示，重置表单并加载角色')
       resetForm()
+      // 每次显示都重新加载角色，确保数据是最新的
+      loadRoles()
     }
   }
 )
@@ -522,6 +616,38 @@ watch(
       }
     }
   }
+  
+  // 选中角色信息展示
+  .selected-role-info {
+    margin-top: 12px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    
+    .role-info-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+      
+      .role-icon {
+        color: #1890ff;
+      }
+      
+      .role-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: #333;
+      }
+    }
+    
+    .role-description {
+      font-size: 13px;
+      color: #666;
+      line-height: 1.4;
+    }
+  }
 }
 
 .modal-actions {
@@ -554,6 +680,26 @@ watch(
 :deep(.n-radio) {
   .n-radio__label {
     font-size: 14px;
+  }
+}
+
+// 角色选项的下拉样式
+:deep(.n-base-select-menu) {
+  .role-option {
+    padding: 8px 0;
+    
+    .role-option-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 2px;
+    }
+    
+    .role-option-description {
+      font-size: 12px;
+      color: #666;
+      line-height: 1.3;
+    }
   }
 }
 </style>

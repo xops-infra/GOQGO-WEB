@@ -70,6 +70,12 @@ export const API_ENDPOINTS = {
     BROADCAST: (namespace: string) => `/api/v1/namespaces/${namespace}/agents/broadcast`
   },
   
+  // 角色相关
+  ROLES: {
+    LIST: '/api/v1/roles',
+    DETAIL: (roleName: string) => `/api/v1/roles/${roleName}`
+  },
+  
   // 聊天相关
   CHATS: {
     LIST: (namespace: string) => `/api/v1/namespaces/${namespace}/chats`,

@@ -1,11 +1,16 @@
 import { useUserStore } from '@/stores/user'
 import router from '@/router'
+import { createDiscreteApi } from 'naive-ui'
+
+// 创建独立的消息API实例
+const { message } = createDiscreteApi(['message'])
 
 /**
  * 全局认证管理工具
  */
 export class AuthManager {
   private static instance: AuthManager
+  private isRedirecting = false // 防止重复跳转
 
   private constructor() {}
 
@@ -46,18 +51,41 @@ export class AuthManager {
    * 强制跳转到登录页
    */
   redirectToLogin(reason?: string): void {
-    console.log('🔒 认证失败，跳转到登录页:', reason || '未知原因')
+    // 防止重复跳转
+    if (this.isRedirecting) {
+      console.log('🔒 已在跳转中，忽略重复请求')
+      return
+    }
+
+    this.isRedirecting = true
+    const errorMessage = reason || '认证失败'
+    console.log('🔒 认证失败，跳转到登录页:', errorMessage)
+
+    // 显示用户友好的错误提示
+    message.error(`${errorMessage}，请重新登录`)
 
     // 清除认证信息
     this.clearAuth()
 
     // 如果当前不在登录页，则跳转
     if (router.currentRoute.value.path !== '/login') {
-      router.push('/login').catch((err) => {
+      // 保存当前路径，登录后可以回到原页面
+      const currentPath = router.currentRoute.value.fullPath
+      const redirectPath = currentPath !== '/' ? `?redirect=${encodeURIComponent(currentPath)}` : ''
+      
+      router.push(`/login${redirectPath}`).catch((err) => {
         console.error('跳转到登录页失败:', err)
         // 如果路由跳转失败，使用原生跳转
-        window.location.href = '/login'
+        window.location.href = `/login${redirectPath}`
+      }).finally(() => {
+        // 重置跳转状态
+        setTimeout(() => {
+          this.isRedirecting = false
+        }, 1000)
       })
+    } else {
+      // 如果已经在登录页，重置跳转状态
+      this.isRedirecting = false
     }
   }
 
@@ -71,20 +99,28 @@ export class AuthManager {
       const data = response.data
       let reason = '认证失败'
 
+      // 根据不同的错误类型提供具体的错误信息
       if (
         data?.error === 'authorization header required' ||
         data?.message === 'authorization header required'
       ) {
-        reason = '缺少认证头'
+        reason = '缺少认证信息'
       } else if (data?.error === 'invalid token' || data?.message === 'invalid token') {
-        reason = 'Token无效'
+        reason = '认证信息无效'
       } else if (data?.error === 'token expired' || data?.message === 'token expired') {
-        reason = 'Token已过期'
+        reason = '登录已过期'
+      } else if (data?.error === 'unauthorized' || data?.message === 'unauthorized') {
+        reason = '未授权访问'
       } else if (data?.message) {
         reason = data.message
+      } else if (data?.error) {
+        reason = data.error
       }
 
-      this.redirectToLogin(reason)
+      // 延迟执行跳转，确保当前请求处理完成
+      setTimeout(() => {
+        this.redirectToLogin(reason)
+      }, 100)
     }
   }
 

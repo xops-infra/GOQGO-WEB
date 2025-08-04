@@ -186,6 +186,16 @@ export const useChatStore = defineStore('chat', () => {
           // 可以在这里添加特殊的用户提示逻辑
           console.log('💡 建议：请减少消息内容或分段发送')
         }
+      },
+
+      onAgentThinking: (data) => {
+        console.log('🤖 Agent思考状态:', data)
+        handleAgentThinking(data)
+      },
+
+      onAgentThinkingStream: (data) => {
+        console.log('🤖 Agent思考流式更新:', data)
+        handleAgentThinkingStream(data)
       }
     })
   }
@@ -198,14 +208,89 @@ export const useChatStore = defineStore('chat', () => {
       return
     }
 
-    if (!message.content && message.messageType !== 'image') {
-      console.warn('⚠️ 消息内容为空且非图片消息，跳过添加:', message)
+    if (!message.content && message.messageType !== 'image' && !message.isThinking) {
+      console.warn('⚠️ 消息内容为空且非图片消息或思考消息，跳过添加:', message)
       return
     }
 
     if (!message.senderName) {
       console.warn('⚠️ 消息缺少发送者信息，跳过添加:', message)
       return
+    }
+
+    // 特殊处理：如果是Agent的最终回复，需要替换对应的思考消息
+    console.log('🔍 检查是否需要替换思考消息:', {
+      hasConversationId: !!message.conversationId,
+      conversationId: message.conversationId,
+      hasTempId: !!message.tempId,
+      tempId: message.tempId,
+      messageType: message.type,
+      isAgent: message.type === 'agent',
+      isThinking: message.isThinking,
+      senderName: message.senderName
+    })
+    
+    if ((message.type === 'agent' || message.type === 'agent_message') && !message.isThinking) {
+      let thinkingMessageIndex = -1
+      let matchMethod = 'none'
+      
+      // 方法1: 通过conversationId精确匹配（最优先）
+      if (message.conversationId) {
+        thinkingMessageIndex = messages.value.findIndex(
+          msg => msg.conversationId === message.conversationId && msg.isThinking
+        )
+        if (thinkingMessageIndex !== -1) {
+          matchMethod = 'conversationId'
+        }
+      }
+      
+      // 方法2: 通过tempId匹配（次优先）
+      if (thinkingMessageIndex === -1 && message.tempId) {
+        thinkingMessageIndex = messages.value.findIndex(
+          msg => msg.tempId === message.tempId && msg.isThinking
+        )
+        if (thinkingMessageIndex !== -1) {
+          matchMethod = 'tempId'
+        }
+      }
+      
+      // 方法3: 通过Agent名称匹配最近的思考消息（备用方案）
+      if (thinkingMessageIndex === -1) {
+        const agentName = message.senderName.split('.')[0]
+        thinkingMessageIndex = messages.value.findIndex(
+          msg => msg.isThinking && msg.senderName === agentName
+        )
+        if (thinkingMessageIndex !== -1) {
+          matchMethod = 'agentName'
+        }
+      }
+      
+      console.log('🔍 查找思考消息结果:', {
+        thinkingMessageIndex,
+        matchMethod,
+        totalMessages: messages.value.length,
+        thinkingMessages: messages.value.filter(msg => msg.isThinking).map(msg => ({
+          id: msg.id,
+          conversationId: msg.conversationId,
+          tempId: msg.tempId,
+          senderName: msg.senderName,
+          isThinking: msg.isThinking
+        }))
+      })
+      
+      if (thinkingMessageIndex !== -1) {
+        console.log('🤖 找到思考消息，进行替换:', {
+          matchMethod,
+          thinkingMessageId: messages.value[thinkingMessageIndex].id,
+          replyMessageId: message.id
+        })
+        
+        // 移除思考消息
+        messages.value.splice(thinkingMessageIndex, 1)
+        console.log('✅ 思考消息已移除，当前消息总数:', messages.value.length)
+      } else {
+        console.warn('⚠️ 未找到对应的思考消息')
+      }
     }
 
     console.log('📨 添加新消息详细信息:', {
@@ -216,14 +301,37 @@ export const useChatStore = defineStore('chat', () => {
       senderName: message.senderName,
       type: message.type,
       timestamp: message.timestamp,
-      status: message.status
+      status: message.status,
+      conversationId: message.conversationId,
+      isThinking: message.isThinking,
+      thinkingContent: message.thinkingContent
     })
 
+    // 特别标记思考消息
+    if (message.isThinking) {
+      console.log('🤖 [THINKING MESSAGE] 正在添加思考消息:', {
+        id: message.id,
+        senderName: message.senderName,
+        thinkingContent: message.thinkingContent,
+        conversationId: message.conversationId
+      })
+    }
+
     // 检查消息是否已存在（避免重复）
-    const exists = messages.value.some((m) => 
-      (message.id && m.id === message.id) || 
-      (message.tempId && m.tempId === message.tempId)
-    )
+    // 注意：思考消息有特殊的ID格式，不应该与普通消息冲突
+    const exists = messages.value.some((m) => {
+      // 优先通过ID检查
+      if (message.id && m.id === message.id) {
+        return true
+      }
+      
+      // 对于非思考消息，检查tempId
+      if (message.tempId && m.tempId === message.tempId && !message.isThinking && !m.isThinking) {
+        return true
+      }
+      
+      return false
+    })
     
     if (!exists) {
       const newMessage = {
@@ -241,7 +349,8 @@ export const useChatStore = defineStore('chat', () => {
         id: newMessage.id,
         tempId: newMessage.tempId,
         content: newMessage.content?.substring(0, 20) + '...',
-        status: newMessage.status
+        status: newMessage.status,
+        isThinking: newMessage.isThinking
       })
       console.log('📋 当前消息总数:', messages.value.length)
     } else {
@@ -320,7 +429,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   // 发送消息 - 使用乐观更新 + 确认机制
-  const sendMessage = async (content: string, messageType: string = 'text') => {
+  const sendMessage = async (content: string, mentionedAgents?: string[], messageType: string = 'text') => {
     if (!content.trim()) {
       console.warn('⚠️ 消息内容为空，跳过发送')
       return false
@@ -336,6 +445,7 @@ export const useChatStore = defineStore('chat', () => {
         namespace: currentNamespace.value,
         content: content.substring(0, 50) + '...',
         messageType,
+        mentionedAgents,
         currentUser: userStore.currentUser
       })
 
@@ -350,7 +460,7 @@ export const useChatStore = defineStore('chat', () => {
       }
 
       // 通过WebSocket发送消息，获取临时ID
-      const tempId = chatSocket.sendMessage(content, messageType)
+      const tempId = chatSocket.sendMessage(content, messageType, mentionedAgents)
       console.log('📤 生成临时ID:', tempId)
 
       // 乐观更新：立即在前端显示消息
@@ -365,14 +475,16 @@ export const useChatStore = defineStore('chat', () => {
         type: 'user',
         status: 'sending', // 发送中状态
         messageType: messageType as any,
-        imageUrl: messageType === 'image' ? content : undefined
+        imageUrl: messageType === 'image' ? content : undefined,
+        mentionedAgents: mentionedAgents // 添加Agent提及信息
       }
 
       console.log('📝 创建乐观更新消息:', {
         id: optimisticMessage.id,
         tempId: optimisticMessage.tempId,
         content: optimisticMessage.content?.substring(0, 20) + '...',
-        status: optimisticMessage.status
+        status: optimisticMessage.status,
+        mentionedAgents: optimisticMessage.mentionedAgents
       })
 
       // 立即添加到消息列表
@@ -440,6 +552,217 @@ export const useChatStore = defineStore('chat', () => {
         wsUrl: ''
       }
     )
+  }
+
+  // 处理Agent思考状态
+  const handleAgentThinking = (data: { conversationId: string; agentName: string; status: 'start' | 'continue' | 'end'; tempId?: string }) => {
+    const { conversationId, agentName, status, tempId } = data
+    
+    console.log('🤖 处理Agent思考状态:', { conversationId, agentName, status, tempId })
+    
+    if (status === 'start') {
+      // 确保Agent名称格式正确（应该包含namespace）
+      let fullAgentName = agentName
+      if (!agentName.includes('.')) {
+        // 如果agentName不包含namespace，从conversationId中提取或使用默认值
+        const namespaceMatch = conversationId.match(/_([^_]+)_[^_]+$/)
+        const namespace = namespaceMatch ? namespaceMatch[1] : 'default'
+        fullAgentName = `${agentName}.${namespace}`
+      }
+      
+      // Agent开始思考，创建一个思考状态的消息
+      const thinkingMessage: ChatMessage = {
+        id: `thinking_${conversationId}`,
+        senderId: fullAgentName,
+        senderName: fullAgentName,
+        content: '', // 思考消息内容为空，通过thinkingContent显示
+        timestamp: new Date().toISOString(),
+        type: 'agent',
+        status: 'thinking',
+        conversationId,
+        isThinking: true,
+        thinkingContent: '正在思考...',
+        tempId: tempId // 关联原始消息的tempId
+      }
+      
+      console.log('🤖 创建Agent思考消息:', thinkingMessage)
+      addMessage(thinkingMessage)
+    } else if (status === 'end') {
+      // Agent思考结束，等待最终回复
+      console.log('🤖 Agent思考结束，等待最终回复:', conversationId)
+    }
+  }
+
+  // 处理Agent思考流式更新
+  const handleAgentThinkingStream = (data: { conversationId: string; content?: string; progress?: number; tempId?: string }) => {
+    const { conversationId, content, progress, tempId } = data
+    
+    console.log('🤖 处理思考流式更新:', { conversationId, content, progress, tempId })
+    
+    // 优先通过conversationId查找，如果没有则通过tempId查找
+    let thinkingMessageIndex = -1
+    let searchMethod = 'none'
+    
+    if (conversationId) {
+      thinkingMessageIndex = messages.value.findIndex(
+        msg => msg.conversationId === conversationId && msg.isThinking
+      )
+      if (thinkingMessageIndex !== -1) {
+        searchMethod = 'conversationId'
+      }
+    }
+    
+    // 如果通过conversationId没找到，尝试通过tempId查找
+    if (thinkingMessageIndex === -1 && tempId) {
+      thinkingMessageIndex = messages.value.findIndex(
+        msg => msg.tempId === tempId && msg.isThinking
+      )
+      if (thinkingMessageIndex !== -1) {
+        searchMethod = 'tempId'
+      }
+    }
+    
+    // 如果还是没找到，尝试通过Agent名称查找最近的思考消息
+    if (thinkingMessageIndex === -1) {
+      // 从conversationId中提取agent名称（如果可能）
+      let agentName = ''
+      if (conversationId && conversationId.includes('_')) {
+        const parts = conversationId.split('_')
+        if (parts.length >= 4) {
+          agentName = parts[3] // conv_timestamp_username_agentname_hash
+        }
+      }
+      
+      if (agentName) {
+        thinkingMessageIndex = messages.value.findIndex(
+          msg => msg.isThinking && (
+            msg.senderName === agentName || 
+            msg.senderName.startsWith(agentName + '.') ||
+            msg.senderName.includes(agentName)
+          )
+        )
+        if (thinkingMessageIndex !== -1) {
+          searchMethod = 'agentName'
+        }
+      }
+    }
+    
+    console.log('🔍 查找思考消息结果:', {
+      conversationId,
+      tempId,
+      thinkingMessageIndex,
+      searchMethod,
+      totalMessages: messages.value.length,
+      thinkingMessages: messages.value.filter(msg => msg.isThinking).map(msg => ({
+        id: msg.id,
+        conversationId: msg.conversationId,
+        tempId: msg.tempId,
+        senderName: msg.senderName,
+        isThinking: msg.isThinking,
+        thinkingContent: msg.thinkingContent
+      })),
+      allMessages: messages.value.map(msg => ({
+        id: msg.id,
+        type: msg.type,
+        senderName: msg.senderName,
+        isThinking: msg.isThinking,
+        conversationId: msg.conversationId,
+        tempId: msg.tempId
+      }))
+    })
+    
+    if (thinkingMessageIndex !== -1) {
+      const thinkingMessage = messages.value[thinkingMessageIndex]
+      
+      // 更新思考内容
+      if (content !== undefined) {
+        thinkingMessage.thinkingContent = content
+      }
+      
+      // 更新进度（如果有的话）
+      if (progress !== undefined) {
+        thinkingMessage.thinkingContent = `正在思考... (${Math.round(progress * 100)}%)`
+      }
+      
+      console.log('🤖 更新Agent思考内容:', {
+        searchMethod,
+        conversationId,
+        tempId,
+        content: thinkingMessage.thinkingContent,
+        progress
+      })
+      
+      // 触发响应式更新
+      messages.value[thinkingMessageIndex] = { ...thinkingMessage }
+    } else {
+      console.warn('⚠️ 未找到对应的思考消息进行更新')
+      console.warn('🔍 调试信息:', {
+        searchCriteria: { conversationId, tempId },
+        availableThinkingMessages: messages.value.filter(msg => msg.isThinking),
+        totalMessages: messages.value.length,
+        recentMessages: messages.value.slice(-5).map(msg => ({
+          id: msg.id,
+          type: msg.type,
+          senderName: msg.senderName,
+          isThinking: msg.isThinking
+        }))
+      })
+      
+      // 尝试创建一个临时的思考消息（防护机制）
+      if (conversationId && content) {
+        console.log('🛡️ 创建临时思考消息作为防护机制')
+        
+        // 从conversationId中提取agent名称
+        let agentName = 'unknown-agent'
+        if (conversationId.includes('_')) {
+          const parts = conversationId.split('_')
+          if (parts.length >= 4) {
+            agentName = parts[3] // conv_timestamp_username_agentname_hash
+          }
+        }
+        
+        const emergencyThinkingMessage: ChatMessage = {
+          id: `emergency_thinking_${conversationId}`,
+          senderId: agentName,
+          senderName: agentName,
+          content: '',
+          timestamp: new Date().toISOString(),
+          type: 'agent',
+          status: 'thinking',
+          conversationId,
+          isThinking: true,
+          thinkingContent: content || '正在思考...',
+          tempId: tempId
+        }
+        
+        console.log('🛡️ 添加紧急思考消息:', emergencyThinkingMessage)
+        addMessage(emergencyThinkingMessage)
+      }
+    }
+  }
+
+  // 处理Agent最终回复（需要在normalizeMessage中处理conversationId）
+  const handleAgentReply = (message: ChatMessage) => {
+    if (message.conversationId && message.type === 'agent') {
+      // 查找并移除对应的思考消息
+      const thinkingMessageIndex = messages.value.findIndex(
+        msg => msg.conversationId === message.conversationId && msg.isThinking
+      )
+      
+      if (thinkingMessageIndex !== -1) {
+        console.log('🤖 移除思考消息，添加最终回复:', {
+          conversationId: message.conversationId,
+          thinkingMessageId: messages.value[thinkingMessageIndex].id,
+          replyMessageId: message.id
+        })
+        
+        // 移除思考消息
+        messages.value.splice(thinkingMessageIndex, 1)
+      }
+    }
+    
+    // 添加最终回复消息
+    addMessage(message)
   }
 
   return {

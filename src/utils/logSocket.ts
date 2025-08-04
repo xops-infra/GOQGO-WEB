@@ -9,13 +9,10 @@ export interface LogSocketOptions {
 export interface LogSocketCallbacks {
   onInitial?: (logs: LogEntry[]) => void
   onAppend?: (log: LogEntry) => void
-  onHistory?: (logs: LogEntry[], hasMore: boolean) => void
-  onFollowToggled?: (follow: boolean) => void
-  onRefreshed?: (lines: number) => void
-  onSessionClosed?: (message: string) => void
   onError?: (error: string) => void
   onConnect?: () => void
   onDisconnect?: () => void
+  onFollowToggled?: (data: { enabled: boolean; websocketActive: boolean }) => void
 }
 
 export class LogSocket {
@@ -52,8 +49,6 @@ export class LogSocket {
         }
 
         const params = new URLSearchParams()
-
-        // 添加token参数
         params.append('token', token)
 
         if (this.options.lines) {
@@ -64,27 +59,13 @@ export class LogSocket {
         }
 
         const wsEndpoint = API_ENDPOINTS.WEBSOCKET.AGENT_LOGS(this.namespace, this.agentName)
-        
-        // 添加token到查询参数
-        params.append('token', token)
-        
-        const url = buildWsUrl(`${wsEndpoint}?${params}`)
+        const url = `${buildWsUrl(wsEndpoint)}?${params}`
         console.log('🔗 连接日志 WebSocket:', url.replace(token, '***TOKEN***'))
-        console.log('🔗 连接参数:', {
-          namespace: this.namespace,
-          agentName: this.agentName,
-          options: this.options
-        })
 
         this.socket = new WebSocket(url)
 
         this.socket.onopen = () => {
-          console.log('✅ 日志 WebSocket 连接成功', {
-            url: url,
-            readyState: this.socket?.readyState,
-            namespace: this.namespace,
-            agentName: this.agentName
-          })
+          console.log('✅ 日志 WebSocket 连接成功')
           this.reconnectAttempts = 0
           this.startHeartbeat()
           this.callbacks.onConnect?.()
@@ -92,10 +73,8 @@ export class LogSocket {
         }
 
         this.socket.onmessage = (event) => {
-          console.log('📨 收到 WebSocket 消息:', event.data)
           try {
             const message = JSON.parse(event.data)
-            console.log('📨 解析后的消息:', message)
             this.handleMessage(message)
           } catch (error) {
             console.error('❌ 解析日志消息失败:', error, event.data)
@@ -121,13 +100,7 @@ export class LogSocket {
         }
 
         this.socket.onerror = (error) => {
-          console.error('❌ 日志 WebSocket 错误:', {
-            error: error,
-            url: url,
-            readyState: this.socket?.readyState,
-            namespace: this.namespace,
-            agentName: this.agentName
-          })
+          console.error('❌ 日志 WebSocket 错误:', error)
           this.callbacks.onError?.('WebSocket 连接错误')
           reject(error)
         }
@@ -149,70 +122,30 @@ export class LogSocket {
     }
   }
 
-  loadHistory(): void {
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-      console.log('📜 请求加载历史日志')
-      this.socket.send(JSON.stringify({ type: 'load_history' }))
-    }
-  }
-
   private handleMessage(message: LogMessage): void {
     console.log('🔄 处理消息:', message.type, message)
 
     switch (message.type) {
       case 'initial':
         if (message.data) {
-          console.log('📋 收到初始日志数据:', message.data)
           const logEntries = this.parseLogContent(message.data)
-          console.log('📋 解析出初始日志:', logEntries.length, '条')
           this.callbacks.onInitial?.(logEntries)
-        } else {
-          console.warn('⚠️ 初始日志数据为空:', message.data)
         }
         break
 
       case 'append':
         if (message.data) {
-          console.log('➕ 收到新日志数据:', message.data)
           const logEntries = this.parseLogContent(message.data)
-          console.log('➕ 解析出新日志:', logEntries.length, '条')
           logEntries.forEach((log) => {
             this.callbacks.onAppend?.(log)
           })
-        } else {
-          console.warn('⚠️ 新日志数据为空:', message.data)
-        }
-        break
-
-      case 'history':
-        if (message.data) {
-          console.log('📜 收到历史日志数据:', message.data)
-          const logEntries = this.parseLogContent(message.data)
-          console.log('📜 解析出历史日志:', logEntries.length, '条, hasMore:', message.data.hasMore)
-          this.callbacks.onHistory?.(logEntries, message.data.hasMore || false)
-        } else {
-          console.warn('⚠️ 历史日志数据为空:', message.data)
         }
         break
 
       case 'follow_toggled':
+        console.log('🔄 实时跟踪状态切换:', message.data)
         if (message.data) {
-          console.log('🔄 收到跟踪模式切换确认:', message.data.follow)
-          this.callbacks.onFollowToggled?.(message.data.follow)
-        }
-        break
-
-      case 'refreshed':
-        if (message.data) {
-          console.log('🔄 收到刷新确认:', message.data.lines)
-          this.callbacks.onRefreshed?.(message.data.lines)
-        }
-        break
-
-      case 'session_closed':
-        if (message.data) {
-          console.log('❌ 会话已关闭:', message.data.message)
-          this.callbacks.onSessionClosed?.(message.data.message)
+          this.callbacks.onFollowToggled?.(message.data)
         }
         break
 
@@ -242,7 +175,6 @@ export class LogSocket {
     if (data.content !== undefined) {
       // 如果content为空字符串或null，返回空数组
       if (!data.content || data.content.trim() === '') {
-        console.log('📜 日志内容为空')
         return []
       }
 

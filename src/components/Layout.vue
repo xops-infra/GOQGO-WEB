@@ -5,9 +5,11 @@
       <div class="header-bar">
         <div class="header-content">
           <div class="header-left">
-            <img src="@/assets/Goqgo.svg" alt="GoQGo" class="header-logo" />
-            <div class="header-title">
-              <h1>GoQGo</h1>
+            <div class="logo-section" @click="goToHome">
+              <img src="@/assets/Goqgo.svg" alt="GoQGo" class="header-logo" />
+              <div class="header-title">
+                <h1>GoQGo</h1>
+              </div>
             </div>
             <VersionInfo />
             <n-tooltip>
@@ -312,6 +314,9 @@
               :options="roleOptions"
               placeholder="请选择角色（可选）"
               size="medium"
+              :loading="rolesLoading"
+              clearable
+              filterable
             />
             <div class="form-hint">
               <n-icon size="14" color="#666">
@@ -440,6 +445,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, Teleport } from 'vue'
+import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import {
   AddOutline as AddIcon,
@@ -451,6 +457,8 @@ import {
 import { useAgentsStore } from '@/stores/agents'
 import { useNamespacesStore } from '@/stores/namespaces'
 import { useUserStore } from '@/stores/user'
+import { rolesApi } from '@/api/roles'
+import type { Role } from '@/types/api'
 import VersionInfo from './VersionInfo.vue'
 import {
   useMessage,
@@ -507,6 +515,8 @@ const openLogWindows = ref<LogWindow[]>([])
 const showStatsPanel = ref(false)
 const showCreateModal = ref(false)
 const createLoading = ref(false)
+const rolesLoading = ref(false)
+const roles = ref<Role[]>([])
 const directoryType = ref('local') // 目录类型：local 或 git
 
 // 创建表单数据
@@ -518,16 +528,14 @@ const createFormData = ref({
   context: ''
 })
 
-// 角色选项
-const roleOptions = [
-  { label: '前端工程师', value: 'frontend-engineer' },
-  { label: '后端工程师', value: 'backend-engineer' },
-  { label: '全栈工程师', value: 'fullstack-engineer' },
-  { label: 'DevOps工程师', value: 'devops-engineer' },
-  { label: '数据分析师', value: 'data-analyst' },
-  { label: '产品经理', value: 'product-manager' },
-  { label: '通用助手', value: 'general-assistant' }
-]
+// 角色选项 - 从API动态获取
+const roleOptions = computed(() => {
+  return roles.value.map(role => ({
+    label: role.displayName,
+    value: role.name,
+    description: role.description
+  }))
+})
 
 // 命名空间选项
 const namespaceOptions = computed(() => {
@@ -547,7 +555,52 @@ const namespaceOptions = computed(() => {
 // 计算属性
 const agents = computed(() => agentsStore.agents)
 
+// 路由实例
+const router = useRouter()
+
 // 方法
+const goToHome = () => {
+  // 由于Layout.vue本身就是主页，这里可以刷新页面或者什么都不做
+  console.log('🏠 已在主页')
+}
+
+const loadRoles = async () => {
+  rolesLoading.value = true
+  try {
+    console.log('🎭 Layout: 加载角色列表...')
+    const response = await rolesApi.getList()
+    roles.value = response.roles || []
+    
+    console.log('✅ Layout: 角色列表加载成功:', {
+      total: response.total,
+      loaded: roles.value.length
+    })
+    
+    if (roles.value.length === 0) {
+      console.warn('⚠️ Layout: API返回的角色列表为空，使用默认选项')
+      // 设置默认角色
+      roles.value = [
+        { name: 'general-assistant', displayName: '通用助手', description: '通用AI助手', prompt: '' },
+        { name: 'frontend-engineer', displayName: '前端开发工程师', description: '专业的前端开发工程师', prompt: '' },
+        { name: 'backend-engineer', displayName: '后端开发工程师', description: '专业的后端开发工程师', prompt: '' },
+        { name: 'architect', displayName: '架构师', description: '系统架构师', prompt: '' }
+      ]
+    }
+  } catch (error: any) {
+    console.error('❌ Layout: 加载角色列表失败:', error)
+    // 如果API失败，使用默认角色选项作为后备
+    roles.value = [
+      { name: 'general-assistant', displayName: '通用助手', description: '通用AI助手', prompt: '' },
+      { name: 'frontend-engineer', displayName: '前端开发工程师', description: '专业的前端开发工程师', prompt: '' },
+      { name: 'backend-engineer', displayName: '后端开发工程师', description: '专业的后端开发工程师', prompt: '' },
+      { name: 'architect', displayName: '架构师', description: '系统架构师', prompt: '' }
+    ]
+    console.warn('Layout: 角色列表加载失败，使用默认选项')
+  } finally {
+    rolesLoading.value = false
+  }
+}
+
 const openGitHub = () => {
   window.open('https://github.com/zhoushoujianwork/GOQGO-WEB', '_blank')
 }
@@ -803,6 +856,9 @@ onMounted(async () => {
     agentsStore.setupEventListeners()
     console.log('✅ Agents store事件监听器已设置')
 
+    // 加载角色列表
+    loadRoles()
+
     // 确保认证状态已恢复
     const userStore = useUserStore()
     if (!userStore.isAuthenticated) {
@@ -862,16 +918,30 @@ onUnmounted(() => {
     align-items: center;
     gap: 12px;
 
-    .header-logo {
-      width: 40px;
-      height: 40px;
-    }
+    .logo-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+      
+      .header-logo {
+        width: 40px;
+        height: 40px;
+      }
 
-    .header-title {
-      h1 {
-        margin: 0;
-        font-size: 24px;
-        font-weight: 600;
+      .header-title {
+        h1 {
+          margin: 0;
+          font-size: 24px;
+          font-weight: 600;
+        }
       }
     }
   }

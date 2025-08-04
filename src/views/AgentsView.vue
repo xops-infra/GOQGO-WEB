@@ -10,7 +10,7 @@
           <n-grid-item>
             <TerminalStatsCard
               title="总数量"
-              :value="agents.length"
+              :value="filteredAgents.length"
               type="primary"
               icon="total"
               :progress="75"
@@ -66,6 +66,13 @@
               <div class="header-title">
                 <span v-if="isTerminal" class="terminal-prompt">AGENT_INSTANCES</span>
                 <span v-else>智能体列表</span>
+                <!-- 过滤状态提示 -->
+                <span v-if="!userStore.isAdmin" class="filter-hint">
+                  ({{ isTerminal ? 'USER_FILTER' : '仅显示您的智能体' }})
+                </span>
+                <span v-else-if="usernameFilter" class="filter-hint">
+                  ({{ isTerminal ? 'FILTERED' : '已过滤' }}: {{ usernameFilter }})
+                </span>
               </div>
               <div class="header-controls">
                 <n-space>
@@ -77,6 +84,18 @@
                     :class="{ 'terminal-select': isTerminal }"
                     @update:value="handleNamespaceChange"
                   />
+                  <!-- 用户名过滤输入框 -->
+                  <n-input
+                    v-model:value="usernameFilter"
+                    :placeholder="isTerminal ? 'FILTER_BY_USERNAME' : '按用户名过滤'"
+                    style="width: 180px"
+                    :class="{ 'terminal-input': isTerminal }"
+                    clearable
+                  >
+                    <template #prefix>
+                      <n-icon><PersonOutline /></n-icon>
+                    </template>
+                  </n-input>
                   <n-button
                     @click="refreshAgents"
                     :loading="loading"
@@ -104,7 +123,7 @@
 
           <n-data-table
             :columns="columns"
-            :data="agents"
+            :data="filteredAgents"
             :loading="loading"
             :pagination="pagination"
             :class="{ 'terminal-table': isTerminal }"
@@ -208,16 +227,19 @@ import {
   PlayOutline,
   PauseOutline,
   TrashOutline,
-  SendOutline
+  SendOutline,
+  PersonOutline
 } from '@vicons/ionicons5'
 import { useTheme } from '@/utils/theme'
 import { formatRelativeTime, useTimeManager, formatAgentUptime } from '@/utils/timeManager'
 import { agentApi } from '@/api/agents'
+import { useUserStore } from '@/stores/user'
 import TerminalHeader from '@/components/TerminalHeader.vue'
 import TerminalStatsCard from '@/components/TerminalStatsCard.vue'
 
 const { isTerminal } = useTheme()
 const message = useMessage()
+const userStore = useUserStore()
 
 // 使用时间管理器
 const { currentTime, cleanup } = useTimeManager()
@@ -228,6 +250,7 @@ const loading = ref(false)
 const creating = ref(false)
 const showCreateModal = ref(false)
 const selectedNamespace = ref('default')
+const usernameFilter = ref('') // 用户名过滤
 const createFormRef = ref()
 
 // 表单数据
@@ -246,25 +269,49 @@ const createRules = {
 }
 
 // 计算属性
+const filteredAgents = computed(() => {
+  let result = agents.value
+
+  // 如果不是管理员，只显示当前用户的agents
+  const currentUsername = userStore.username
+  const isAdminUser = userStore.isAdmin
+  
+  if (!isAdminUser && currentUsername) {
+    result = result.filter(agent => 
+      agent.username && agent.username.toLowerCase() === currentUsername.toLowerCase()
+    )
+  }
+
+  // 应用用户名过滤器（管理员可以按用户名过滤查看所有agents）
+  if (usernameFilter.value && usernameFilter.value.trim()) {
+    const filterText = usernameFilter.value.trim().toLowerCase()
+    result = result.filter(agent => 
+      agent.username && agent.username.toLowerCase().includes(filterText)
+    )
+  }
+
+  return result
+})
+
 const runningCount = computed(
-  () => agents.value.filter((agent) => agent.status === 'running').length
+  () => filteredAgents.value.filter((agent) => agent.status === 'running').length
 )
 
-const idleCount = computed(() => agents.value.filter((agent) => agent.status === 'idle').length)
+const idleCount = computed(() => filteredAgents.value.filter((agent) => agent.status === 'idle').length)
 
-const errorCount = computed(() => agents.value.filter((agent) => agent.status === 'error').length)
+const errorCount = computed(() => filteredAgents.value.filter((agent) => agent.status === 'error').length)
 
 // Terminal风格的进度计算
 const runningProgress = computed(() =>
-  agents.value.length > 0 ? Math.round((runningCount.value / agents.value.length) * 100) : 0
+  filteredAgents.value.length > 0 ? Math.round((runningCount.value / filteredAgents.value.length) * 100) : 0
 )
 
 const idleProgress = computed(() =>
-  agents.value.length > 0 ? Math.round((idleCount.value / agents.value.length) * 100) : 0
+  filteredAgents.value.length > 0 ? Math.round((idleCount.value / filteredAgents.value.length) * 100) : 0
 )
 
 const errorProgress = computed(() =>
-  agents.value.length > 0 ? Math.round((errorCount.value / agents.value.length) * 100) : 0
+  filteredAgents.value.length > 0 ? Math.round((errorCount.value / filteredAgents.value.length) * 100) : 0
 )
 
 // 趋势数据
@@ -301,6 +348,19 @@ const columns = computed<DataTableColumns>(() => {
             class: { 'terminal-text': isTerminal.value }
           },
           isTerminal.value ? `[${row.id}] ${row.name}`.toUpperCase() : row.name
+        )
+      }
+    },
+    {
+      title: isTerminal.value ? 'USERNAME' : '用户名',
+      key: 'username',
+      render: (row: any) => {
+        return h(
+          'span',
+          {
+            class: { 'terminal-text': isTerminal.value }
+          },
+          row.username || (isTerminal.value ? 'UNKNOWN' : '未知')
         )
       }
     },
@@ -522,6 +582,7 @@ const refreshAgents = async () => {
         {
           id: 'agent-001',
           name: 'Assistant-Alpha',
+          username: 'zhoushoujian',
           namespace: 'default',
           role: 'assistant',
           status: 'running',
@@ -531,6 +592,7 @@ const refreshAgents = async () => {
         {
           id: 'agent-002',
           name: 'Coder-Beta',
+          username: 'developer1',
           namespace: 'development',
           role: 'coder',
           status: 'idle',
@@ -540,6 +602,7 @@ const refreshAgents = async () => {
         {
           id: 'agent-003',
           name: 'Analyst-Gamma',
+          username: 'analyst2',
           namespace: 'production',
           role: 'analyst',
           status: 'error',
@@ -549,11 +612,22 @@ const refreshAgents = async () => {
         {
           id: 'agent-004',
           name: 'Support-Delta',
+          username: 'zhoushoujian',
           namespace: 'production',
           role: 'support',
           status: 'running',
           age: '3d12h',
           createdAt: new Date(Date.now() - 3 * 86400000 - 12 * 60 * 60 * 1000).toISOString()
+        },
+        {
+          id: 'agent-005',
+          name: 'Test-Agent',
+          username: 'tester3',
+          namespace: 'testing',
+          role: 'assistant',
+          status: 'idle',
+          age: '30m',
+          createdAt: new Date(Date.now() - 30 * 60 * 1000).toISOString()
         }
       ]
     }
@@ -693,6 +767,18 @@ onUnmounted(() => {
             content: '> ';
             color: var(--terminal-prompt);
           }
+        }
+      }
+
+      .filter-hint {
+        font-size: 0.85em;
+        opacity: 0.7;
+        margin-left: 8px;
+        font-style: italic;
+
+        .terminal-mode & {
+          color: var(--terminal-text-secondary);
+          font-family: var(--font-mono);
         }
       }
     }

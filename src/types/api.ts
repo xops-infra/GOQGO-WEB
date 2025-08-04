@@ -22,6 +22,18 @@ export interface CreateAgentRequest {
   env?: string[]
 }
 
+export interface Role {
+  name: string
+  displayName: string
+  description: string
+  prompt: string
+}
+
+export interface RolesResponse {
+  roles: Role[]
+  total: number
+}
+
 export interface ChatMessage {
   id: string
   senderId: string
@@ -30,12 +42,20 @@ export interface ChatMessage {
   content: string
   timestamp: string
   type: 'user' | 'agent' | 'system'
-  status?: 'sending' | 'sent' | 'delivered' | 'error'
+  status?: 'sending' | 'sent' | 'delivered' | 'error' | 'thinking'
   messageType?: 'text' | 'image' | 'file'
   imageUrl?: string
   imagePath?: string
   // 用于消息确认的临时ID
   tempId?: string
+  // Agent提及信息
+  mentionedAgents?: string[]
+  // 对话ID，用于关联Agent思考状态
+  conversationId?: string
+  // 是否为思考状态消息
+  isThinking?: boolean
+  // 思考内容（用于流式更新）
+  thinkingContent?: string
 }
 
 export interface ChatSession {

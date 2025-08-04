@@ -7,6 +7,7 @@ import { buildApiUrl, API_ENDPOINTS } from '@/config/api'
 export interface User {
   displayName: string
   email: string
+  role?: 'admin' | 'developer' | 'viewer' // 添加角色字段
   // 可以根据实际API响应添加更多字段
 }
 
@@ -16,6 +17,7 @@ export interface LoginResponse {
   bearer_token: string
   displayName: string
   email: string
+  role?: string // 添加角色字段
 }
 
 export const useUserStore = defineStore('user', () => {
@@ -31,6 +33,14 @@ export const useUserStore = defineStore('user', () => {
   const userInfo = computed(() => currentUser.value)
   const username = computed(() => currentUser.value?.displayName || '')
   const displayName = computed(() => currentUser.value?.displayName || '')
+  const isAdmin = computed(() => {
+    // 临时管理员检查逻辑：如果用户名是 'zhoushoujian' 则认为是管理员
+    // 或者检查role字段
+    const user = currentUser.value
+    if (!user) return false
+    
+    return user.role === 'admin' || user.displayName === 'zhoushoujian'
+  })
   const hasPermission = computed(() => (permission: string) => {
     // 根据实际权限结构实现权限检查
     return true
@@ -89,7 +99,8 @@ export const useUserStore = defineStore('user', () => {
       // 保存认证信息
       const user: User = {
         displayName: response.data.displayName,
-        email: response.data.email
+        email: response.data.email,
+        role: response.data.role as 'admin' | 'developer' | 'viewer' || 'developer'
       }
 
       token.value = response.data.bearer_token
@@ -145,7 +156,8 @@ export const useUserStore = defineStore('user', () => {
       // 保存认证信息
       const user: User = {
         displayName: response.data.displayName,
-        email: response.data.email
+        email: response.data.email,
+        role: response.data.role as 'admin' | 'developer' | 'viewer' || 'developer'
       }
 
       token.value = response.data.bearer_token
@@ -268,6 +280,7 @@ export const useUserStore = defineStore('user', () => {
     userInfo,
     username,
     displayName,
+    isAdmin,
     hasPermission,
 
     // 方法

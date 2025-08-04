@@ -1,1 +1,0 @@
-/Users/mikas/github/cliExtra/bin/../rules/cliExtra.md
