@@ -101,8 +101,8 @@ export const agentApi = {
       params.append('token', token)
     }
 
-    const wsEndpoint = API_ENDPOINTS.WEBSOCKET.LOGS(namespace, name, token || '')
-    const url = buildWsUrl(`${wsEndpoint.split('?')[0]}?${params}`)
+    const wsEndpoint = API_ENDPOINTS.WEBSOCKET.AGENT_LOGS(namespace, name)
+    const url = buildWsUrl(`${wsEndpoint}?${params}`)
     return new WebSocket(url)
   },
 

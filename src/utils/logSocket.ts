@@ -63,8 +63,12 @@ export class LogSocket {
           params.append('follow', 'true')
         }
 
-        const wsEndpoint = API_ENDPOINTS.WEBSOCKET.LOGS(this.namespace, this.agentName, token)
-        const url = buildWsUrl(`${wsEndpoint.split('?')[0]}?${params}`)
+        const wsEndpoint = API_ENDPOINTS.WEBSOCKET.AGENT_LOGS(this.namespace, this.agentName)
+        
+        // 添加token到查询参数
+        params.append('token', token)
+        
+        const url = buildWsUrl(`${wsEndpoint}?${params}`)
         console.log('🔗 连接日志 WebSocket:', url.replace(token, '***TOKEN***'))
         console.log('🔗 连接参数:', {
           namespace: this.namespace,

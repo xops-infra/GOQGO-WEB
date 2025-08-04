@@ -24,7 +24,7 @@
         <n-tab-pane name="api" tab="API配置">
           <n-form label-placement="left" label-width="120px">
             <n-form-item label="API地址">
-              <n-input v-model:value="apiUrl" placeholder="http://localhost:8080" />
+              <n-input v-model:value="apiUrl" placeholder="http://localhost:8000" />
             </n-form-item>
 
             <n-form-item label="超时时间">
@@ -86,7 +86,7 @@ const appStore = useAppStore()
 const themeMode = ref(appStore.theme)
 const language = ref('zh-CN')
 const autoSave = ref(true)
-const apiUrl = ref('http://localhost:8080')
+const apiUrl = ref('')
 const timeout = ref(10000)
 const testing = ref(false)
 

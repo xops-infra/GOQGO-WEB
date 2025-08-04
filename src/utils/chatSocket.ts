@@ -63,7 +63,9 @@ export class ChatSocket {
     }
 
     // 使用token认证的WebSocket连接URL
-    const wsUrl = buildWsUrl(API_ENDPOINTS.WEBSOCKET.CHAT(this.namespace, token))
+    // 使用CHAT_ROOM端点，token作为查询参数传递
+    const endpoint = API_ENDPOINTS.WEBSOCKET.CHAT_ROOM(this.namespace)
+    const wsUrl = buildWsUrl(`${endpoint}?token=${token}`)
     console.log('🔌 连接WebSocket:', wsUrl.replace(token, '***TOKEN***'))
 
     this.ws = new WebSocket(wsUrl)
@@ -431,9 +433,9 @@ export class ChatSocket {
 
   // 检测消息类型
   private detectMessageType(content: string): 'text' | 'image' | 'file' {
-    // 检查是否为图片URL（包含图片扩展名或localhost:8080的图片路径）
+    // 检查是否为图片URL（包含图片扩展名或文件路径）
     if (content.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)(\?.*)?$/i) || 
-        (content.includes('localhost:8080') && content.includes('/api/v1/files/') && content.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)/i))) {
+        (content.includes('/api/v1/files/') && content.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)/i))) {
       return 'image'
     }
     
@@ -498,7 +500,7 @@ export class ChatSocket {
     return {
       namespace: this.namespace,
       connected: this.isConnected,
-      wsUrl: buildWsUrl(API_ENDPOINTS.WEBSOCKET.CHAT(this.namespace, token ? '***TOKEN***' : 'NO_TOKEN'))
+      wsUrl: buildWsUrl(`${API_ENDPOINTS.WEBSOCKET.CHAT_ROOM(this.namespace)}?token=${token ? '***TOKEN***' : 'NO_TOKEN'}`)
     }
   }
 

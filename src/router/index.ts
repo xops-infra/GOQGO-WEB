@@ -7,10 +7,6 @@ import AgentsView from '@/views/AgentsView.vue'
 import TerminalDemo from '@/views/TerminalDemo.vue'
 import TextColorTest from '@/views/TextColorTest.vue'
 import DebugView from '@/views/DebugView.vue'
-import MessageParserTest from '@/views/MessageParserTest.vue'
-import ChatTest from '@/views/ChatTest.vue'
-import WebSocketDebug from '@/views/WebSocketDebug.vue'
-import MessageConfirmTest from '@/views/MessageConfirmTest.vue'
 import MessageConfirmDebug from '@/views/MessageConfirmDebug.vue'
 import MessageTimeoutTest from '@/views/MessageTimeoutTest.vue'
 import DividerTest from '@/views/DividerTest.vue'
@@ -18,11 +14,9 @@ import EmptyMessageTest from '@/views/EmptyMessageTest.vue'
 import LoginStatusTest from '@/views/LoginStatusTest.vue'
 import LoginErrorTest from '@/views/LoginErrorTest.vue'
 import ApiAuthTest from '@/views/ApiAuthTest.vue'
-import WebSocketAuthTest from '@/views/WebSocketAuthTest.vue'
 import AuthTest from '@/views/AuthTest.vue'
 import MarkdownTest from '@/views/MarkdownTest.vue'
 import MentionTest from '@/views/MentionTest.vue'
-import LogsTest from '@/views/LogsTest.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -97,42 +91,6 @@ const router = createRouter({
       component: AuthTest,
       meta: {
         title: '认证系统测试',
-        requiresAuth: true
-      }
-    },
-    {
-      path: '/test/message-parser',
-      name: 'message-parser-test',
-      component: MessageParserTest,
-      meta: {
-        title: '消息解析测试',
-        requiresAuth: true
-      }
-    },
-    {
-      path: '/test/chat',
-      name: 'chat-test',
-      component: ChatTest,
-      meta: {
-        title: '聊天功能测试',
-        requiresAuth: true
-      }
-    },
-    {
-      path: '/test/websocket',
-      name: 'websocket-debug',
-      component: WebSocketDebug,
-      meta: {
-        title: 'WebSocket调试',
-        requiresAuth: true
-      }
-    },
-    {
-      path: '/test/message-confirm',
-      name: 'message-confirm-test',
-      component: MessageConfirmTest,
-      meta: {
-        title: '消息确认测试',
         requiresAuth: true
       }
     },
@@ -215,15 +173,6 @@ const router = createRouter({
       meta: {
         title: 'Markdown 渲染测试',
         requiresAuth: false
-      }
-    },
-    {
-      path: '/test/logs',
-      name: 'logs-test',
-      component: LogsTest,
-      meta: {
-        title: '日志功能测试',
-        requiresAuth: true
       }
     },
     {

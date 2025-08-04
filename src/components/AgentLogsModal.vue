@@ -398,7 +398,7 @@ const connectLogStream = async () => {
     console.log('✅ 后端服务检查通过')
   } catch (error) {
     console.error('❌ 后端服务不可用:', error)
-    message.error('无法连接到后端服务，请启动 GoQGo API 服务器：goqgo apiserver --port 8080', {
+    message.error('无法连接到后端服务，请启动 GoQGo API 服务器', {
       duration: 10000
     })
     isConnecting.value = false

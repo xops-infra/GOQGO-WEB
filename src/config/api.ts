@@ -7,11 +7,11 @@ export interface ApiConfig {
 
 // 根据环境变量或构建模式确定API地址
 const getApiConfig = (): ApiConfig => {
-  // 开发环境
+  // 开发环境 - 使用相对路径，让vite代理接管
   if (import.meta.env.DEV) {
     return {
-      baseURL: 'http://localhost:8080',
-      wsBaseURL: 'ws://localhost:8080',
+      baseURL: '',  // 使用相对路径，vite代理会处理
+      wsBaseURL: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`,
       timeout: 10000
     }
   }
@@ -33,6 +33,12 @@ export const apiConfig = getApiConfig()
 
 // 导出常用的API端点
 export const API_ENDPOINTS = {
+  // 系统相关
+  SYSTEM: {
+    HEALTH: '/health',
+    INFO: '/'
+  },
+  
   // 认证相关
   AUTH: {
     LOGIN: '/api/v1/auth/login',
@@ -46,37 +52,83 @@ export const API_ENDPOINTS = {
   NAMESPACES: {
     LIST: '/api/v1/namespaces',
     CREATE: '/api/v1/namespaces',
-    DELETE: (namespace: string) => `/api/v1/namespaces/${namespace}`
+    GET: (namespace: string) => `/api/v1/namespace/${namespace}`,
+    UPDATE: (namespace: string) => `/api/v1/namespace/${namespace}`,
+    DELETE: (namespace: string) => `/api/v1/namespace/${namespace}`
   },
   
   // Agent相关
   AGENTS: {
     LIST: (namespace: string) => `/api/v1/namespaces/${namespace}/agents`,
     CREATE: (namespace: string) => `/api/v1/namespaces/${namespace}/agents`,
+    GET: (namespace: string, name: string) => `/api/v1/namespaces/${namespace}/agents/${name}`,
+    UPDATE: (namespace: string, name: string) => `/api/v1/namespaces/${namespace}/agents/${name}`,
     DELETE: (namespace: string, name: string) => `/api/v1/namespaces/${namespace}/agents/${name}`,
     SEND: (namespace: string, name: string) => `/api/v1/namespaces/${namespace}/agents/${name}/send`,
-    LOGS: (namespace: string, name: string) => `/api/v1/namespaces/${namespace}/agents/${name}/logs`
+    LOGS: (namespace: string, name: string) => `/api/v1/namespaces/${namespace}/agents/${name}/logs`,
+    RESTART: (namespace: string, name: string) => `/api/v1/namespaces/${namespace}/agents/${name}/restart`,
+    BROADCAST: (namespace: string) => `/api/v1/namespaces/${namespace}/agents/broadcast`
+  },
+  
+  // 聊天相关
+  CHATS: {
+    LIST: (namespace: string) => `/api/v1/namespaces/${namespace}/chats`,
+    CREATE: (namespace: string) => `/api/v1/namespaces/${namespace}/chats`,
+    GET: (namespace: string, chatName: string) => `/api/v1/namespaces/${namespace}/chats/${chatName}`,
+    UPDATE: (namespace: string, chatName: string) => `/api/v1/namespaces/${namespace}/chats/${chatName}`,
+    DELETE: (namespace: string, chatName: string) => `/api/v1/namespaces/${namespace}/chats/${chatName}`,
+    SEND_MESSAGE: (namespace: string, chatName: string) => `/api/v1/namespaces/${namespace}/chats/${chatName}/messages`,
+    GET_HISTORY: (namespace: string, chatName: string) => `/api/v1/namespaces/${namespace}/chats/${chatName}/history`,
+    SEARCH_MESSAGES: (namespace: string, chatName: string) => `/api/v1/namespaces/${namespace}/chats/${chatName}/messages/search`,
+    EDIT_MESSAGE: (namespace: string, chatName: string, messageId: string) => `/api/v1/namespaces/${namespace}/chats/${chatName}/messages/${messageId}`,
+    DELETE_MESSAGE: (namespace: string, chatName: string, messageId: string) => `/api/v1/namespaces/${namespace}/chats/${chatName}/messages/${messageId}`,
+    ADD_MEMBER: (namespace: string, chatName: string) => `/api/v1/namespaces/${namespace}/chats/${chatName}/members`,
+    REMOVE_MEMBER: (namespace: string, chatName: string, username: string) => `/api/v1/namespaces/${namespace}/chats/${chatName}/members/${username}`,
+    UPDATE_MEMBER: (namespace: string, chatName: string, username: string) => `/api/v1/namespaces/${namespace}/chats/${chatName}/members/${username}`
   },
   
   // 文件相关
   FILES: {
-    UPLOAD: '/api/v1/files/upload',
-    GET: (fileId: string) => `/api/v1/files/${fileId}`,
-    DELETE: (fileId: string) => `/api/v1/files/${fileId}`
+    LIST: '/api/v1/files',
+    UPLOAD: '/api/v1/files',
+    GET: (username: string, filename: string) => `/api/v1/files/${username}/${filename}`,
+    DELETE: (filename: string) => `/api/v1/files/${filename}`
   },
   
   // 用户相关
   USERS: {
     LIST: '/api/v1/users',
     CREATE: '/api/v1/users',
-    UPDATE: (userId: string) => `/api/v1/users/${userId}`,
-    DELETE: (userId: string) => `/api/v1/users/${userId}`
+    GET: (username: string) => `/api/v1/users/${username}`,
+    UPDATE: (username: string) => `/api/v1/users/${username}`,
+    DELETE: (username: string) => `/api/v1/users/${username}`,
+    GET_PERMISSIONS: (username: string) => `/api/v1/users/${username}/permissions`,
+    UPDATE_PERMISSIONS: (username: string) => `/api/v1/users/${username}/permissions`
+  },
+  
+  // 工作流相关
+  DAGS: {
+    LIST: (namespace: string) => `/api/v1/namespaces/${namespace}/dags`,
+    CREATE: (namespace: string) => `/api/v1/namespaces/${namespace}/dags`,
+    GET: (namespace: string, dagName: string) => `/api/v1/namespaces/${namespace}/dags/${dagName}`,
+    UPDATE: (namespace: string, dagName: string) => `/api/v1/namespaces/${namespace}/dags/${dagName}`,
+    DELETE: (namespace: string, dagName: string) => `/api/v1/namespaces/${namespace}/dags/${dagName}`
+  },
+  
+  // 执行记录相关
+  RECORDS: {
+    LIST: (namespace: string) => `/api/v1/namespaces/${namespace}/records`,
+    CREATE: (namespace: string) => `/api/v1/namespaces/${namespace}/records`,
+    GET: (namespace: string, recordName: string) => `/api/v1/namespaces/${namespace}/records/${recordName}`,
+    UPDATE: (namespace: string, recordName: string) => `/api/v1/namespaces/${namespace}/records/${recordName}`,
+    DELETE: (namespace: string, recordName: string) => `/api/v1/namespaces/${namespace}/records/${recordName}`
   },
   
   // WebSocket端点
   WEBSOCKET: {
-    CHAT: (namespace: string, token: string) => `/ws/namespaces/${namespace}/chat?token=${token}`,
-    LOGS: (namespace: string, agentName: string, token: string) => `/ws/namespaces/${namespace}/agents/${agentName}/logs?token=${token}`
+    CHAT_ROOM: (namespace: string) => `/ws/namespaces/${namespace}/chat`,
+    CHAT: (namespace: string, chatName: string) => `/ws/namespaces/${namespace}/chats/${chatName}`,
+    AGENT_LOGS: (namespace: string, agentName: string) => `/ws/namespaces/${namespace}/agents/${agentName}/logs`
   }
 } as const
 

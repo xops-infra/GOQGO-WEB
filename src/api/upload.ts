@@ -38,7 +38,7 @@ export const uploadFile = async (file: File): Promise<string> => {
     const uploadedFile = data.files[0]
     let fileUrl = uploadedFile.downloadUrl
     if (!fileUrl.startsWith('http')) {
-      fileUrl = `http://localhost:8080${fileUrl}`
+      fileUrl = fileUrl
     }
     return fileUrl
   } else {

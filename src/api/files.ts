@@ -46,7 +46,7 @@ export const filesApi = {
         // 处理downloadUrl，如果已经是完整URL就直接使用，否则添加前缀
         let fileUrl = uploadedFile.downloadUrl
         if (!fileUrl.startsWith('http')) {
-          fileUrl = `http://localhost:8080${fileUrl}`
+          fileUrl = fileUrl
         }
 
         const result = {
