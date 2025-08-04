@@ -1,6 +1,7 @@
 import axios from 'axios'
 import type { AxiosRequestConfig, AxiosResponse } from 'axios'
 import { authManager } from './auth'
+import { apiConfig } from '@/config/api'
 
 // 请求去重Map
 const pendingRequests = new Map<string, AbortController>()
@@ -13,8 +14,8 @@ const generateRequestKey = (config: AxiosRequestConfig): string => {
 
 // 创建axios实例
 const instance = axios.create({
-  baseURL: 'http://localhost:8080',
-  timeout: 10000,
+  baseURL: apiConfig.baseURL,
+  timeout: apiConfig.timeout,
   headers: {
     'Content-Type': 'application/json'
   }

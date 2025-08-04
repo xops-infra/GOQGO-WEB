@@ -1,4 +1,5 @@
 import { useUserStore } from '@/stores/user'
+import { buildApiUrl, API_ENDPOINTS } from '@/config/api'
 
 interface UploadResponse {
   files: Array<{
@@ -21,7 +22,7 @@ export const uploadFile = async (file: File): Promise<string> => {
   const formData = new FormData()
   formData.append('file', file)
 
-  const response = await fetch(`http://localhost:8080/api/v1/files`, {
+  const response = await fetch(buildApiUrl(API_ENDPOINTS.FILES.UPLOAD), {
     method: 'POST',
     body: formData
   })
@@ -50,7 +51,7 @@ export const getUserFiles = async (username?: string): Promise<any[]> => {
   const userStore = useUserStore()
   const targetUsername = username || userStore.currentUser.username
 
-  const response = await fetch(`http://localhost:8080/api/v1/files`)
+  const response = await fetch(buildApiUrl(API_ENDPOINTS.FILES.UPLOAD))
 
   if (!response.ok) {
     throw new Error('获取文件列表失败')
@@ -64,7 +65,7 @@ export const getUserFile = async (filename: string, username?: string): Promise<
   const userStore = useUserStore()
   const targetUsername = username || userStore.currentUser.username
 
-  const response = await fetch(`http://localhost:8080/api/v1/files/${filename}`)
+  const response = await fetch(buildApiUrl(API_ENDPOINTS.FILES.GET(filename)))
 
   if (!response.ok) {
     throw new Error('获取文件失败')

@@ -1,5 +1,6 @@
 import { get, post, del } from '@/utils/request'
 import { authManager } from '@/utils/auth'
+import { API_ENDPOINTS, buildWsUrl } from '@/config/api'
 
 export interface Agent {
   id?: string
@@ -41,27 +42,27 @@ export interface LogMessage {
 export const agentApi = {
   // 获取Agent列表
   getList: (namespace: string = 'default', signal?: AbortSignal) =>
-    get<{ items: Agent[] }>(`/api/v1/namespaces/${namespace}/agents`, { signal }),
+    get<{ items: Agent[] }>(API_ENDPOINTS.AGENTS.LIST(namespace), { signal }),
 
   // 获取Agent详情
   getDetail: (namespace: string, name: string) =>
-    get<Agent>(`/api/v1/namespaces/${namespace}/agents/${name}`),
+    get<Agent>(`${API_ENDPOINTS.AGENTS.LIST(namespace)}/${name}`),
 
   // 创建Agent
   create: (namespace: string, data: CreateAgentRequest) =>
-    post<Agent>(`/api/v1/namespaces/${namespace}/agents`, data),
+    post<Agent>(API_ENDPOINTS.AGENTS.CREATE(namespace), data),
 
   // 删除Agent
   delete: (namespace: string, name: string) =>
-    del(`/api/v1/namespaces/${namespace}/agents/${name}`),
+    del(API_ENDPOINTS.AGENTS.DELETE(namespace, name)),
 
   // 重启Agent
   restart: (namespace: string, name: string) =>
-    post(`/api/v1/namespaces/${namespace}/agents/${name}/restart`),
+    post(`${API_ENDPOINTS.AGENTS.LIST(namespace)}/${name}/restart`),
 
   // 发送消息
   send: (namespace: string, name: string, message: string) =>
-    post(`/api/v1/namespaces/${namespace}/agents/${name}/send`, { message }),
+    post(API_ENDPOINTS.AGENTS.SEND(namespace, name), { message }),
 
   // 获取Agent日志 - 支持实时流式传输
   getLogs: (
@@ -78,7 +79,7 @@ export const agentApi = {
     if (options?.follow) params.append('follow', 'true')
     if (options?.since) params.append('since', options.since)
 
-    return get<LogEntry[]>(`/api/v1/namespaces/${namespace}/agents/${name}/logs?${params}`)
+    return get<LogEntry[]>(`${API_ENDPOINTS.AGENTS.LOGS(namespace, name)}?${params}`)
   },
 
   // 创建日志流连接 - 用于实时日志（需要token认证）
@@ -100,11 +101,12 @@ export const agentApi = {
       params.append('token', token)
     }
 
-    const url = `ws://localhost:8080/ws/namespaces/${namespace}/agents/${name}/logs?${params}`
+    const wsEndpoint = API_ENDPOINTS.WEBSOCKET.LOGS(namespace, name, token || '')
+    const url = buildWsUrl(`${wsEndpoint.split('?')[0]}?${params}`)
     return new WebSocket(url)
   },
 
   // 广播消息
   broadcast: (namespace: string, message: string) =>
-    post(`/api/v1/namespaces/${namespace}/agents/broadcast`, { message })
+    post(`${API_ENDPOINTS.AGENTS.LIST(namespace)}/broadcast`, { message })
 }

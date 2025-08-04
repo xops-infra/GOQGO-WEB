@@ -1,4 +1,5 @@
 import type { LogEntry, LogMessage } from '@/api/agents'
+import { buildWsUrl, API_ENDPOINTS } from '@/config/api'
 
 export interface LogSocketOptions {
   lines?: number
@@ -62,7 +63,8 @@ export class LogSocket {
           params.append('follow', 'true')
         }
 
-        const url = `ws://localhost:8080/ws/namespaces/${this.namespace}/agents/${this.agentName}/logs?${params}`
+        const wsEndpoint = API_ENDPOINTS.WEBSOCKET.LOGS(this.namespace, this.agentName, token)
+        const url = buildWsUrl(`${wsEndpoint.split('?')[0]}?${params}`)
         console.log('🔗 连接日志 WebSocket:', url.replace(token, '***TOKEN***'))
         console.log('🔗 连接参数:', {
           namespace: this.namespace,

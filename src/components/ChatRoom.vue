@@ -120,6 +120,7 @@ import MessageItem from './MessageItem.vue'
 import ChatInput from './ChatInput.vue'
 import MessageSearch from './MessageSearch.vue'
 import MessageStats from './MessageStats.vue'
+import { buildApiUrl, API_ENDPOINTS, apiConfig } from '@/config/api'
 
 // Props
 interface Props {
@@ -484,7 +485,7 @@ const handleDrop = async (e: DragEvent) => {
       const formData = new FormData()
       formData.append('file', file)
 
-      const response = await fetch(`http://localhost:8080/api/v1/files`, {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.FILES.UPLOAD), {
         method: 'POST',
         body: formData
       })
@@ -496,7 +497,7 @@ const handleDrop = async (e: DragEvent) => {
       // 处理后端返回的数据结构
       if (data.success && data.files && data.files.length > 0) {
         const uploadedFile = data.files[0]
-        const imageUrl = `http://localhost:8080${uploadedFile.downloadUrl}`
+        const imageUrl = `${apiConfig.baseURL}${uploadedFile.downloadUrl}`
         await handleSendImage(imageUrl)
       } else {
         throw new Error(data.message || '上传失败')

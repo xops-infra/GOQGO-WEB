@@ -1,5 +1,6 @@
 import type { ChatMessage } from '@/types/api'
 import { authManager } from './auth'
+import { buildWsUrl, API_ENDPOINTS } from '@/config/api'
 
 export interface SocketCallbacks {
   onMessage?: (message: ChatMessage) => void
@@ -62,7 +63,7 @@ export class ChatSocket {
     }
 
     // 使用token认证的WebSocket连接URL
-    const wsUrl = `ws://localhost:8080/ws/namespaces/${this.namespace}/chat?token=${token}`
+    const wsUrl = buildWsUrl(API_ENDPOINTS.WEBSOCKET.CHAT(this.namespace, token))
     console.log('🔌 连接WebSocket:', wsUrl.replace(token, '***TOKEN***'))
 
     this.ws = new WebSocket(wsUrl)
@@ -497,7 +498,7 @@ export class ChatSocket {
     return {
       namespace: this.namespace,
       connected: this.isConnected,
-      wsUrl: `ws://localhost:8080/ws/namespaces/${this.namespace}/chat?token=${token ? '***TOKEN***' : 'NO_TOKEN'}`
+      wsUrl: buildWsUrl(API_ENDPOINTS.WEBSOCKET.CHAT(this.namespace, token ? '***TOKEN***' : 'NO_TOKEN'))
     }
   }
 

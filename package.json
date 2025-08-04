@@ -11,7 +11,13 @@
     "preview": "vite preview",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "format": "prettier --write src/",
-    "version:check": "node scripts/build-version.js"
+    "version:check": "node scripts/build-version.js",
+    "docker:build": "./docker/docker-build.sh",
+    "docker:run": "./docker/docker-run.sh",
+    "docker:up": "cd docker && docker-compose up -d",
+    "docker:down": "cd docker && docker-compose down",
+    "docker:logs": "cd docker && docker-compose logs -f",
+    "deploy": "./docker/deploy.sh"
   },
   "dependencies": {
     "@types/markdown-it": "^14.1.2",

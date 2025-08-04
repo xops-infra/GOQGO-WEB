@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import axios from 'axios'
 import { authManager } from '@/utils/auth'
+import { buildApiUrl, API_ENDPOINTS } from '@/config/api'
 
 export interface User {
   displayName: string
@@ -76,7 +77,7 @@ export const useUserStore = defineStore('user', () => {
 
       // 调用真实的登录API
       const response = await axios.post<LoginResponse>(
-        'http://localhost:8080/api/v1/users/login',
+        buildApiUrl('/api/v1/users/login'),
         { token: userToken },
         { headers: { 'Content-Type': 'application/json' } }
       )
@@ -132,7 +133,7 @@ export const useUserStore = defineStore('user', () => {
     try {
       // 调用密码登录API（如果后台支持）
       const response = await axios.post<LoginResponse>(
-        'http://localhost:8080/api/v1/users/login',
+        buildApiUrl('/api/v1/users/login'),
         { username, password },
         { headers: { 'Content-Type': 'application/json' } }
       )

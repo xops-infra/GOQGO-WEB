@@ -1,4 +1,5 @@
 import axios from '@/utils/axios'
+import { API_ENDPOINTS } from '@/config/api'
 
 export interface Namespace {
   apiVersion: string
@@ -30,18 +31,18 @@ export interface CreateNamespaceRequest {
 
 export const namespaceApi = {
   // 获取所有命名空间
-  getList: () => axios.get<NamespaceList>('/api/v1/namespaces'),
+  getList: () => axios.get<NamespaceList>(API_ENDPOINTS.NAMESPACES.LIST),
 
   // 获取单个命名空间详情
   get: (name: string) => axios.get<Namespace>(`/api/v1/namespace/${name}`),
 
   // 创建命名空间
-  create: (data: CreateNamespaceRequest) => axios.post<Namespace>('/api/v1/namespaces', data),
+  create: (data: CreateNamespaceRequest) => axios.post<Namespace>(API_ENDPOINTS.NAMESPACES.CREATE, data),
 
   // 更新命名空间
   update: (name: string, data: Partial<CreateNamespaceRequest>) =>
     axios.put<Namespace>(`/api/v1/namespace/${name}`, data),
 
   // 删除命名空间
-  delete: (name: string) => axios.delete(`/api/v1/namespace/${name}`)
+  delete: (name: string) => axios.delete(API_ENDPOINTS.NAMESPACES.DELETE(name))
 }

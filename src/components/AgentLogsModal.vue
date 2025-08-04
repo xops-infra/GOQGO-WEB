@@ -280,6 +280,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useMessage } from 'naive-ui'
 import { type Agent, type LogEntry } from '@/api/agents'
 import { LogSocket } from '@/utils/logSocket'
+import { buildApiUrl, apiConfig } from '@/config/api'
 
 // Props
 interface Props {
@@ -390,7 +391,7 @@ const connectLogStream = async () => {
 
   // 检查后端服务是否可用
   try {
-    const response = await fetch('http://localhost:8080/')
+    const response = await fetch(buildApiUrl('/'))
     if (!response.ok) {
       throw new Error(`后端服务响应错误: ${response.status}`)
     }
@@ -687,7 +688,7 @@ const getLogStatus = async () => {
     }
 
     const response = await fetch(
-      `http://localhost:8080/api/v1/namespaces/${props.agent.namespace}/agents/${props.agent.name}/logs/status`,
+      buildApiUrl(`/api/v1/namespaces/${props.agent.namespace}/agents/${props.agent.name}/logs/status`),
       {
         method: 'GET',
         headers: {
@@ -729,7 +730,7 @@ const refreshLogs = async () => {
 
     // 调用后端API刷新日志
     const response = await fetch(
-      `http://localhost:8080/api/v1/namespaces/${props.agent.namespace}/agents/${props.agent.name}/logs/refresh`,
+      buildApiUrl(`/api/v1/namespaces/${props.agent.namespace}/agents/${props.agent.name}/logs/refresh`),
       {
         method: 'POST',
         headers: {
@@ -785,7 +786,7 @@ const loadHistoryLogs = async () => {
 
     // 调用后端API加载历史日志
     const response = await fetch(
-      `http://localhost:8080/api/v1/namespaces/${props.agent.namespace}/agents/${props.agent.name}/logs/history`,
+      buildApiUrl(`/api/v1/namespaces/${props.agent.namespace}/agents/${props.agent.name}/logs/history`),
       {
         method: 'POST',
         headers: {
@@ -870,7 +871,7 @@ const toggleRealTime = async () => {
     
     // 调用后端API切换Follow模式
     const response = await fetch(
-      `http://localhost:8080/api/v1/namespaces/${props.agent.namespace}/agents/${props.agent.name}/logs/follow`,
+      buildApiUrl(`/api/v1/namespaces/${props.agent.namespace}/agents/${props.agent.name}/logs/follow`),
       {
         method: 'POST',
         headers: {

@@ -1,4 +1,5 @@
 import axios from '@/utils/axios'
+import { API_ENDPOINTS } from '@/config/api'
 
 export interface UserFile {
   name: string
@@ -25,7 +26,7 @@ export const filesApi = {
 
     try {
       // 注意：由于axios响应拦截器返回response.data，所以这里的response实际上是数据本身
-      const uploadResult = await axios.post<UploadResponse>(`/api/v1/files`, formData, {
+      const uploadResult = await axios.post<UploadResponse>(API_ENDPOINTS.FILES.UPLOAD, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -69,13 +70,13 @@ export const filesApi = {
 
   // 获取用户文件列表
   getUserFiles: async (username: string): Promise<UserFile[]> => {
-    const response = await axios.get(`/api/v1/files`)
+    const response = await axios.get(API_ENDPOINTS.FILES.UPLOAD)
     return response.data
   },
 
   // 获取用户文件
   getUserFile: async (username: string, filename: string): Promise<Blob> => {
-    const response = await axios.get(`/api/v1/files/${filename}`, {
+    const response = await axios.get(API_ENDPOINTS.FILES.GET(filename), {
       responseType: 'blob'
     })
     return response.data
@@ -83,6 +84,6 @@ export const filesApi = {
 
   // 删除用户文件
   deleteUserFile: async (username: string, filename: string): Promise<void> => {
-    await axios.delete(`/api/v1/files/${filename}`)
+    await axios.delete(API_ENDPOINTS.FILES.DELETE(filename))
   }
 }

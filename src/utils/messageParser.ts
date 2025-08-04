@@ -124,9 +124,10 @@ function getFileLabel(type: ParsedFile['type']): string {
 
 // 动态获取 API 服务器 baseURL
 import axiosInstance from './axios'
+import { apiConfig } from '@/config/api'
 
-// 优先使用 VITE_API_BASE_URL，否则 fallback 到 axios 默认 baseURL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || axiosInstance.defaults.baseURL || 'http://localhost:8080'
+// 使用统一的API配置
+const API_BASE_URL = apiConfig.baseURL
 // 去除末尾斜杠
 const baseUrl = API_BASE_URL.replace(/\/$/, '')
 // 动态生成正则，支持任意 API 服务器
