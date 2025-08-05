@@ -1,8 +1,22 @@
+// 用户相关类型
+export interface User {
+  id: string
+  username: string
+  email: string
+  role: 'admin' | 'user' | 'developer' | 'viewer'
+  avatar?: string
+  createdAt: string
+  updatedAt: string
+}
+
+// Agent相关类型
 export interface Agent {
   id?: string
   name: string
+  user?: string // 添加用户字段，对应goqgo agent list中的USER列
+  username?: string // 兼容字段，与user字段含义相同
   namespace: string
-  status: 'running' | 'idle' | 'error' | 'Creating' | 'Terminating'
+  status: 'running' | 'idle' | 'error' | 'Creating' | 'Terminating' | 'Stopped'
   role: string
   age?: string
   workDir?: string

@@ -1,0 +1,20 @@
+{
+  "timestamp": "2025-08-05T15:24:31.676Z",
+  "cleanedFiles": 0,
+  "cleanupPatterns": [
+    "/Test\\.vue$/",
+    "/Debug\\.vue$/",
+    "/test\\.vue$/",
+    "/debug\\.vue$/",
+    "/\\.bak$/",
+    "/\\.tmp$/",
+    "/\\.orig$/",
+    "/~$/"
+  ],
+  "cleanupDirs": [
+    "src/views",
+    "src/components",
+    "src/composables",
+    "src/utils"
+  ]
+}

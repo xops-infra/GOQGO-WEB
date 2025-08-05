@@ -1,0 +1,8 @@
+apiVersion: goqgo/v1
+kind: Namespace
+metadata:
+  name: goqgo
+spec:
+  description: "Namespace for goqgo environment"
+  defaultRole: "architect"
+  maxInstances: 50

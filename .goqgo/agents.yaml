@@ -1,0 +1,74 @@
+apiVersion: goqgo/v1
+kind: Agent
+metadata:
+  name: chat-backend-engineer
+  namespace: goqgo
+  labels:
+    role: vue-frontend-engineer
+    version: v1.0.0
+  annotations:
+    goqgo.io/created-by: "goqgo"
+    goqgo.io/description: "Backend engineer for Go development"
+spec:
+  workingDir: /Users/mikas/github/GOQGO-WEB
+  env:
+    - name: NODE_ENV
+      value: development
+    - name: DEBUG
+      value: "true"
+  # 角色定义
+  role:
+    name: vue-frontend-engineer
+    context: "你只负责聊天页面的功能，其他功能交给别的 agent去做；"
+  focus:
+    - "不要去改别的 agent 的代码，只负责聊天页面的功能；"
+---
+apiVersion: goqgo/v1
+kind: Agent
+metadata:
+  name: user-backend-engineer
+  namespace: goqgo
+  labels:
+    role: vue-frontend-engineer
+    version: v1.0.0
+  annotations:
+    goqgo.io/created-by: "goqgo"
+    goqgo.io/description: "Backend engineer for Go development"
+spec:
+  workingDir: /Users/mikas/github/GOQGO-WEB
+  env:
+    - name: NODE_ENV
+      value: development
+    - name: DEBUG
+      value: "true"
+  # 角色定义
+  role:
+    name: vue-frontend-engineer
+    context: "你只负责用户相关的内容修改，其他功能交给别的 agent去做；"
+  focus:
+    - "不要去改别的 agent 的代码，只负责用户相关的内容修改；"
+---
+apiVersion: goqgo/v1
+kind: Agent
+metadata:
+  name: agent-manager-engineer
+  namespace: goqgo
+  labels:
+    role: vue-frontend-engineer
+    version: v1.0.0
+  annotations:
+    goqgo.io/created-by: "goqgo"
+    goqgo.io/description: "Backend engineer for Go development"
+spec:
+  workingDir: /Users/mikas/github/GOQGO-WEB
+  env:
+    - name: NODE_ENV
+      value: development
+    - name: DEBUG
+      value: "true"
+  # 角色定义
+  role:
+    name: vue-frontend-engineer
+    context: "你只负责 agent 的代码管理，其他功能交给别的 agent去做；"
+  focus:
+    - "不要去改别的 agent 的代码，只负责 agent 的代码管理；"

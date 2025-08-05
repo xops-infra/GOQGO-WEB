@@ -1,8 +1,66 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { agentApi, type Agent, type CreateAgentRequest } from '@/api/agents'
+import { agentsApi } from '@/api/agentsWithMock'
+import { isMockMode, mockLogger } from '@/mock/config'
 import { useNamespacesStore } from './namespaces'
+import { useUserStore } from './user'
 import { authManager } from '@/utils/auth'
+
+/**
+ * 根据用户权限过滤Agent列表
+ * @param agents 原始Agent列表
+ * @param currentUser 当前用户信息
+ * @returns 过滤后的Agent列表
+ */
+const filterAgentsByUser = (agents: Agent[], currentUser: any): Agent[] => {
+  if (!currentUser) {
+    console.log('🔍 [Agent过滤] 无用户信息，返回空列表')
+    return []
+  }
+
+  const username = currentUser.username || currentUser.displayName?.toLowerCase() || ''
+  const isAdmin = currentUser.role === 'admin' || currentUser.displayName === 'zhoushoujian'
+
+  console.log('🔍 [Agent过滤] 开始过滤:', {
+    totalAgents: agents.length,
+    currentUser: {
+      username,
+      displayName: currentUser.displayName,
+      role: currentUser.role,
+      isAdmin
+    }
+  })
+
+  // 如果是管理员，返回所有Agent
+  if (isAdmin) {
+    console.log('🔍 [Agent过滤] 管理员权限，显示所有Agent')
+    return agents
+  }
+
+  // 普通用户只能看到自己的Agent
+  const filteredAgents = agents.filter(agent => {
+    const match = agent.username && 
+                  agent.username.toLowerCase() === username.toLowerCase()
+    
+    console.log('🔍 [Agent过滤] 检查Agent:', {
+      agentName: agent.name,
+      agentUsername: agent.username,
+      currentUsername: username,
+      match
+    })
+    
+    return match
+  })
+
+  console.log('🔍 [Agent过滤] 过滤完成:', {
+    原始数量: agents.length,
+    过滤后数量: filteredAgents.length,
+    过滤结果: filteredAgents.map(a => ({ name: a.name, username: a.username }))
+  })
+
+  return filteredAgents
+}
 
 export const useAgentsStore = defineStore('agents', () => {
   // 状态
@@ -14,10 +72,11 @@ export const useAgentsStore = defineStore('agents', () => {
   let fetchController: AbortController | null = null
   let fetchTimeout: NodeJS.Timeout | null = null
 
-  // 获取namespaces store
+  // 获取其他stores
   const namespacesStore = useNamespacesStore()
+  const userStore = useUserStore()
 
-  // 计算属性
+  // 计算属性 - 基于过滤后的agents
   const runningAgents = computed(() => agents.value.filter((agent) => agent.status === 'running'))
 
   const hasAgents = computed(() => agents.value.length > 0)
@@ -96,13 +155,27 @@ export const useAgentsStore = defineStore('agents', () => {
       }
 
       console.log('📡 发送API请求获取agents...')
-      // 尝试调用真实API，传入AbortController信号
-      const data = await agentApi.getList(targetNamespace, fetchController?.signal)
-      // API返回的是 { items: Agent[] } 格式
-      console.log('✅ agentApi.getList 成功:', data)
-      agents.value = data.items || []
-      console.log(`📊 获取到 ${targetNamespace} 命名空间下的 ${agents.value.length} 个agents`)
-
+      
+      let rawAgents: Agent[] = []
+      
+      // 使用Mock或真实API
+      if (isMockMode()) {
+        mockLogger.info('使用Mock获取Agents', { namespace: targetNamespace })
+        rawAgents = await agentsApi.getAgents(targetNamespace)
+      } else {
+        // 尝试调用真实API，传入AbortController信号
+        const data = await agentApi.getList(targetNamespace, fetchController?.signal)
+        // API返回的是 { items: Agent[] } 格式
+        rawAgents = data.items || []
+      }
+      
+      console.log('✅ 获取agents成功:', rawAgents)
+      console.log(`📊 获取到 ${targetNamespace} 命名空间下的 ${rawAgents.length} 个agents`)
+      
+      // 执行用户权限过滤
+      const filteredAgents = filterAgentsByUser(rawAgents, userStore.currentUser)
+      agents.value = filteredAgents
+      
       // 自动选择第一个agent
       if (agents.value.length > 0) {
         const firstAgent = agents.value[0]

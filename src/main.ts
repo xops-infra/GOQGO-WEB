@@ -11,6 +11,10 @@ import naive from 'naive-ui'
 import '@/styles/index.scss'
 import '@/assets/styles/highlight.scss'
 
+// 初始化Mock服务
+import { initMock } from './mock'
+initMock()
+
 // 创建应用实例
 const app = createApp(App)
 

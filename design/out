@@ -1,0 +1,18 @@
+✅ agentApi.getList 成功: {items: Array(3)}items: Array(3)0: {name: 'default-sys', username: 'admin', namespace: 'default', status: 'Stopped', age: '23m', …}1: {name: 'test-agent', username: 'admin', namespace: 'default', status: 'Idle', age: '24m', …}2: {name: 'default-sys', username: 'zhoushoujian', namespace: 'default', status: 'Stopped', age: '8m', …}length: 3[[Prototype]]: Array(0)[[Prototype]]: Object
+agents.ts:104 📊 获取到 default 命名空间下的 3 个agents
+agents.ts:110 🎯 自动选择第一个agent: default-sys
+agents.ts:142 🏁 performFetch 完成
+NamespaceManager.vue:319 📊 当前命名空间 default 下有 3 个智能体
+socketReconnectManager.ts:275 📱 页面隐藏，保存状态
+socketReconnectManager.ts:278 📱 页面显示，检查连接状态
+floatingSphere-csui.js:132 
+
+
+ZhouShouJian 的详细信息
+
+基本信息
+显示名称	邮箱
+ZhouShouJian	zhoushoujian@patsnap.com
+状态	Token有效期
+在线
+3天

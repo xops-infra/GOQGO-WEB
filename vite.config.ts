@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 
-const baseURL = 'http://localhost:8000'
+const baseURL = 'http://localhost:8080'
 
 export default defineConfig({
   plugins: [vue()],
@@ -14,6 +14,7 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
+    strictPort: false, // 允许端口自动选择
     proxy: {
       // API 接口代理
       '/api': {

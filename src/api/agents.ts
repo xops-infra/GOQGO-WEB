@@ -1,12 +1,16 @@
 import { get, post, del } from '@/utils/request'
 import { authManager } from '@/utils/auth'
 import { API_ENDPOINTS, buildWsUrl } from '@/config/api'
+import { mockAgentService } from '@/mock/services'
+import { isMockMode, mockLogger } from '@/mock/config'
 
 export interface Agent {
   id?: string
   name: string
+  user?: string // 添加用户字段，对应goqgo agent list中的USER列
+  username?: string // 兼容字段，与user字段含义相同
   namespace: string
-  status: 'running' | 'idle' | 'error' | 'Creating' | 'Terminating'
+  status: 'running' | 'idle' | 'error' | 'Creating' | 'Terminating' | 'Stopped'
   role: string
   age?: string
   workDir?: string
