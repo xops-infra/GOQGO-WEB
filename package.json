@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prod": "vite --port 80 --host",
     "build": "npm run build:version && vite build",
     "build:version": "node scripts/build-version.js",
     "build:prod": "NODE_ENV=production npm run build",
