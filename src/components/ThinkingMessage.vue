@@ -129,7 +129,7 @@ const dotIndex = ref(0)
 const maxDisplayLength = 500
 
 // 动画定时器
-let dotAnimation: NodeJS.Timeout | null = null
+let dotAnimation: number | null = null
 
 // 计算属性
 const agentInitial = computed(() => {

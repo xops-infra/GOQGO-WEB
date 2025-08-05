@@ -13,7 +13,9 @@ const md = new MarkdownIt({
         return '<pre class="hljs"><code>' +
                hljs.highlight(str, { language: lang, ignoreIllegals: true }).value +
                '</code></pre>'
-      } catch (__) {}
+      } catch (error) {
+        console.warn('代码高亮失败:', error)
+      }
     }
 
     return '<pre class="hljs"><code>' + md.utils.escapeHtml(str) + '</code></pre>'

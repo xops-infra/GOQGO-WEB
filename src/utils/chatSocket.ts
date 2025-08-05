@@ -434,7 +434,7 @@ export class ChatSocket {
     
     // 处理图片消息的内容，移除可能的[图片]前缀
     let content = serverMessage.content || ''
-    let messageType = serverMessage.messageType || this.detectMessageType(content)
+    const messageType = serverMessage.messageType || this.detectMessageType(content)
     let imageUrl = serverMessage.imageUrl
 
     // 如果是图片消息，处理内容格式

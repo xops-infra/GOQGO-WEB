@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { ChatMessage } from '@/types/api'
 import { ChatSocket } from '@/utils/chatSocket'
+import { SocketReconnectManager } from '@/utils/socketReconnectManager'
 import { chatApi } from '@/api/chat'
 import { useUserStore } from './user'
 
@@ -15,9 +16,12 @@ export const useChatStore = defineStore('chat', () => {
   const isLoadingHistory = ref(false)
   const hasMoreHistory = ref(true)
   const sessionStartTime = ref<string>('') // 会话开始时间，用于区分历史消息和当前消息
+  
+  // 控制自动滚动的状态
+  const shouldPreventAutoScroll = ref(false)
 
-  // WebSocket实例
-  let chatSocket: ChatSocket | null = null
+  // WebSocket重连管理器
+  let socketManager: SocketReconnectManager | null = null
 
   // 获取用户store
   const userStore = useUserStore()
@@ -58,15 +62,22 @@ export const useChatStore = defineStore('chat', () => {
     sessionStartTime.value = new Date().toISOString() // 记录会话开始时间
 
     // 断开现有连接
-    if (chatSocket) {
-      chatSocket.disconnect()
+    if (socketManager) {
+      socketManager.disconnect()
     }
 
-    // 创建新的WebSocket连接，使用当前用户名
-    chatSocket = new ChatSocket()
+    // 创建新的Socket重连管理器
+    socketManager = new SocketReconnectManager({
+      maxAttempts: 10,
+      baseDelay: 1000,
+      maxDelay: 30000,
+      backoffFactor: 2,
+      enableHeartbeat: true,
+      heartbeatInterval: 30000
+    })
 
     // 连接到指定的命名空间聊天室
-    chatSocket.connect(namespaceStr, {
+    socketManager.connect(namespaceStr, {
       onMessage: (message) => {
         console.log('📨 收到新消息:', message)
         addMessage(message)
@@ -201,7 +212,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   // 添加消息
-  const addMessage = (message: ChatMessage) => {
+  const addMessage = (message: ChatMessage, options: { preventAutoScroll?: boolean } = {}) => {
     // 验证消息数据的完整性
     if (!message || (!message.id && !message.tempId)) {
       console.warn('⚠️ 消息缺少必要的ID字段，跳过添加:', message)
@@ -285,6 +296,9 @@ export const useChatStore = defineStore('chat', () => {
           replyMessageId: message.id
         })
         
+        // 标记这是一个思考消息替换操作，不应该触发自动滚动
+        shouldPreventAutoScroll.value = true
+        
         // 移除思考消息
         messages.value.splice(thinkingMessageIndex, 1)
         console.log('✅ 思考消息已移除，当前消息总数:', messages.value.length)
@@ -353,6 +367,17 @@ export const useChatStore = defineStore('chat', () => {
         isThinking: newMessage.isThinking
       })
       console.log('📋 当前消息总数:', messages.value.length)
+      
+      // 如果不是思考消息替换，则允许自动滚动
+      if (!shouldPreventAutoScroll.value) {
+        console.log('📜 允许自动滚动')
+      } else {
+        console.log('🚫 阻止自动滚动（思考消息替换）')
+        // 重置状态，为下次消息做准备
+        setTimeout(() => {
+          shouldPreventAutoScroll.value = false
+        }, 100)
+      }
     } else {
       console.log('⚠️ 消息已存在，跳过添加:', message.id || message.tempId)
     }
@@ -435,7 +460,7 @@ export const useChatStore = defineStore('chat', () => {
       return false
     }
 
-    if (!chatSocket || !chatSocket.isConnected) {
+    if (!socketManager || !socketManager.isConnected) {
       console.error('❌ WebSocket未连接，无法发送消息')
       throw new Error('WebSocket未连接')
     }
@@ -460,7 +485,7 @@ export const useChatStore = defineStore('chat', () => {
       }
 
       // 通过WebSocket发送消息，获取临时ID
-      const tempId = chatSocket.sendMessage(content, messageType, mentionedAgents)
+      const tempId = socketManager.sendMessage(content, messageType, mentionedAgents)
       console.log('📤 生成临时ID:', tempId)
 
       // 乐观更新：立即在前端显示消息
@@ -500,14 +525,14 @@ export const useChatStore = defineStore('chat', () => {
 
   // 发送输入状态
   const sendTyping = (isTyping: boolean) => {
-    if (chatSocket && chatSocket.isConnected) {
-      chatSocket.sendTyping(isTyping)
+    if (socketManager && socketManager.isConnected) {
+      socketManager.socketInstance?.sendTyping(isTyping)
     }
   }
 
   // 加载更多历史消息
   const loadMoreHistory = async () => {
-    if (!hasMoreHistory.value || isLoadingHistory.value || !chatSocket) {
+    if (!hasMoreHistory.value || isLoadingHistory.value || !socketManager) {
       return
     }
 
@@ -518,16 +543,16 @@ export const useChatStore = defineStore('chat', () => {
     const beforeId = oldestMessage?.id
 
     console.log('📜 加载更多历史消息, before:', beforeId)
-    chatSocket.loadMoreHistory(beforeId || '', 20)
+    socketManager.socketInstance?.loadMoreHistory(beforeId || '', 20)
   }
 
   // 断开连接
   const disconnect = () => {
     console.log('🔌 断开聊天室连接')
 
-    if (chatSocket) {
-      chatSocket.disconnect()
-      chatSocket = null
+    if (socketManager) {
+      socketManager.disconnect()
+      socketManager = null
     }
 
     isConnected.value = false
@@ -545,7 +570,7 @@ export const useChatStore = defineStore('chat', () => {
   // 获取连接信息
   const getConnectionInfo = () => {
     return (
-      chatSocket?.getConnectionInfo() || {
+      socketManager?.getConnectionInfo() || {
         namespace: currentNamespace.value,
         username: userStore.username,
         connected: false,
@@ -765,6 +790,54 @@ export const useChatStore = defineStore('chat', () => {
     addMessage(message)
   }
 
+  // 手动触发重连
+  const forceReconnect = () => {
+    console.log('🔄 手动触发Socket重连')
+    if (socketManager) {
+      socketManager.forceReconnect()
+    } else {
+      console.warn('⚠️ SocketManager未初始化，无法重连')
+    }
+  }
+
+  // 获取详细的连接状态
+  const getDetailedConnectionStatus = () => {
+    if (!socketManager) {
+      return {
+        isConnected: false,
+        status: 'not_initialized',
+        message: 'Socket管理器未初始化'
+      }
+    }
+
+    const info = socketManager.getConnectionInfo()
+    return {
+      isConnected: info.isConnected,
+      namespace: info.namespace,
+      reconnectAttempts: info.reconnectAttempts,
+      lastConnectedTime: info.lastConnectedTime,
+      lastDisconnectReason: info.lastDisconnectReason,
+      pendingMessagesCount: info.pendingMessages?.length || 0,
+      status: info.isConnected ? 'connected' : 'disconnected',
+      message: info.isConnected ? '连接正常' : (info.lastDisconnectReason || '连接断开')
+    }
+  }
+
+  // 清理待发送消息
+  const clearPendingMessages = () => {
+    if (socketManager) {
+      // 这里可以添加清理逻辑，如果SocketReconnectManager提供相应方法
+      console.log('🧹 清理待发送消息')
+    }
+  }
+
+  // 检查连接健康状态
+  const checkConnectionHealth = () => {
+    const status = getDetailedConnectionStatus()
+    console.log('🔍 连接健康检查:', status)
+    return status
+  }
+
   return {
     // 状态
     messages,
@@ -777,6 +850,7 @@ export const useChatStore = defineStore('chat', () => {
     isLoadingHistory,
     hasMoreHistory,
     sessionStartTime,
+    shouldPreventAutoScroll,
 
     // 方法
     connect,
@@ -787,6 +861,10 @@ export const useChatStore = defineStore('chat', () => {
     addMessage,
     loadMoreHistory,
     clearMessages,
-    getConnectionInfo
+    getConnectionInfo,
+    forceReconnect,
+    getDetailedConnectionStatus,
+    clearPendingMessages,
+    checkConnectionHealth
   }
 })

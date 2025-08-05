@@ -172,7 +172,7 @@ import { filesApi } from '@/api/files'
 import { useUserStore } from '@/stores/user'
 import { useAgentsStore } from '@/stores/agents'
 import type { Agent } from '@/types/api'
-import { checkMessageSize, splitLongMessage, getMessageSizeWarningLevel, MESSAGE_LIMITS } from '@/utils/messageUtils'
+import { checkMessageSize, getMessageSizeWarningLevel, MESSAGE_LIMITS } from '@/utils/messageUtils'
 import { AgentMentionParser } from '@/utils/agentMentionParser'
 import AgentAutocomplete from './AgentAutocomplete.vue'
 

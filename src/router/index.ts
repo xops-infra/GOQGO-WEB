@@ -62,7 +62,6 @@ const router = createRouter({
     },
     {
       path: '/roles',
-      name: 'roles',
       component: AppLayout,
       meta: {
         title: '角色管理',
@@ -71,6 +70,7 @@ const router = createRouter({
       children: [
         {
           path: '',
+          name: 'roles',
           component: RolesView
         }
       ]

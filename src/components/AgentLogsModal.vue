@@ -73,6 +73,31 @@
             清空日志
           </n-tooltip>
           
+          <!-- 刷新日志 -->
+          <n-tooltip>
+            <template #trigger>
+              <n-button 
+                size="small" 
+                quaternary 
+                @click="refreshLogs" 
+                :loading="isRefreshing"
+                :disabled="!props.agent"
+              >
+                <template #icon>
+                  <n-icon>
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        fill="currentColor"
+                        d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"
+                      />
+                    </svg>
+                  </n-icon>
+                </template>
+              </n-button>
+            </template>
+            刷新日志
+          </n-tooltip>
+          
           <!-- 一键复制 -->
           <n-tooltip>
             <template #trigger>
@@ -230,6 +255,7 @@ const isRealTimeEnabled = ref(true) // 实时输出开关
 const isConnected = ref(false)
 const isConnecting = ref(false)
 const isLoadingHistory = ref(false)
+const isRefreshing = ref(false) // 刷新状态
 const loadingTimeoutId = ref<number | null>(null) // loading超时ID
 const hasReachedTop = ref(false)
 const lastUpdateTime = ref<string>()
@@ -560,6 +586,35 @@ const getLogStatus = async () => {
 }
 
 // 刷新日志
+const refreshLogs = async () => {
+  if (!props.agent || isRefreshing.value) {
+    return
+  }
+
+  try {
+    isRefreshing.value = true
+    setLoadingTimeout('refresh')
+    
+    console.log('🔄 开始刷新日志:', props.agent.name)
+    
+    // 清空当前日志
+    logs.value = []
+    
+    // 重新连接日志流
+    await disconnectLogStream()
+    await connectLogStream()
+    
+    console.log('✅ 日志刷新完成')
+    message.success('日志已刷新')
+  } catch (error) {
+    console.error('❌ 刷新日志失败:', error)
+    message.error('刷新日志失败')
+  } finally {
+    isRefreshing.value = false
+    clearLoadingTimeout()
+  }
+}
+
 // 加载历史日志
 const loadHistoryLogs = async () => {
   if (!props.agent || !isConnected.value || isLoadingHistory.value || hasReachedTop.value) {

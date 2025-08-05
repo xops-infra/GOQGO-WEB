@@ -142,7 +142,8 @@ const {
   // typingUsers, // 暂未使用
   isConnected,
   isLoadingHistory,
-  hasMoreHistory
+  hasMoreHistory,
+  shouldPreventAutoScroll
   // sessionStartTime // 暂未使用
 } = storeToRefs(chatStore)
 const { currentUser } = storeToRefs(userStore)
@@ -420,8 +421,9 @@ watch(
           isInitialLoad.value = false
         }
       }, 300) // 增加延迟时间
-    } else if (shouldAutoScroll.value && !isUserScrolling.value) {
-      // 新消息，立即滚动
+    } else if (shouldAutoScroll.value && !isUserScrolling.value && !shouldPreventAutoScroll.value) {
+      // 新消息，但不是思考消息替换时才滚动
+      console.log('📜 新消息触发自动滚动')
       setTimeout(() => {
         try {
           // 检查组件是否仍然挂载
@@ -432,6 +434,8 @@ watch(
           console.error('新消息滚动时发生错误:', error)
         }
       }, 50)
+    } else if (shouldPreventAutoScroll.value) {
+      console.log('🚫 思考消息替换，保持当前滚动位置')
     }
   },
   { deep: true, flush: 'post' }

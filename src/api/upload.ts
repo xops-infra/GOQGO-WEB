@@ -38,7 +38,7 @@ export const uploadFile = async (file: File): Promise<string> => {
     const uploadedFile = data.files[0]
     let fileUrl = uploadedFile.downloadUrl
     if (!fileUrl.startsWith('http')) {
-      fileUrl = fileUrl
+      // fileUrl = fileUrl // 保持原值，这里可能需要添加baseURL前缀
     }
     return fileUrl
   } else {

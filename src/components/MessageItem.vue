@@ -123,11 +123,11 @@ const cleanThinkingContent = (content: string | undefined): string => {
   if (!content) return '正在思考...'
   
   // 移除ANSI转义序列
-  // \x1B 是ESC字符，[?25l 是隐藏光标，[?25h 是显示光标等
+  // \u001B 是ESC字符，[?25l 是隐藏光标，[?25h 是显示光标等
   return content
-    .replace(/\x1B\[[?]?[0-9;]*[a-zA-Z]/g, '') // 移除ANSI转义序列
-    .replace(/\x1B\[[?]?[0-9;]*[hlm]/g, '')    // 移除其他控制序列
-    .replace(/[\x00-\x1F\x7F]/g, '')           // 移除其他控制字符
+    .replace(/\u001B\[[?]?[0-9;]*[a-zA-Z]/g, '') // 移除ANSI转义序列
+    .replace(/\u001B\[[?]?[0-9;]*[hlm]/g, '')    // 移除其他控制序列
+    .replace(/[\u0000-\u001F\u007F]/g, '')           // 移除其他控制字符
     .trim() || '正在思考...'
 }
 

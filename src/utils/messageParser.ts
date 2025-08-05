@@ -131,7 +131,7 @@ const API_BASE_URL = apiConfig.baseURL
 // 去除末尾斜杠
 const baseUrl = API_BASE_URL.replace(/\/$/, '')
 // 动态生成正则，支持任意 API 服务器
-const fileUrlRegex = new RegExp(`(${baseUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^\s]+)`, 'g')
+const fileUrlRegex = new RegExp(`(${baseUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^\\s]+)`, 'g')
 
 /**
  * 检查URL是否为本地服务器文件（现在基于 baseUrl 判断）
