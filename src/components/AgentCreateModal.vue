@@ -231,7 +231,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, h } from 'vue'
 import { useMessage } from 'naive-ui'
-import { rolesApi } from '@/api/roles'
+import { rolesApiWithMock as rolesApi } from '@/api/rolesWithMock'
 import { API_ENDPOINTS, apiConfig } from '@/config/api'
 import type { Role } from '@/types/api'
 import { useNamespacesStore } from '@/stores/namespaces'

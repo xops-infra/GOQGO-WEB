@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { namespaceApi, type Namespace, type CreateNamespaceRequest } from '@/api/namespaces'
+import { namespaceApiWithMock as namespaceApi, type Namespace, type CreateNamespaceRequest } from '@/api/namespacesWithMock'
 import { agentApi } from '@/api/agents'
 
 export const useNamespacesStore = defineStore('namespaces', () => {

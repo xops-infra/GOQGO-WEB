@@ -1,4 +1,4 @@
-import axios from '@/utils/axios'
+import { get, post, put, del } from '@/utils/request'
 import { API_ENDPOINTS } from '@/config/api'
 
 export interface Namespace {
@@ -31,18 +31,18 @@ export interface CreateNamespaceRequest {
 
 export const namespaceApi = {
   // 获取所有命名空间
-  getList: () => axios.get<NamespaceList>(API_ENDPOINTS.NAMESPACES.LIST),
+  getList: () => get<NamespaceList>(API_ENDPOINTS.NAMESPACES.LIST),
 
   // 获取单个命名空间详情
-  get: (name: string) => axios.get<Namespace>(`/api/v1/namespace/${name}`),
+  get: (name: string) => get<Namespace>(API_ENDPOINTS.NAMESPACES.GET(name)),
 
   // 创建命名空间
-  create: (data: CreateNamespaceRequest) => axios.post<Namespace>(API_ENDPOINTS.NAMESPACES.CREATE, data),
+  create: (data: CreateNamespaceRequest) => post<Namespace>(API_ENDPOINTS.NAMESPACES.CREATE, data),
 
   // 更新命名空间
   update: (name: string, data: Partial<CreateNamespaceRequest>) =>
-    axios.put<Namespace>(`/api/v1/namespace/${name}`, data),
+    put<Namespace>(API_ENDPOINTS.NAMESPACES.UPDATE(name), data),
 
   // 删除命名空间
-  delete: (name: string) => axios.delete(API_ENDPOINTS.NAMESPACES.DELETE(name))
+  delete: (name: string) => del(API_ENDPOINTS.NAMESPACES.DELETE(name))
 }

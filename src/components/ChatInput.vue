@@ -27,6 +27,7 @@
         <InputToolbar
           :is-connected="isConnected"
           @file-upload="handleFileUpload"
+          @image-upload="handleImageUpload"
         />
 
         <!-- 消息输入框 -->
@@ -119,6 +120,7 @@ const {
   handleDragLeave,
   handleDrop,
   handleFileUpload,
+  handleImageUpload,
   selectMention,
   selectAgent,
   hideAgentAutocomplete,

@@ -1,4 +1,4 @@
-import axios from '@/utils/axios'
+import { get, post, del } from '@/utils/request'
 import { API_ENDPOINTS } from '@/config/api'
 
 export interface UserFile {
@@ -17,6 +17,12 @@ export interface UploadResponse {
 }
 
 export const filesApi = {
+  // 获取文件列表
+  getFileList: async (): Promise<UserFile[]> => {
+    const response = await get(API_ENDPOINTS.FILES.LIST)
+    return response.data || []
+  },
+
   // 上传用户文件
   uploadFile: async (username: string, file: File): Promise<{ url: string; filename: string }> => {
     const formData = new FormData()
@@ -25,8 +31,7 @@ export const filesApi = {
     console.log('📤 发送文件上传请求:', { username, fileName: file.name, fileSize: file.size })
 
     try {
-      // 注意：由于axios响应拦截器返回response.data，所以这里的response实际上是数据本身
-      const uploadResult = await axios.post<UploadResponse>(API_ENDPOINTS.FILES.UPLOAD, formData, {
+      const uploadResult = await post<UploadResponse>(API_ENDPOINTS.FILES.UPLOAD, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -44,7 +49,7 @@ export const filesApi = {
         const uploadedFile = uploadResult.files[0]
 
         // 处理downloadUrl，如果已经是完整URL就直接使用，否则添加前缀
-        let fileUrl = uploadedFile.downloadUrl
+        const fileUrl = uploadedFile.downloadUrl
         if (!fileUrl.startsWith('http')) {
           // fileUrl = fileUrl // 保持原值，这里可能需要添加baseURL前缀
         }
@@ -61,29 +66,26 @@ export const filesApi = {
       }
     } catch (error) {
       console.error('❌ 上传请求异常:', error)
-      if (error.response) {
-        console.error('❌ 错误响应:', error.response.status, error.response.data)
-      }
       throw error
     }
   },
 
   // 获取用户文件列表
   getUserFiles: async (username: string): Promise<UserFile[]> => {
-    const response = await axios.get(API_ENDPOINTS.FILES.UPLOAD)
-    return response.data
+    const response = await get(API_ENDPOINTS.FILES.LIST)
+    return response.data || []
   },
 
   // 获取用户文件
   getUserFile: async (username: string, filename: string): Promise<Blob> => {
-    const response = await axios.get(API_ENDPOINTS.FILES.GET(filename), {
+    const response = await get(API_ENDPOINTS.FILES.GET(username, filename), {
       responseType: 'blob'
     })
-    return response.data
+    return response
   },
 
   // 删除用户文件
   deleteUserFile: async (username: string, filename: string): Promise<void> => {
-    await axios.delete(API_ENDPOINTS.FILES.DELETE(filename))
+    await del(API_ENDPOINTS.FILES.DELETE(filename))
   }
 }

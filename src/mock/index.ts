@@ -1,30 +1,19 @@
-import { mockConfig, mockState, mockLogger } from './config'
+import { mockConfig, mockLogger, isMockMode } from './config'
 import { enableMockWebSocket, disableMockWebSocket, mockWebSocketManager } from './websocket'
 
 // Mock初始化
 export function initMock() {
   console.log('🎭 [Mock Init] 开始初始化Mock服务...')
   console.log('🎭 [Mock Init] Mock配置:', mockConfig)
-  console.log('🎭 [Mock Init] Mock状态:', mockState.enabled)
+  console.log('🎭 [Mock Init] Mock状态:', isMockMode())
   
-  if (mockState.enabled) {
+  if (isMockMode()) {
     mockLogger.info('初始化Mock服务...')
     
     // 启用Mock WebSocket
     enableMockWebSocket()
     
-    // 添加Mock状态切换监听
-    mockState.onStateChange((enabled) => {
-      if (enabled) {
-        enableMockWebSocket()
-        mockLogger.info('Mock服务已启用')
-      } else {
-        disableMockWebSocket()
-        mockLogger.info('Mock服务已禁用')
-      }
-    })
-    
-    // 添加Mock控制面板
+    // 添加Mock控制面板（仅在开发环境）
     if (import.meta.env.DEV) {
       addMockControlPanel()
     }
@@ -36,7 +25,7 @@ export function initMock() {
   }
 }
 
-// 添加Mock控制面板
+// 添加Mock控制面板（仅用于开发调试）
 function addMockControlPanel() {
   // 创建控制面板
   const panel = document.createElement('div')
@@ -59,14 +48,13 @@ function addMockControlPanel() {
     ">
       <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
         <span style="color: #00ff41;">🎭</span>
-        <strong>Mock Control</strong>
+        <strong>Mock Debug Panel</strong>
       </div>
       
-      <div style="margin-bottom: 8px;">
-        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-          <input type="checkbox" id="mock-toggle" ${mockState.enabled ? 'checked' : ''}>
-          <span>启用Mock模式</span>
-        </label>
+      <div style="margin-bottom: 8px; font-size: 10px; color: #888;">
+        状态: <span style="color: #00ff41;">已启用</span>
+        <br>
+        配置: 环境变量控制
       </div>
       
       <div style="display: flex; gap: 4px; flex-wrap: wrap;">
@@ -101,8 +89,8 @@ function addMockControlPanel() {
         ">模拟断线</button>
       </div>
       
-      <div style="margin-top: 8px; font-size: 10px; color: #888;">
-        状态: <span id="mock-status">${mockState.enabled ? '已启用' : '已禁用'}</span>
+      <div style="margin-top: 8px; font-size: 9px; color: #666;">
+        💡 通过环境变量 VITE_MOCK_ENABLED 控制
       </div>
     </div>
   `
@@ -111,30 +99,22 @@ function addMockControlPanel() {
   document.body.appendChild(panel)
   
   // 绑定事件
-  const toggle = document.getElementById('mock-toggle') as HTMLInputElement
-  const status = document.getElementById('mock-status') as HTMLSpanElement
   const resetBtn = document.getElementById('mock-reset') as HTMLButtonElement
   const randomBtn = document.getElementById('mock-random') as HTMLButtonElement
   const disconnectBtn = document.getElementById('mock-disconnect') as HTMLButtonElement
-  
-  // 切换Mock模式
-  toggle?.addEventListener('change', () => {
-    mockState.enabled = toggle.checked
-    status.textContent = toggle.checked ? '已启用' : '已禁用'
-  })
   
   // 重置数据
   resetBtn?.addEventListener('click', () => {
     mockLogger.info('重置Mock数据')
     // 这里可以重置mock数据
-    alert('Mock数据已重置')
+    console.log('🎭 Mock数据已重置')
   })
   
   // 生成随机数据
   randomBtn?.addEventListener('click', () => {
     mockLogger.info('生成随机Mock数据')
     // 这里可以生成随机数据
-    alert('随机Mock数据已生成')
+    console.log('🎭 随机Mock数据已生成')
   })
   
   // 模拟断线
@@ -145,13 +125,7 @@ function addMockControlPanel() {
       type: 'connection_lost',
       data: { reason: 'simulated_disconnect' }
     })
-    alert('已模拟WebSocket断线')
-  })
-  
-  // 监听Mock状态变化
-  mockState.onStateChange((enabled) => {
-    toggle.checked = enabled
-    status.textContent = enabled ? '已启用' : '已禁用'
+    console.log('🎭 已模拟WebSocket断线')
   })
 }
 

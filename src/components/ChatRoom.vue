@@ -7,6 +7,9 @@
     @dragleave="handleDragLeave"
     :class="{ 'drag-active': isDragActive }"
   >
+    <!-- 8bit像素公仔背景动画 -->
+    <ChatPixelCharacters />
+    
     <!-- 拖拽覆盖层 -->
     <ChatDragOverlay v-if="isDragActive" />
 
@@ -44,6 +47,7 @@ import { useChatRoom } from '@/composables/useChatRoom'
 import ChatDragOverlay from './chat-room/ChatDragOverlay.vue'
 import MessagesContainer from './chat-room/MessagesContainer.vue'
 import ChatInputContainer from './chat-room/ChatInputContainer.vue'
+import ChatPixelCharacters from './ChatPixelCharacters.vue'
 import type { Message } from '@/types/api'
 
 interface Props {
@@ -133,6 +137,7 @@ watch(() => messages.value.length, () => {
   background: var(--bg-primary);
   position: relative;
   overflow: hidden;
+  z-index: 1; // 确保内容在像素公仔之上
   
   &.drag-active {
     &::before {

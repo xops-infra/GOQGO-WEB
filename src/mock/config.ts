@@ -1,7 +1,7 @@
 // Mock配置
 export const mockConfig = {
-  // 是否启用Mock模式 - 强制启用用于测试
-  enabled: true, // import.meta.env.VITE_MOCK_ENABLED === 'true' || import.meta.env.DEV,
+  // 是否启用Mock模式 - 仅从环境变量读取
+  enabled: import.meta.env.VITE_MOCK_ENABLED === 'true',
   
   // Mock延迟配置
   delays: {
@@ -25,7 +25,7 @@ export const mockConfig = {
   
   // WebSocket Mock配置
   websocket: {
-    enabled: true,
+    enabled: import.meta.env.VITE_MOCK_ENABLED === 'true',
     reconnectDelay: 3000,
     heartbeatInterval: 30000
   },
@@ -36,59 +36,6 @@ export const mockConfig = {
     level: 'info' as 'debug' | 'info' | 'warn' | 'error'
   }
 }
-
-// Mock状态管理
-class MockState {
-  private _enabled = mockConfig.enabled
-  private _listeners: Array<(enabled: boolean) => void> = []
-
-  get enabled() {
-    return this._enabled
-  }
-
-  set enabled(value: boolean) {
-    if (this._enabled !== value) {
-      this._enabled = value
-      this._listeners.forEach(listener => listener(value))
-      
-      // 保存到localStorage
-      localStorage.setItem('mock-enabled', String(value))
-      
-      if (mockConfig.logging.enabled) {
-        console.log(`🎭 Mock模式${value ? '已启用' : '已禁用'}`)
-      }
-    }
-  }
-
-  toggle() {
-    this.enabled = !this.enabled
-  }
-
-  onStateChange(listener: (enabled: boolean) => void) {
-    this._listeners.push(listener)
-    
-    // 返回取消监听的函数
-    return () => {
-      const index = this._listeners.indexOf(listener)
-      if (index > -1) {
-        this._listeners.splice(index, 1)
-      }
-    }
-  }
-
-  // 从localStorage恢复状态
-  restore() {
-    const saved = localStorage.getItem('mock-enabled')
-    if (saved !== null) {
-      this.enabled = saved === 'true'
-    }
-  }
-}
-
-export const mockState = new MockState()
-
-// 初始化时恢复状态
-mockState.restore()
 
 // Mock日志工具
 export const mockLogger = {
@@ -117,17 +64,14 @@ export const mockLogger = {
   }
 }
 
-// 环境检测
-export const isMockMode = () => mockState.enabled
+// 环境检测 - 简化为直接读取配置
+export const isMockMode = () => mockConfig.enabled
 
-// Mock开发工具
+// Mock开发工具（仅在开发环境可用）
 export const mockDevTools = {
-  // 切换Mock模式
-  toggle: () => mockState.toggle(),
-  
   // 获取当前状态
   getState: () => ({
-    enabled: mockState.enabled,
+    enabled: mockConfig.enabled,
     config: mockConfig
   }),
   
@@ -151,5 +95,6 @@ export const mockDevTools = {
 // 在开发环境下暴露到全局
 if (import.meta.env.DEV) {
   (window as any).mockDevTools = mockDevTools
+  console.log(`🎭 Mock模式: ${mockConfig.enabled ? '启用' : '禁用'} (由环境变量 VITE_MOCK_ENABLED 控制)`)
   console.log('🎭 Mock开发工具已挂载到 window.mockDevTools')
 }

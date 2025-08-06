@@ -2,6 +2,7 @@
 export interface User {
   id: string
   username: string
+  displayName?: string  // 用户显示名称，优先于username显示
   email: string
   role: 'admin' | 'user' | 'developer' | 'viewer'
   avatar?: string

@@ -43,7 +43,8 @@ instance.interceptors.request.use(
 
     // 检查是否需要跳过认证
     if (!authManager.shouldSkipAuth(url)) {
-      const token = authManager.getToken()
+      // 尝试从多个地方获取token
+      const token = authManager.getToken() || localStorage.getItem('auth_token')
 
       console.log('🔐 axios拦截器认证检查:', {
         url,

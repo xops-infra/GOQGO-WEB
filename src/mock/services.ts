@@ -188,12 +188,31 @@ export const mockAgentService = {
 
 // Mock命名空间服务
 export const mockNamespaceService = {
-  async getNamespaces() {
+  async getList() {
     await delay(200)
-    return mockNamespaces
+    return {
+      items: mockNamespaces.map(ns => ({
+        apiVersion: 'v1',
+        kind: 'Namespace',
+        metadata: {
+          name: ns.name,
+          creationTimestamp: ns.createdAt
+        },
+        spec: {
+          displayName: ns.displayName,
+          description: ns.description,
+          labels: ns.labels
+        },
+        status: {
+          phase: ns.status,
+          agentCount: 0,
+          dagCount: 0
+        }
+      }))
+    }
   },
 
-  async getNamespace(name: string) {
+  async get(name: string) {
     await delay(200)
     
     const namespace = mockNamespaces.find(ns => ns.name === name)
@@ -201,54 +220,101 @@ export const mockNamespaceService = {
       throw new Error('命名空间不存在')
     }
     
-    return namespace
+    return {
+      apiVersion: 'v1',
+      kind: 'Namespace',
+      metadata: {
+        name: namespace.name,
+        creationTimestamp: namespace.createdAt
+      },
+      spec: {
+        displayName: namespace.displayName,
+        description: namespace.description,
+        labels: namespace.labels
+      },
+      status: {
+        phase: namespace.status,
+        agentCount: 0,
+        dagCount: 0
+      }
+    }
   },
 
-  async createNamespace(namespaceData: Partial<Namespace>) {
+  async create(namespaceData: any) {
     await delay(400)
     
-    const newNamespace: Namespace = {
-      name: namespaceData.name || 'new-namespace',
-      displayName: namespaceData.displayName || namespaceData.name || 'New Namespace',
-      description: namespaceData.description || '',
+    const newNamespace = {
+      apiVersion: 'v1',
+      kind: 'Namespace',
+      metadata: {
+        name: namespaceData.metadata?.name || 'new-namespace',
+        creationTimestamp: new Date().toISOString()
+      },
+      spec: namespaceData.spec || {},
+      status: {
+        phase: 'Active',
+        agentCount: 0,
+        dagCount: 0
+      }
+    }
+    
+    // 添加到Mock数据中
+    mockNamespaces.push({
+      name: newNamespace.metadata.name,
+      displayName: newNamespace.spec.displayName || newNamespace.metadata.name,
+      description: newNamespace.spec.description || '',
       status: 'Active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      labels: namespaceData.labels || {},
-      resourceQuota: namespaceData.resourceQuota || {
+      createdAt: newNamespace.metadata.creationTimestamp,
+      updatedAt: newNamespace.metadata.creationTimestamp,
+      labels: newNamespace.spec.labels || {},
+      resourceQuota: {
         maxAgents: 10,
         cpuLimit: 2,
         memoryLimit: 4
       }
-    }
+    })
     
-    mockNamespaces.push(newNamespace)
     return newNamespace
   },
 
-  async updateNamespace(name: string, updates: Partial<Namespace>) {
-    await delay(300)
+  async update(name: string, data: any) {
+    await delay(400)
     
-    const index = mockNamespaces.findIndex(ns => ns.name === name)
-    if (index === -1) {
+    const namespace = mockNamespaces.find(ns => ns.name === name)
+    if (!namespace) {
       throw new Error('命名空间不存在')
     }
     
-    mockNamespaces[index] = {
-      ...mockNamespaces[index],
-      ...updates,
+    // 更新Mock数据
+    Object.assign(namespace, {
+      displayName: data.spec?.displayName || namespace.displayName,
+      description: data.spec?.description || namespace.description,
+      labels: data.spec?.labels || namespace.labels,
       updatedAt: new Date().toISOString()
-    }
+    })
     
-    return mockNamespaces[index]
+    return {
+      apiVersion: 'v1',
+      kind: 'Namespace',
+      metadata: {
+        name: namespace.name,
+        creationTimestamp: namespace.createdAt
+      },
+      spec: {
+        displayName: namespace.displayName,
+        description: namespace.description,
+        labels: namespace.labels
+      },
+      status: {
+        phase: namespace.status,
+        agentCount: 0,
+        dagCount: 0
+      }
+    }
   },
 
-  async deleteNamespace(name: string) {
-    await delay(500)
-    
-    if (name === 'default') {
-      throw new Error('不能删除默认命名空间')
-    }
+  async delete(name: string) {
+    await delay(400)
     
     const index = mockNamespaces.findIndex(ns => ns.name === name)
     if (index === -1) {
@@ -256,13 +322,12 @@ export const mockNamespaceService = {
     }
     
     mockNamespaces.splice(index, 1)
-    return { success: true }
   }
 }
 
 // Mock聊天服务
 export const mockChatService = {
-  async getMessages(namespace: string, options?: { limit?: number; before?: string }) {
+  async getChatHistory(namespace: string, chatName: string, limit?: number, before?: string) {
     await delay(200)
     
     let messages = mockMessages.filter(msg => msg.namespace === namespace)
@@ -270,13 +335,13 @@ export const mockChatService = {
     // 按时间排序
     messages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
     
-    if (options?.before) {
-      const beforeTime = new Date(options.before).getTime()
+    if (before) {
+      const beforeTime = new Date(before).getTime()
       messages = messages.filter(msg => new Date(msg.timestamp).getTime() < beforeTime)
     }
     
-    if (options?.limit) {
-      messages = messages.slice(-options.limit)
+    if (limit) {
+      messages = messages.slice(-limit)
     }
     
     return messages
@@ -321,20 +386,36 @@ export const mockChatService = {
 
 // Mock角色服务
 export const mockRoleService = {
-  async getRoles() {
+  async getList() {
     await delay(200)
-    return mockRoles
+    return {
+      total: mockRoles.length,
+      roles: mockRoles
+    }
   },
 
-  async getRole(id: string) {
+  async getRole(roleName: string) {
     await delay(200)
     
-    const role = mockRoles.find(r => r.id === id)
+    const role = mockRoles.find(r => r.name === roleName)
     if (!role) {
       throw new Error('角色不存在')
     }
     
     return role
+  },
+
+  async getRoleDisplayName(roleName: string) {
+    await delay(200)
+    
+    const role = mockRoles.find(r => r.name === roleName)
+    return role?.displayName || roleName
+  },
+
+  async checkRoleExists(roleName: string) {
+    await delay(200)
+    
+    return mockRoles.some(r => r.name === roleName)
   }
 }
 

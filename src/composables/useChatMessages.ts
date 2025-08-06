@@ -1,6 +1,6 @@
 import { ref, computed, type Ref } from 'vue'
 import type { ChatMessage } from '@/types/api'
-import { chatApi } from '@/api/chat'
+import { chatApiWithMock as chatApi } from '@/api/chatWithMock'
 import { useUserStore } from '@/stores/user'
 
 export function useChatMessages(currentNamespace: Ref<string>, isConnected: Ref<boolean>) {
@@ -96,10 +96,13 @@ export function useChatMessages(currentNamespace: Ref<string>, isConnected: Ref<
 
     isLoadingHistory.value = true
     try {
-      const historyMessages = await chatApi.getMessages(currentNamespace.value, {
+      // 使用正确的API方法名和参数
+      const historyMessages = await chatApi.getChatHistory(
+        currentNamespace.value,
+        'default', // 默认聊天室名称
         limit,
-        before: messages.value.length > 0 ? messages.value[0].timestamp : undefined
-      })
+        messages.value.length > 0 ? messages.value[0].timestamp : undefined
+      )
 
       if (historyMessages.length === 0) {
         hasMoreHistory.value = false
@@ -138,15 +141,30 @@ export function useChatMessages(currentNamespace: Ref<string>, isConnected: Ref<
 
     try {
       const messageData = {
-        content: content.trim(),
-        sender: options.sender || userStore.currentUser.username,
-        namespace: options.namespace || currentNamespace.value,
-        mentionedAgents: options.mentionedAgents || [],
-        type: options.type || 'text',
-        timestamp: new Date().toISOString()
+        message: content.trim(),
+        type: options.type || 'user',
+        messageType: 'text'
       }
 
-      const newMessage = await chatApi.sendMessage(messageData)
+      // 使用正确的API方法调用
+      const response = await chatApi.sendMessage(
+        options.namespace || currentNamespace.value,
+        'default', // 默认聊天室名称
+        messageData
+      )
+      
+      // 创建本地消息对象
+      const newMessage: ChatMessage = {
+        id: response.id,
+        senderId: userStore.currentUser?.id || 'unknown',
+        senderName: options.sender || userStore.currentUser?.username || 'Unknown',
+        content: content.trim(),
+        timestamp: new Date().toISOString(),
+        type: options.type || 'user',
+        status: 'sent',
+        namespace: options.namespace || currentNamespace.value,
+        mentionedAgents: options.mentionedAgents || []
+      }
       
       // 添加到本地消息列表
       addMessage(newMessage)

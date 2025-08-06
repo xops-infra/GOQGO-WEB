@@ -36,7 +36,7 @@ export const uploadFile = async (file: File): Promise<string> => {
   // 处理后端返回的数据结构
   if (data.success && data.files && data.files.length > 0) {
     const uploadedFile = data.files[0]
-    let fileUrl = uploadedFile.downloadUrl
+    const fileUrl = uploadedFile.downloadUrl
     if (!fileUrl.startsWith('http')) {
       // fileUrl = fileUrl // 保持原值，这里可能需要添加baseURL前缀
     }

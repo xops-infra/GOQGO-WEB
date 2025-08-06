@@ -3,9 +3,9 @@
     <n-message-provider>
       <n-dialog-provider>
         <n-notification-provider>
-          <div class="app theme-transition" :class="{ 'terminal-mode': isTerminal }">
+          <div class="app terminal-mode">
             <!-- Terminal主题背景特效 -->
-            <div v-if="isTerminal" class="terminal-effects">
+            <div class="terminal-effects">
               <div class="scanlines"></div>
               <div class="crt-overlay"></div>
             </div>
@@ -49,12 +49,9 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, h, nextTick } from 'vue'
 import { darkTheme, type GlobalThemeOverrides, NAlert, NButton, NIcon, useMessage } from 'naive-ui'
-import { useTheme } from '@/utils/theme'
 import { useRoute } from 'vue-router'
 import SocketStatusMonitor from '@/components/SocketStatusMonitor.vue'
 
-const themeStore = useTheme()
-const { currentTheme, isTerminal } = themeStore
 const route = useRoute()
 
 // 页面刷新恢复相关状态
@@ -80,110 +77,63 @@ const RestoreIcon = {
 
 // Naive UI 主题配置
 const naiveTheme = computed(() => {
-  if (currentTheme.value === 'terminal') {
-    return darkTheme // Terminal主题基于dark主题
-  }
-  return currentTheme.value === 'dark' ? darkTheme : null
+  // Terminal主题固定使用darkTheme作为基础
+  return darkTheme
 })
 
 // Naive UI 主题覆盖
 const themeOverrides = computed<GlobalThemeOverrides>(() => {
-  const theme = currentTheme.value
-
-  // Terminal主题特殊配置
-  if (theme === 'terminal') {
-    return {
-      common: {
-        primaryColor: '#00ff41',
-        primaryColorHover: '#00ffff',
-        primaryColorPressed: '#0066ff',
-        primaryColorSuppl: '#00ff41',
-
-        successColor: '#7ee787',
-        warningColor: '#ffa657',
-        errorColor: '#ff7b72',
-        infoColor: '#39c5cf',
-
-        textColorBase: '#f0f6fc',
-        textColor1: '#f0f6fc',
-        textColor2: '#c9d1d9',
-        textColor3: '#8b949e',
-        textColorDisabled: '#6e7681',
-
-        bodyColor: '#0d1117',
-        cardColor: '#161b22',
-        modalColor: '#161b22',
-        popoverColor: '#21262d',
-
-        borderColor: '#21262d',
-        dividerColor: '#30363d',
-
-        hoverColor: '#30363d',
-        pressedColor: '#1e40af',
-
-        boxShadow1: '0 4px 12px rgba(0, 0, 0, 0.8)',
-        boxShadow2: '0 8px 24px rgba(0, 0, 0, 0.9)',
-        boxShadow3: '0 12px 32px rgba(0, 0, 0, 0.95)',
-
-        fontFamily: 'JetBrains Mono, Consolas, Monaco, monospace',
-        fontFamilyMono: 'JetBrains Mono, Consolas, Monaco, monospace'
-      }
-    }
-  }
-
-  // 普通深色主题
-  const isDark = theme === 'dark'
-
+  // 固定使用Terminal主题配置
   return {
     common: {
-      primaryColor: isDark ? '#60a5fa' : '#3b82f6',
-      primaryColorHover: isDark ? '#3b82f6' : '#2563eb',
-      primaryColorPressed: isDark ? '#2563eb' : '#1d4ed8',
-      primaryColorSuppl: isDark ? '#60a5fa' : '#3b82f6',
-
-      successColor: isDark ? '#34d399' : '#10b981',
-      warningColor: isDark ? '#fbbf24' : '#f59e0b',
-      errorColor: isDark ? '#f87171' : '#ef4444',
-      infoColor: isDark ? '#22d3ee' : '#06b6d4',
-
-      textColorBase: isDark ? '#f8fafc' : '#1f2937',
-      textColor1: isDark ? '#f8fafc' : '#1f2937',
-      textColor2: isDark ? '#e2e8f0' : '#4b5563',
-      textColor3: isDark ? '#cbd5e1' : '#6b7280',
-      textColorDisabled: isDark ? '#94a3b8' : '#9ca3af',
-
-      bodyColor: isDark ? '#0f172a' : '#ffffff',
-      cardColor: isDark ? '#1e293b' : '#ffffff',
-      modalColor: isDark ? '#1e293b' : '#ffffff',
-      popoverColor: isDark ? '#334155' : '#ffffff',
-
-      borderColor: isDark ? '#475569' : '#e5e7eb',
-      dividerColor: isDark ? '#475569' : '#f3f4f6',
-
-      hoverColor: isDark ? '#475569' : '#f5f5f5',
-      pressedColor: isDark ? '#1e40af' : '#e8f0fe',
-
-      boxShadow1: isDark ? '0 1px 2px 0 rgba(0, 0, 0, 0.3)' : '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-      boxShadow2: isDark
-        ? '0 4px 6px -1px rgba(0, 0, 0, 0.4)'
-        : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-      boxShadow3: isDark
-        ? '0 10px 15px -3px rgba(0, 0, 0, 0.5)'
-        : '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+      primaryColor: '#00ff41',
+      primaryColorHover: '#00ffff',
+      primaryColorPressed: '#0066ff',
+      primaryColorSuppl: '#00ff41',
+      successColor: '#7ee787',
+      warningColor: '#ffa657',
+      errorColor: '#ff7b72',
+      infoColor: '#39c5cf',
+      textColorBase: '#f0f6fc',
+      textColor1: '#f0f6fc',
+      textColor2: '#c9d1d9',
+      textColor3: '#8b949e',
+      textColorDisabled: '#6e7681',
+      bodyColor: '#0d1117',
+      cardColor: '#161b22',
+      modalColor: '#161b22',
+      popoverColor: '#21262d',
+      borderColor: '#21262d',
+      dividerColor: '#30363d',
+      hoverColor: '#30363d',
+      pressedColor: '#1e40af',
+      boxShadow1: '0 4px 12px rgba(0, 0, 0, 0.8)',
+      boxShadow2: '0 8px 24px rgba(0, 0, 0, 0.9)',
+      boxShadow3: '0 12px 32px rgba(0, 0, 0, 0.95)',
+      fontFamily: 'JetBrains Mono, Consolas, Monaco, monospace',
+      fontFamilyMono: 'JetBrains Mono, Consolas, Monaco, monospace'
     }
   }
 })
 
 onMounted(async () => {
   try {
-    // 初始化message实例
-    message = useMessage()
-    
-    // 初始化主题
-    console.log('App mounted with theme:', currentTheme.value)
+    // 初始化Terminal主题
+    console.log('App mounted with Terminal theme')
     
     // 等待下一个tick，确保所有组件和store都已初始化
     await nextTick()
+    
+    // 延迟初始化，确保MessageProvider已经挂载
+    setTimeout(async () => {
+      try {
+        // 初始化message实例
+        message = useMessage()
+        console.log('✅ Message实例初始化成功')
+      } catch (msgError) {
+        console.warn('⚠️ Message实例初始化失败:', msgError)
+      }
+    }, 100)
     
     // 延迟初始化页面刷新处理器，避免在setup阶段出错
     setTimeout(async () => {

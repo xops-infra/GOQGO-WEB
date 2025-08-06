@@ -30,7 +30,8 @@ export const autoFixUserData = (user: any): User => {
   // 处理旧格式或不完整的用户数据
   return {
     id: user.id || '1',
-    username: user.username || user.displayName?.toLowerCase() || user.name?.toLowerCase() || 'user',
+    username: user.username || user.name || 'user',
+    displayName: user.displayName || user.username || user.name || '',
     email: user.email || 'user@example.com',
     role: user.role || 'user',
     avatar: user.avatar || '',

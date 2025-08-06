@@ -1,8 +1,5 @@
 <template>
   <div class="agents-view" :class="{ 'terminal-mode': isTerminal }">
-    <!-- Terminal风格的Header -->
-    <TerminalHeader />
-
     <div class="view-content">
       <!-- 统计卡片区域 -->
       <AgentsStatsSection 
@@ -64,7 +61,6 @@ import { useTheme } from '@/utils/theme'
 import { useAgentsStore } from '@/stores/agents'
 import { useNamespacesStore } from '@/stores/namespaces'
 import { useAgentsView } from '@/composables/useAgentsView'
-import TerminalHeader from '@/components/TerminalHeader.vue'
 import AgentsStatsSection from './agents/AgentsStatsSection.vue'
 import AgentsFilterSection from './agents/AgentsFilterSection.vue'
 import AgentsListSection from './agents/AgentsListSection.vue'

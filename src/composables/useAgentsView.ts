@@ -3,7 +3,7 @@ import { useMessage } from 'naive-ui'
 import { useAgentsStore } from '@/stores/agents'
 import { useNamespacesStore } from '@/stores/namespaces'
 import { useUserStore } from '@/stores/user'
-import { rolesApi } from '@/api/roles'
+import { rolesApiWithMock as rolesApi } from '@/api/rolesWithMock'
 import type { Agent } from '@/types/api'
 
 export function useAgentsView() {
@@ -71,7 +71,7 @@ export function useAgentsView() {
 
   const loadRoles = async () => {
     try {
-      const rolesData = await rolesApi.getRoles()
+      const rolesData = await rolesApi.getList()
       roles.value = rolesData
     } catch (error) {
       console.error('加载角色列表失败:', error)

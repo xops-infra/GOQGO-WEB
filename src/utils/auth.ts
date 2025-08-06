@@ -25,7 +25,7 @@ export class AuthManager {
    * 检查用户是否已登录
    */
   isAuthenticated(): boolean {
-    const token = localStorage.getItem('goqgo_token')
+    const token = this.getToken() // 使用统一的getToken方法
     const user = localStorage.getItem('goqgo_user')
     return !!(token && user)
   }
@@ -34,17 +34,48 @@ export class AuthManager {
    * 获取当前token
    */
   getToken(): string | null {
-    return localStorage.getItem('goqgo_token')
+    // 优先使用goqgo_token，然后是auth_token作为备选
+    return localStorage.getItem('goqgo_token') || 
+           localStorage.getItem('auth_token') || 
+           null
   }
 
   /**
    * 清除认证信息
    */
   clearAuth(): void {
+    // 清除所有可能的token key
+    localStorage.removeItem('auth_token')
     localStorage.removeItem('goqgo_token')
     localStorage.removeItem('goqgo_user')
     // 注意：不再调用userStore.clearAuth()以避免循环调用
     // userStore的状态应该通过其他方式同步
+  }
+
+  /**
+   * 用户主动登出
+   */
+  logout(): void {
+    console.log('🚪 用户主动登出')
+    
+    // 显示登出提示
+    message.success('已成功登出')
+    
+    // 清除认证信息
+    this.clearAuth()
+    
+    // 清除用户store状态
+    try {
+      const userStore = useUserStore()
+      userStore.clearAuth()
+    } catch (error) {
+      console.warn('清除用户store状态失败:', error)
+    }
+    
+    // 重置跳转状态
+    this.isRedirecting = false
+    
+    console.log('✅ 登出完成')
   }
 
   /**
@@ -146,13 +177,21 @@ export class AuthManager {
    */
   shouldSkipAuth(path: string): boolean {
     const skipAuthPaths = [
-      '/api/v1/users/login',
+      '/users/login',        // 主要登录接口
+      '/users/register',     // 注册接口
+      '/health',            // 健康检查
+      '/version',           // 版本信息
+      '/',                  // API基础信息
+      '/api/v1/users/login', // 兼容旧路径
       '/api/v1/users/register',
       '/api/v1/health',
       '/api/v1/version'
     ]
 
-    return skipAuthPaths.some((skipPath) => path.includes(skipPath))
+    return skipAuthPaths.some((skipPath) => {
+      // 精确匹配或包含匹配
+      return path === skipPath || path.includes(skipPath)
+    })
   }
 }
 
@@ -162,6 +201,7 @@ export const authManager = AuthManager.getInstance()
 // 导出便捷方法
 export const isAuthenticated = () => authManager.isAuthenticated()
 export const getToken = () => authManager.getToken()
+export const logout = () => authManager.logout()
 export const clearAuth = () => {
   // 只清除本地存储
   localStorage.removeItem('goqgo_token')

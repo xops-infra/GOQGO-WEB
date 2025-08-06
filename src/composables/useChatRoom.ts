@@ -134,10 +134,7 @@ export function useChatRoom(props: any, emit: any) {
     if (!text.trim()) return
 
     try {
-      const newMessage = await chatStore.sendMessage({
-        content: text,
-        chatId: props.chatId,
-        namespace: props.namespace,
+      const newMessage = await chatStore.sendChatMessage(text, {
         mentionedAgents
       })
 
@@ -156,10 +153,7 @@ export function useChatRoom(props: any, emit: any) {
 
   const handleSendImage = async (imageUrl: string) => {
     try {
-      const newMessage = await chatStore.sendMessage({
-        content: `[图片]${imageUrl}`,
-        chatId: props.chatId,
-        namespace: props.namespace,
+      const newMessage = await chatStore.sendChatMessage(`[图片]${imageUrl}`, {
         type: 'image'
       })
 
@@ -204,11 +198,12 @@ export function useChatRoom(props: any, emit: any) {
   // 生命周期方法
   const initializeChatRoom = async () => {
     try {
-      // 连接聊天室
-      await chatStore.connectToChat(props.chatId, props.namespace)
+      // 连接聊天室 - 使用namespace参数
+      const namespace = props.namespace || 'default'
+      await chatStore.connectToChat(namespace)
       
-      // 加载初始消息
-      await chatStore.loadMessages(props.chatId, props.maxVisibleMessages)
+      // 加载历史消息
+      await chatStore.loadHistoryMessages()
       
       // 初始加载完成后滚动到底部
       nextTick(() => {

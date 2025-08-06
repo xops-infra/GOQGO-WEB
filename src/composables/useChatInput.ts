@@ -264,7 +264,29 @@ export function useChatInput(props: any, emit: any) {
     }
   }
 
-  const handleFileUpload = () => {
+  // 处理文件上传（新版本，接收FileList）
+  const handleFileUpload = async (files: FileList) => {
+    const selectedFiles = Array.from(files)
+    for (const file of selectedFiles) {
+      await uploadAndInsertFile(file)
+    }
+  }
+
+  // 处理图片上传
+  const handleImageUpload = async (files: FileList) => {
+    const selectedFiles = Array.from(files)
+    for (const file of selectedFiles) {
+      // 验证是否为图片文件
+      if (file.type.startsWith('image/')) {
+        await uploadAndInsertFile(file)
+      } else {
+        message.error(`${file.name} 不是有效的图片文件`)
+      }
+    }
+  }
+
+  // 兼容旧版本的文件上传（保留原有功能）
+  const handleLegacyFileUpload = () => {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = '*'
@@ -353,6 +375,8 @@ export function useChatInput(props: any, emit: any) {
     handleDragLeave,
     handleDrop,
     handleFileUpload,
+    handleImageUpload,
+    handleLegacyFileUpload,
     selectMention,
     selectAgent,
     hideAgentAutocomplete,

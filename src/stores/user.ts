@@ -27,7 +27,13 @@ export const useUserStore = defineStore('user', () => {
     return actualUsername
   })
 
-  const displayName = computed(() => currentUser.value?.username || '')
+  const displayName = computed(() => {
+    const user = currentUser.value
+    if (!user) return ''
+    
+    // 优先使用displayName，然后是username
+    return user.displayName || user.username || ''
+  })
   
   const isLoggedIn = computed(() => isAuthenticated.value && !!currentUser.value)
   
@@ -64,7 +70,8 @@ export const useUserStore = defineStore('user', () => {
   // 恢复认证状态
   const restoreAuth = async () => {
     try {
-      const savedToken = localStorage.getItem('auth_token') || localStorage.getItem('goqgo_token')
+      // 优先使用goqgo_token，然后是auth_token作为备选
+      const savedToken = localStorage.getItem('goqgo_token') || localStorage.getItem('auth_token')
       const savedUser = localStorage.getItem('goqgo_user')
       
       if (savedToken && savedUser) {
@@ -75,7 +82,9 @@ export const useUserStore = defineStore('user', () => {
         token.value = savedToken
         isAuthenticated.value = true
         
-        console.log('✅ 恢复登录状态:', currentUser.value?.username)
+        console.log('✅ 恢复登录状态:', currentUser.value?.username, 'Token长度:', savedToken.length)
+      } else {
+        console.log('❌ 未找到保存的认证信息:', { hasToken: !!savedToken, hasUser: !!savedUser })
       }
     } catch (error) {
       console.error('❌ 恢复认证状态失败:', error)
@@ -103,6 +112,9 @@ export const useUserStore = defineStore('user', () => {
   // 设置Token
   const setToken = (newToken: string) => {
     token.value = newToken
+    // 统一使用goqgo_token作为key
+    localStorage.setItem('goqgo_token', newToken)
+    // 为了兼容性，也保存到auth_token
     localStorage.setItem('auth_token', newToken)
     console.log('🔑 Token已设置')
   }

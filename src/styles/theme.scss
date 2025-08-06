@@ -1,201 +1,217 @@
-// 主题变量定义
+// Terminal主题样式 - 唯一主题
 :root {
-  // 浅色主题
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8f9fa;
-  --bg-tertiary: #f1f3f4;
-  --bg-hover: #f5f5f5;
-  --bg-active: #e8f0fe;
-  --bg-modal: rgba(255, 255, 255, 0.95);
-  --bg-overlay: rgba(0, 0, 0, 0.1);
+  // Terminal主题变量
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #1a1a1a;
+  --bg-tertiary: #2a2a2a;
+  --bg-hover: rgba(0, 255, 0, 0.1);
+  --bg-active: rgba(0, 255, 0, 0.2);
+  --bg-modal: rgba(0, 0, 0, 0.95);
+  --bg-overlay: rgba(0, 0, 0, 0.8);
 
-  --text-primary: #1f2937;
-  --text-secondary: #4b5563;
-  --text-tertiary: #6b7280;
-  --text-disabled: #9ca3af;
-  --text-inverse: #ffffff;
+  --text-primary: #00ff00;
+  --text-secondary: #00cc88;
+  --text-tertiary: #008855;
+  --text-disabled: #004422;
+  --text-inverse: #000000;
 
-  --border-primary: #e5e7eb;
-  --border-secondary: #f3f4f6;
-  --border-focus: #3b82f6;
+  --border-primary: #00ff00;
+  --border-secondary: rgba(0, 255, 0, 0.3);
+  --border-focus: #00ff00;
+  --border-hover: rgba(0, 255, 0, 0.6);
 
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --color-primary: #00ff00;
+  --color-primary-light: rgba(0, 255, 0, 0.1);
+  --color-primary-dark: #00cc00;
+  --color-primary-rgb: 0, 255, 0;
 
-  // 品牌色
-  --color-primary: #3b82f6;
-  --color-primary-hover: #2563eb;
-  --color-primary-active: #1d4ed8;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-  --color-info: #06b6d4;
+  --color-success: #00ff88;
+  --color-success-light: rgba(0, 255, 136, 0.1);
+  --color-success-rgb: 0, 255, 136;
 
-  // RGB值用于rgba函数
-  --color-primary-rgb: 59, 130, 246;
-  --color-success-rgb: 16, 185, 129;
-  --color-warning-rgb: 245, 158, 11;
-  --color-error-rgb: 239, 68, 68;
-  --color-info-rgb: 6, 182, 212;
-  --text-tertiary-rgb: 156, 163, 175;
+  --color-warning: #ffff00;
+  --color-warning-light: rgba(255, 255, 0, 0.1);
+  --color-warning-rgb: 255, 255, 0;
+
+  --color-error: #ff0088;
+  --color-error-light: rgba(255, 0, 136, 0.1);
+  --color-error-rgb: 255, 0, 136;
+
+  --color-info: #00ffff;
+  --color-info-light: rgba(0, 255, 255, 0.1);
+  --color-info-rgb: 0, 255, 255;
+
+  // 阴影效果
+  --shadow-sm: 0 0 5px rgba(0, 255, 0, 0.2);
+  --shadow-md: 0 0 10px rgba(0, 255, 0, 0.3);
+  --shadow-lg: 0 0 20px rgba(0, 255, 0, 0.4);
+  --shadow-xl: 0 0 30px rgba(0, 255, 0, 0.5);
+
+  // 字体
+  --font-mono: 'Monaco', 'Menlo', 'Courier New', monospace;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-// 深色主题
-[data-theme='dark'] {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-tertiary: #334155;
-  --bg-hover: #475569;
-  --bg-active: #1e40af;
-  --bg-modal: rgba(15, 23, 42, 0.95);
-  --bg-overlay: rgba(0, 0, 0, 0.3);
-
-  --text-primary: #f8fafc;
-  --text-secondary: #e2e8f0;
-  --text-tertiary: #cbd5e1;
-  --text-disabled: #94a3b8;
-  --text-inverse: #0f172a;
-
-  --border-primary: #475569;
-  --border-secondary: #334155;
-  --border-focus: #60a5fa;
-
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-
-  // 深色主题下的品牌色调整
-  --color-primary: #60a5fa;
-  --color-primary-hover: #3b82f6;
-  --color-primary-active: #2563eb;
-  --color-success: #34d399;
-  --color-warning: #fbbf24;
-  --color-error: #f87171;
-  --color-info: #22d3ee;
-
-  // RGB值用于rgba函数
-  --color-primary-rgb: 96, 165, 250;
-  --color-success-rgb: 52, 211, 153;
-  --color-warning-rgb: 251, 191, 36;
-  --color-error-rgb: 248, 113, 113;
-  --color-info-rgb: 34, 211, 238;
-  --text-tertiary-rgb: 203, 213, 225;
-}
-
-// 全局基础样式
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html {
-  font-size: 14px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-body {
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-  background-color: var(--bg-primary);
+// Terminal主题全局样式
+[data-theme='terminal'] {
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
   color: var(--text-primary);
-  transition:
-    background-color 0.3s ease,
-    color 0.3s ease;
+  font-family: var(--font-mono);
+
+  // 滚动条样式
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-primary);
+    border-radius: 4px;
+    box-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+
+    &:hover {
+      background: var(--color-primary-dark);
+      box-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+    }
+  }
+
+  // 选择文本样式
+  ::selection {
+    background: rgba(0, 255, 0, 0.3);
+    color: var(--text-primary);
+  }
+
+  // 输入框样式
+  input, textarea {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-secondary);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+
+    &:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+    }
+
+    &::placeholder {
+      color: var(--text-tertiary);
+    }
+  }
+
+  // 按钮样式
+  button {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      box-shadow: 0 0 10px rgba(0, 255, 0, 0.4);
+      text-shadow: 0 0 5px rgba(0, 255, 0, 0.8);
+    }
+  }
+
+  // 链接样式
+  a {
+    color: var(--color-primary);
+    text-decoration: none;
+    transition: all 0.3s ease;
+
+    &:hover {
+      color: var(--color-primary-dark);
+      text-shadow: 0 0 5px rgba(0, 255, 0, 0.8);
+    }
+  }
+
+  // 代码样式
+  code, pre {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-secondary);
+    color: var(--color-success);
+    font-family: var(--font-mono);
+    border-radius: 4px;
+  }
+
+  // 表格样式
+  table {
+    border-collapse: collapse;
+    
+    th, td {
+      border: 1px solid var(--border-secondary);
+      padding: 8px 12px;
+    }
+    
+    th {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-weight: bold;
+    }
+    
+    tr:hover {
+      background: var(--bg-hover);
+    }
+  }
 }
 
-// 通用类名
-.bg-primary {
-  background-color: var(--bg-primary);
-}
-.bg-secondary {
-  background-color: var(--bg-secondary);
-}
-.bg-tertiary {
-  background-color: var(--bg-tertiary);
-}
-.bg-hover {
-  background-color: var(--bg-hover);
-}
-.bg-active {
-  background-color: var(--bg-active);
+// Terminal特效类
+.terminal-glow {
+  text-shadow: 
+    0 0 5px rgba(0, 255, 0, 0.8),
+    0 0 10px rgba(0, 255, 0, 0.6),
+    0 0 15px rgba(0, 255, 0, 0.4);
 }
 
-.text-primary {
-  color: var(--text-primary);
-}
-.text-secondary {
-  color: var(--text-secondary);
-}
-.text-tertiary {
-  color: var(--text-tertiary);
-}
-.text-disabled {
-  color: var(--text-disabled);
-}
-.text-inverse {
-  color: var(--text-inverse);
+.terminal-border {
+  border: 1px solid var(--color-primary);
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
 }
 
-.border-primary {
-  border-color: var(--border-primary);
-}
-.border-secondary {
-  border-color: var(--border-secondary);
-}
-.border-focus {
-  border-color: var(--border-focus);
-}
-
-.shadow-sm {
-  box-shadow: var(--shadow-sm);
-}
-.shadow-md {
-  box-shadow: var(--shadow-md);
-}
-.shadow-lg {
-  box-shadow: var(--shadow-lg);
-}
-
-// 过渡动画
-.theme-transition {
-  transition:
-    background-color 0.3s ease,
-    color 0.3s ease,
-    border-color 0.3s ease,
-    box-shadow 0.3s ease;
-}
-
-// 滚动条样式
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
+.terminal-bg {
   background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--text-tertiary);
-  border-radius: 3px;
+// 动画效果
+@keyframes terminal-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
+@keyframes terminal-scan {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
 }
 
-// 选择文本样式
-::selection {
-  background-color: var(--color-primary);
-  color: var(--text-inverse);
+.terminal-pulse {
+  animation: terminal-pulse 2s ease-in-out infinite;
 }
 
-// 焦点样式
-:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+.terminal-scan {
+  animation: terminal-scan 3s linear infinite;
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  [data-theme='terminal'] {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  [data-theme='terminal'] {
+    font-size: 12px;
+  }
 }

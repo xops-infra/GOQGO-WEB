@@ -199,21 +199,26 @@ const handleRefreshStatus = () => {
   message.success('状态已刷新')
 }
 
-const handleSendMessage = () => {
+const handleSendMessage = async () => {
   if (!testMessage.value.trim()) return
   
-  const tempId = chatStore.sendMessage(testMessage.value)
-  
-  // 添加到本地消息记录
-  messages.value.push({
-    id: tempId,
-    content: testMessage.value,
-    status: 'sending',
-    timestamp: Date.now()
-  })
-  
-  testMessage.value = ''
-  message.info('消息已发送')
+  try {
+    const newMessage = await chatStore.sendChatMessage(testMessage.value)
+    
+    // 添加到本地消息记录
+    messages.value.push({
+      id: newMessage.id,
+      content: testMessage.value,
+      status: 'sent',
+      timestamp: Date.now()
+    })
+    
+    testMessage.value = ''
+    message.success('消息发送成功')
+  } catch (error: any) {
+    console.error('发送消息失败:', error)
+    message.error(`发送失败: ${error.message}`)
+  }
 }
 
 const handleSaveState = () => {

@@ -88,7 +88,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useMessage } from 'naive-ui'
-import { rolesApi } from '@/api/roles'
+import { rolesApiWithMock as rolesApi } from '@/api/rolesWithMock'
 import type { Role } from '@/types/api'
 
 interface Props {

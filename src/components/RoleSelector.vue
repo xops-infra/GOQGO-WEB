@@ -19,7 +19,7 @@
 import { ref, computed, onMounted, h } from 'vue'
 import { NSelect, NText, NSpace, NIcon, useMessage } from 'naive-ui'
 import { UserIcon } from '@heroicons/vue/24/outline'
-import { rolesApi } from '@/api/roles'
+import { rolesApiWithMock as rolesApi } from '@/api/rolesWithMock'
 import type { Role } from '@/types/api'
 
 interface Props {

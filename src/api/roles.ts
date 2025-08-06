@@ -1,6 +1,7 @@
 import { get } from '@/utils/request'
 import { API_ENDPOINTS } from '@/config/api'
 import type { Role, RolesResponse } from '@/types/api'
+import { rolesApiWithMock } from './rolesWithMock'
 
 /**
  * 角色相关API
@@ -82,9 +83,9 @@ export const rolesApi = {
 }
 
 // 导出便捷方法
-export const getRoles = () => rolesApi.getList()
-export const getRole = (roleName: string) => rolesApi.getRole(roleName)
-export const getRoleDisplayName = (roleName: string) => rolesApi.getRoleDisplayName(roleName)
-export const checkRoleExists = (roleName: string) => rolesApi.checkRoleExists(roleName)
+export const getRoles = () => rolesApiWithMock.getList()
+export const getRole = (roleName: string) => rolesApiWithMock.getRole(roleName)
+export const getRoleDisplayName = (roleName: string) => rolesApiWithMock.getRoleDisplayName(roleName)
+export const checkRoleExists = (roleName: string) => rolesApiWithMock.checkRoleExists(roleName)
 
 export default rolesApi

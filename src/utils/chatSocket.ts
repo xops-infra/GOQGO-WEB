@@ -75,9 +75,9 @@ export class ChatSocket {
       return
     }
 
-    // 使用token认证的WebSocket连接URL
-    // 使用CHAT_ROOM端点，token作为查询参数传递
+    // 使用新的WebSocket API端点 - 命名空间默认聊天室
     const endpoint = API_ENDPOINTS.WEBSOCKET.CHAT_ROOM(this.namespace)
+    // 尝试通过查询参数传递token（虽然文档说要Header，但很多实现支持查询参数）
     const wsUrl = buildWsUrl(`${endpoint}?token=${token}`)
     console.log('🔌 连接WebSocket:', wsUrl.replace(token, '***TOKEN***'))
 
