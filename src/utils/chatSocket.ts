@@ -14,7 +14,7 @@ export interface SocketCallbacks {
   // 消息发送确认回调，支持错误状态
   onMessageSent?: (tempId: string, messageId: string, status?: 'success' | 'error') => void
   onMessageDelivered?: (messageId: string) => void
-  // Agent思考状态回调，支持tempId关联
+  // Agent思考状态回调
   onAgentThinking?: (data: { 
     conversationId: string; 
     agentName: string; 
@@ -178,6 +178,23 @@ export class ChatSocket {
       case 'chat': {
         // 处理聊天消息，转换字段格式
         console.log('📨 收到chat消息原始数据:', JSON.stringify(data.data, null, 2))
+        
+        // 检查是否是agent回复消息，如果是则跳过处理（避免与agent_reply重复）
+        const isAgentReply = data.data?.messageType === 'agent_reply' || 
+                           data.data?.type === 'agent_reply' ||
+                           (data.data?.type === 'agent' && data.data?.conversationId)
+        
+        if (isAgentReply) {
+          console.log('⚠️ 检测到Agent回复类型的chat消息，跳过处理以避免与agent_reply重复')
+          console.log('🔍 跳过原因:', {
+            messageType: data.data?.messageType,
+            type: data.data?.type,
+            hasConversationId: !!data.data?.conversationId,
+            conversationId: data.data?.conversationId
+          })
+          break
+        }
+        
         const chatMessage = this.normalizeMessage(data.data)
         if (chatMessage) {
           this.callbacks.onMessage?.(chatMessage)
@@ -304,6 +321,25 @@ export class ChatSocket {
             progress,
             tempId // 传递tempId用于关联
           })
+        }
+        break
+      }
+      case 'agent_reply': {
+        // Agent最终回复消息 - 直接处理，不要递归调用
+        console.log('🤖 Agent最终回复:', data.data)
+        
+        // 直接处理agent_reply消息，添加replaceThinking标记
+        const serverMessage = {
+          ...data.data,
+          replaceThinking: true // 标记需要替换思考消息
+        }
+        
+        const chatMessage = this.normalizeMessage(serverMessage)
+        if (chatMessage) {
+          console.log('🎯 Agent回复消息已标记 replaceThinking = true，conversationId:', chatMessage.conversationId)
+          this.callbacks.onMessage?.(chatMessage)
+        } else {
+          console.warn('⚠️ Agent回复消息格式化失败，跳过处理:', data.data)
         }
         break
       }
@@ -463,7 +499,10 @@ export class ChatSocket {
       imagePath: serverMessage.imagePath,
       tempId: serverMessage.tempId, // 保留临时ID用于消息确认
       conversationId: serverMessage.conversationId, // 添加对话ID支持
-      mentionedAgents: serverMessage.mentionedAgents // 添加Agent提及信息
+      mentionedAgents: serverMessage.mentionedAgents, // 添加Agent提及信息
+      isThinking: serverMessage.isThinking, // 思考状态
+      thinkingContent: serverMessage.thinkingContent, // 思考内容
+      replaceThinking: serverMessage.replaceThinking // 是否需要替换思考消息
     }
 
     console.log('🔄 消息格式化完成:', {

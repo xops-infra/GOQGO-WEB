@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { ChatMessage } from '@/types/api'
-import { ChatSocket } from '@/utils/chatSocket'
 import { SocketReconnectManager } from '@/utils/socketReconnectManager'
 import { chatApi } from '@/api/chat'
 import { useUserStore } from './user'
@@ -118,6 +117,91 @@ export const useChatStore = defineStore('chat', () => {
         })
 
         if (newMessages.length > 0) {
+          // 将新的历史消息添加到开头
+          messages.value.unshift(...newMessages)
+          console.log('📜 历史消息已添加，当前总数:', messages.value.length)
+        }
+
+        isLoadingHistory.value = false
+      },
+
+      onHistoryInfo: (info) => {
+        hasMoreHistory.value = info.hasMore
+        console.log('📜 历史消息信息更新:', info)
+      },
+
+      onUserJoin: (username) => {
+        console.log('👤 用户加入聊天室:', username)
+        if (username && !onlineUsers.value.includes(username)) {
+          onlineUsers.value.push(username)
+        }
+      },
+
+      onUserLeave: (username) => {
+        console.log('👤 用户离开聊天室:', username)
+        if (username) {
+          const index = onlineUsers.value.indexOf(username)
+          if (index > -1) {
+            onlineUsers.value.splice(index, 1)
+          }
+        }
+      },
+
+      onTyping: (username, isTyping) => {
+        if (username) {
+          if (isTyping) {
+            typingUsers.value.add(username)
+          } else {
+            typingUsers.value.delete(username)
+          }
+        }
+      },
+
+      onStatus: (connected) => {
+        isConnected.value = connected
+        console.log('🔌 WebSocket连接状态:', connected ? '已连接' : '已断开')
+      },
+
+      onError: (error) => {
+        console.error('❌ WebSocket连接错误:', error)
+        
+        // 处理特定类型的错误
+        if (error?.type === 'MESSAGE_TOO_LARGE') {
+          console.log('💡 消息过大，建议分段发送')
+        }
+      },
+
+      onAgentThinking: (data) => {
+        console.log('🤖 Agent思考状态:', data)
+        handleAgentThinking(data)
+      },
+
+      onAgentThinkingStream: (data) => {
+        console.log('🤖 Agent思考流式更新:', data)
+        handleAgentThinkingStream(data)
+      },
+
+      onHistoryLoaded: (historyMessages) => {
+        console.log('📜 加载历史消息:', historyMessages?.length || 0, '条')
+
+        if (!Array.isArray(historyMessages) || historyMessages.length === 0) {
+          console.log('📜 历史消息为空，设置hasMoreHistory为false')
+          hasMoreHistory.value = false
+          isLoadingHistory.value = false
+          return
+        }
+
+        // 合并历史消息，避免重复
+        const existingIds = new Set(messages.value.map((m) => m.id))
+        const newMessages = historyMessages.filter((m) => m && m.id && !existingIds.has(m.id))
+
+        console.log('📜 消息去重结果:', {
+          existing: messages.value.length,
+          received: historyMessages.length,
+          new: newMessages.length
+        })
+
+        if (newMessages.length > 0) {
           // 将历史消息添加到开头（保持时间顺序）
           messages.value = [...newMessages, ...messages.value]
           console.log(
@@ -141,30 +225,25 @@ export const useChatStore = defineStore('chat', () => {
       },
 
       onHistoryInfo: (info) => {
-        console.log('📜 收到历史消息元信息:', info)
         hasMoreHistory.value = info.hasMore
-        isLoadingHistory.value = false
+        console.log('📜 历史消息信息更新:', info)
       },
 
       onUserJoin: (username) => {
-        console.log('👤 用户加入:', username)
-        if (!onlineUsers.value.includes(username)) {
+        console.log('👤 用户加入聊天室:', username)
+        if (username && !onlineUsers.value.includes(username)) {
           onlineUsers.value.push(username)
         }
-        userStore.addOnlineUser({
-          username,
-          displayName: username,
-          isOnline: true
-        })
       },
 
       onUserLeave: (username) => {
-        console.log('👤 用户离开:', username)
-        const index = onlineUsers.value.indexOf(username)
-        if (index !== -1) {
-          onlineUsers.value.splice(index, 1)
+        console.log('👤 用户离开聊天室:', username)
+        if (username) {
+          const index = onlineUsers.value.indexOf(username)
+          if (index > -1) {
+            onlineUsers.value.splice(index, 1)
+          }
         }
-        userStore.removeOnlineUser(username)
       },
 
       onTyping: (username, isTyping) => {
@@ -189,24 +268,12 @@ export const useChatStore = defineStore('chat', () => {
       },
 
       onError: (error) => {
-        console.error('❌ 聊天室连接错误:', error)
-        isConnected.value = false
+        console.error('❌ WebSocket连接错误:', error)
         
-        // 特殊处理消息过大错误
-        if (error.type === 'MESSAGE_TOO_LARGE') {
-          // 可以在这里添加特殊的用户提示逻辑
-          console.log('💡 建议：请减少消息内容或分段发送')
+        // 处理特定类型的错误
+        if (error?.type === 'MESSAGE_TOO_LARGE') {
+          console.log('💡 消息过大，建议分段发送')
         }
-      },
-
-      onAgentThinking: (data) => {
-        console.log('🤖 Agent思考状态:', data)
-        handleAgentThinking(data)
-      },
-
-      onAgentThinkingStream: (data) => {
-        console.log('🤖 Agent思考流式更新:', data)
-        handleAgentThinkingStream(data)
       }
     })
   }
@@ -238,10 +305,17 @@ export const useChatStore = defineStore('chat', () => {
       messageType: message.type,
       isAgent: message.type === 'agent',
       isThinking: message.isThinking,
+      replaceThinking: message.replaceThinking,
       senderName: message.senderName
     })
     
-    if ((message.type === 'agent' || message.type === 'agent_message') && !message.isThinking) {
+    // 检查是否需要替换思考消息：
+    // 1. 明确标记了replaceThinking为true（agent_reply消息类型）
+    // 2. 或者是Agent消息且不是思考状态（兼容旧逻辑）
+    const shouldReplaceThinking = message.replaceThinking || 
+      ((message.type === 'agent' || message.type === 'agent_message') && !message.isThinking)
+    
+    if (shouldReplaceThinking) {
       let thinkingMessageIndex = -1
       let matchMethod = 'none'
       
@@ -269,7 +343,11 @@ export const useChatStore = defineStore('chat', () => {
       if (thinkingMessageIndex === -1) {
         const agentName = message.senderName.split('.')[0]
         thinkingMessageIndex = messages.value.findIndex(
-          msg => msg.isThinking && msg.senderName === agentName
+          msg => msg.isThinking && (
+            msg.senderName === agentName ||
+            msg.senderName === message.senderName ||
+            msg.senderName.startsWith(agentName + '.')
+          )
         )
         if (thinkingMessageIndex !== -1) {
           matchMethod = 'agentName'
@@ -293,7 +371,8 @@ export const useChatStore = defineStore('chat', () => {
         console.log('🤖 找到思考消息，进行替换:', {
           matchMethod,
           thinkingMessageId: messages.value[thinkingMessageIndex].id,
-          replyMessageId: message.id
+          replyMessageId: message.id,
+          conversationId: message.conversationId
         })
         
         // 标记这是一个思考消息替换操作，不应该触发自动滚动
@@ -302,8 +381,18 @@ export const useChatStore = defineStore('chat', () => {
         // 移除思考消息
         messages.value.splice(thinkingMessageIndex, 1)
         console.log('✅ 思考消息已移除，当前消息总数:', messages.value.length)
+        console.log('🎯 Agent思考流程结束，conversationId:', message.conversationId)
       } else {
-        console.warn('⚠️ 未找到对应的思考消息')
+        console.warn('⚠️ 未找到对应的思考消息进行替换')
+        console.warn('🔍 调试信息:', {
+          searchCriteria: { 
+            conversationId: message.conversationId, 
+            tempId: message.tempId,
+            senderName: message.senderName
+          },
+          availableThinkingMessages: messages.value.filter(msg => msg.isThinking),
+          totalMessages: messages.value.length
+        })
       }
     }
 
@@ -764,30 +853,6 @@ export const useChatStore = defineStore('chat', () => {
         addMessage(emergencyThinkingMessage)
       }
     }
-  }
-
-  // 处理Agent最终回复（需要在normalizeMessage中处理conversationId）
-  const handleAgentReply = (message: ChatMessage) => {
-    if (message.conversationId && message.type === 'agent') {
-      // 查找并移除对应的思考消息
-      const thinkingMessageIndex = messages.value.findIndex(
-        msg => msg.conversationId === message.conversationId && msg.isThinking
-      )
-      
-      if (thinkingMessageIndex !== -1) {
-        console.log('🤖 移除思考消息，添加最终回复:', {
-          conversationId: message.conversationId,
-          thinkingMessageId: messages.value[thinkingMessageIndex].id,
-          replyMessageId: message.id
-        })
-        
-        // 移除思考消息
-        messages.value.splice(thinkingMessageIndex, 1)
-      }
-    }
-    
-    // 添加最终回复消息
-    addMessage(message)
   }
 
   // 手动触发重连

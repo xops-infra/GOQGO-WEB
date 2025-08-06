@@ -444,9 +444,11 @@ const handleSendMessage = async () => {
   if (!text) return
 
   try {
-    // 解析Agent提及
-    const agentMentions = AgentMentionParser.extractUniqueAgents(text)
+    // 使用新的方法，自动处理默认系统agent
+    const agentMentions = AgentMentionParser.extractUniqueAgentsWithDefault(text, props.namespace || 'default')
     const mentionedAgentNames = agentMentions.map(mention => `${mention.agentName}.${mention.namespace}`)
+
+    console.log('📤 发送消息给agents:', mentionedAgentNames)
 
     // 发送消息，包含Agent提及信息
     emit('send', text, mentionedAgentNames)

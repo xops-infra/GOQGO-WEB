@@ -103,6 +103,39 @@ export class AgentMentionParser {
   }
 
   /**
+   * 从消息内容中提取唯一的Agent提及，如果没有提及则返回默认系统agent
+   * @param content 消息内容
+   * @param defaultNamespace 默认命名空间，用于生成系统agent
+   * @returns 唯一的Agent提及数组，如果没有提及则包含默认系统agent
+   */
+  static extractUniqueAgentsWithDefault(content: string, defaultNamespace: string = 'default'): AgentMention[] {
+    const mentions = this.extractUniqueAgents(content)
+    
+    // 如果没有任何@提及，添加默认系统agent
+    if (mentions.length === 0) {
+      const defaultSysAgent: AgentMention = {
+        fullMatch: `@${defaultNamespace}-sys`,
+        agentName: `${defaultNamespace}-sys`,
+        namespace: defaultNamespace,
+        startIndex: -1, // 表示这是自动添加的，不在原文中
+        endIndex: -1
+      }
+      return [defaultSysAgent]
+    }
+    
+    return mentions
+  }
+
+  /**
+   * 检查是否应该使用默认系统agent
+   * @param content 消息内容
+   * @returns 是否应该使用默认系统agent
+   */
+  static shouldUseDefaultSysAgent(content: string): boolean {
+    return !this.hasAgentMentions(content)
+  }
+
+  /**
    * 检查消息是否包含Agent提及
    * @param content 消息内容
    * @returns 是否包含Agent提及

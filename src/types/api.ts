@@ -56,6 +56,8 @@ export interface ChatMessage {
   isThinking?: boolean
   // 思考内容（用于流式更新）
   thinkingContent?: string
+  // 是否需要替换思考消息（Agent最终回复时使用）
+  replaceThinking?: boolean
 }
 
 export interface ChatSession {
