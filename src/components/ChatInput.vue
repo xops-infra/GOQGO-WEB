@@ -444,14 +444,33 @@ const handleSendMessage = async () => {
   if (!text) return
 
   try {
-    // 使用新的方法，自动处理默认系统agent
-    const agentMentions = AgentMentionParser.extractUniqueAgentsWithDefault(text, props.namespace || 'default')
-    const mentionedAgentNames = agentMentions.map(mention => `${mention.agentName}.${mention.namespace}`)
+    // 检查是否已经包含@提及
+    const hasMentions = AgentMentionParser.hasAgentMentions(text)
+    
+    let finalText = text
+    let mentionedAgentNames: string[] = []
+    
+    if (hasMentions) {
+      // 如果已经有@提及，直接解析
+      const agentMentions = AgentMentionParser.extractUniqueAgents(text)
+      mentionedAgentNames = agentMentions.map(mention => `${mention.agentName}.${mention.namespace}`)
+    } else {
+      // 如果没有@提及，在消息前面自动添加@{namespace}-sys
+      const defaultNamespace = props.namespace || 'default'
+      finalText = `@${defaultNamespace}-sys ${text}`
+      mentionedAgentNames = [`${defaultNamespace}-sys.${defaultNamespace}`]
+      
+      console.log(' 自动添加默认系统agent:', `@${defaultNamespace}-sys`)
+    }
 
-    console.log('📤 发送消息给agents:', mentionedAgentNames)
+    console.log('📤 发送消息:', {
+      originalText: text,
+      finalText: finalText,
+      mentionedAgents: mentionedAgentNames
+    })
 
-    // 发送消息，包含Agent提及信息
-    emit('send', text, mentionedAgentNames)
+    // 发送修改后的消息文本，包含Agent提及信息
+    emit('send', finalText, mentionedAgentNames)
     inputMessage.value = ''
     hideMentionSelector()
     hideAgentAutocomplete()
@@ -797,7 +816,7 @@ const handleDrop = async (e: DragEvent) => {
   isDragOver.value = false
 
   const droppedFiles = Array.from(e.dataTransfer?.files || [])
-  console.log('🗂️ 拖拽文件数量:', droppedFiles.length)
+  console.log('��️ 拖拽文件数量:', droppedFiles.length)
 
   for (const file of droppedFiles) {
     await uploadAndInsertFile(file)

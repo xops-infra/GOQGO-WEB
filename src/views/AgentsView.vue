@@ -272,16 +272,6 @@ const createRules = {
 const filteredAgents = computed(() => {
   let result = agents.value
 
-  // 如果不是管理员，只显示当前用户的agents
-  const currentUsername = userStore.username
-  const isAdminUser = userStore.isAdmin
-  
-  if (!isAdminUser && currentUsername) {
-    result = result.filter(agent => 
-      agent.username && agent.username.toLowerCase() === currentUsername.toLowerCase()
-    )
-  }
-
   // 应用用户名过滤器（管理员可以按用户名过滤查看所有agents）
   if (usernameFilter.value && usernameFilter.value.trim()) {
     const filterText = usernameFilter.value.trim().toLowerCase()

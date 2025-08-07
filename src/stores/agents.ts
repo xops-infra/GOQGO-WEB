@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { agentApi, type Agent, type CreateAgentRequest } from '@/api/agents'
 import { useNamespacesStore } from './namespaces'
 import { authManager } from '@/utils/auth'
+import { useUserStore } from './user'
 
 export const useAgentsStore = defineStore('agents', () => {
   // 状态
@@ -16,6 +17,7 @@ export const useAgentsStore = defineStore('agents', () => {
 
   // 获取namespaces store
   const namespacesStore = useNamespacesStore()
+  const userStore = useUserStore()
 
   // 计算属性
   const runningAgents = computed(() => agents.value.filter((agent) => agent.status === 'running'))
@@ -73,20 +75,12 @@ export const useAgentsStore = defineStore('agents', () => {
   }
 
   const performFetch = async (targetNamespace: string) => {
-    // 创建新的请求控制器
-    fetchController = new AbortController()
-    
     loading.value = true
-    try {
-      // 检查认证状态
-      const isAuth = authManager.isAuthenticated()
-      const token = authManager.getToken()
-      console.log('🔐 认证状态检查:', {
-        isAuthenticated: isAuth,
-        hasToken: !!token,
-        tokenLength: token?.length || 0
-      })
+    fetchController = new AbortController()
 
+    try {
+      // 检查用户认证状态
+      const isAuth = userStore.isAuthenticated
       if (!isAuth) {
         console.warn('🔒 用户未认证，跳过agents获取')
         agents.value = []
@@ -100,7 +94,21 @@ export const useAgentsStore = defineStore('agents', () => {
       const data = await agentApi.getList(targetNamespace, fetchController?.signal)
       // API返回的是 { items: Agent[] } 格式
       console.log('✅ agentApi.getList 成功:', data)
-      agents.value = data.items || []
+      
+      // 获取当前用户名
+      const currentUsername = userStore.username
+      const isAdminUser = userStore.isAdmin
+      
+      // 过滤agents：如果不是管理员，只显示当前用户的agents
+      let filteredAgents = data.items || []
+      if (!isAdminUser && currentUsername) {
+        filteredAgents = filteredAgents.filter(agent => 
+          agent.username && agent.username.toLowerCase() === currentUsername.toLowerCase()
+        )
+        console.log(`🔍 非管理员用户，过滤后剩余 ${filteredAgents.length} 个agents`)
+      }
+      
+      agents.value = filteredAgents
       console.log(`📊 获取到 ${targetNamespace} 命名空间下的 ${agents.value.length} 个agents`)
 
       // 自动选择第一个agent

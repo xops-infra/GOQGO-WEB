@@ -77,3 +77,6 @@ export interface Project {
   agents: Agent[]
   createdAt: string
 }
+
+  createdAt: string
+}

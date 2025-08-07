@@ -5,8 +5,9 @@ import { API_ENDPOINTS, buildWsUrl } from '@/config/api'
 export interface Agent {
   id?: string
   name: string
+  username?: string  // 添加username字段
   namespace: string
-  status: 'running' | 'idle' | 'error' | 'Creating' | 'Terminating'
+  status: 'running' | 'idle' | 'error' | 'Creating' | 'Terminating' | 'Stopped'  // 添加Stopped状态
   role: string
   age?: string
   workDir?: string
@@ -14,6 +15,7 @@ export interface Agent {
   restartCount?: number
   env?: string[]
   context?: string
+  labels?: Record<string, string>  // 添加labels字段
 }
 
 export interface CreateAgentRequest {
