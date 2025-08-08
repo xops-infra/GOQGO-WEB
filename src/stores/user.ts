@@ -7,6 +7,7 @@ import { buildApiUrl, API_ENDPOINTS } from '@/config/api'
 export interface User {
   displayName: string
   email: string
+  avatar?: string
   role?: 'admin' | 'developer' | 'viewer' // 添加角色字段
   // 可以根据实际API响应添加更多字段
 }
@@ -33,6 +34,8 @@ export const useUserStore = defineStore('user', () => {
   const userInfo = computed(() => currentUser.value)
   const username = computed(() => currentUser.value?.displayName || '')
   const displayName = computed(() => currentUser.value?.displayName || '')
+  const email = computed(() => currentUser.value?.email || '')
+  const avatar = computed(() => currentUser.value?.avatar || '')
   const isAdmin = computed(() => {
     // 临时管理员检查逻辑：如果用户名是 'zhoushoujian' 则认为是管理员
     // 或者检查role字段
@@ -267,6 +270,15 @@ export const useUserStore = defineStore('user', () => {
     // TODO: 实现token刷新逻辑
   }
 
+  const updateUserInfo = (userData: Partial<User>) => {
+    if (currentUser.value) {
+      currentUser.value = { ...currentUser.value, ...userData }
+      // 更新localStorage
+      localStorage.setItem('goqgo_user', JSON.stringify(currentUser.value))
+      console.log('✅ 用户信息已更新:', userData)
+    }
+  }
+
   return {
     // 状态
     currentUser,
@@ -280,6 +292,8 @@ export const useUserStore = defineStore('user', () => {
     userInfo,
     username,
     displayName,
+    email,
+    avatar,
     isAdmin,
     hasPermission,
 
@@ -293,6 +307,7 @@ export const useUserStore = defineStore('user', () => {
     logout,
     clearAuth,
     checkTokenExpiry,
-    refreshToken
+    refreshToken,
+    updateUserInfo
   }
 })

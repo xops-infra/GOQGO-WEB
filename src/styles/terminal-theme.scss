@@ -13,31 +13,31 @@
 
 // Terminal 主题变量
 :root {
-  // Terminal 配色方案
-  --terminal-bg: #0d1117;
-  --terminal-bg-secondary: #161b22;
-  --terminal-bg-tertiary: #21262d;
-  --terminal-surface: #30363d;
-  --terminal-border: #21262d;
-  --terminal-border-active: #58a6ff;
+  // Terminal 配色方案 - 更深的黑色背景
+  --terminal-bg: #000000;
+  --terminal-bg-secondary: #0a0a0a;
+  --terminal-bg-tertiary: #1a1a1a;
+  --terminal-surface: #2a2a2a;
+  --terminal-border: #333333;
+  --terminal-border-active: #00ff41;
 
-  // Terminal 文本颜色
-  --terminal-text: #f0f6fc;
-  --terminal-text-secondary: #c9d1d9;
-  --terminal-text-tertiary: #8b949e;
-  --terminal-text-muted: #6e7681;
-  --terminal-text-inverse: #0d1117;
+  // Terminal 文本颜色 - 白色为主
+  --terminal-text: #ffffff;
+  --terminal-text-secondary: #cccccc;
+  --terminal-text-tertiary: #999999;
+  --terminal-text-muted: #666666;
+  --terminal-text-inverse: #000000;
 
-  // Terminal 命令行颜色
-  --terminal-prompt: #7ee787;
-  --terminal-command: #79c0ff;
-  --terminal-output: #f0f6fc;
-  --terminal-error: #ff7b72;
-  --terminal-warning: #ffa657;
-  --terminal-success: #7ee787;
-  --terminal-info: #39c5cf;
+  // Terminal 命令行颜色 - 保持绿色突出
+  --terminal-prompt: #00ff41;
+  --terminal-command: #00ffff;
+  --terminal-output: #ffffff;
+  --terminal-error: #ff0066;
+  --terminal-warning: #ffff00;
+  --terminal-success: #00ff41;
+  --terminal-info: #00ffff;
 
-  // 8-bit 游戏风格颜色
+  // 8-bit 游戏风格颜色 - 更鲜艳的霓虹色
   --pixel-green: #00ff41;
   --pixel-blue: #0066ff;
   --pixel-red: #ff0066;
@@ -47,20 +47,26 @@
   --pixel-orange: #ff6600;
   --pixel-pink: #ff66cc;
 
-  // 霓虹发光效果
-  --neon-glow-green: 0 0 5px #00ff41, 0 0 10px #00ff41, 0 0 15px #00ff41;
-  --neon-glow-blue: 0 0 5px #0066ff, 0 0 10px #0066ff, 0 0 15px #0066ff;
-  --neon-glow-red: 0 0 5px #ff0066, 0 0 10px #ff0066, 0 0 15px #ff0066;
-  --neon-glow-cyan: 0 0 5px #00ffff, 0 0 10px #00ffff, 0 0 15px #00ffff;
+  // 增强霓虹发光效果 - 多层发光
+  --neon-glow-green: 0 0 5px #00ff41, 0 0 10px #00ff41, 0 0 15px #00ff41, 0 0 20px #00ff41;
+  --neon-glow-blue: 0 0 5px #0066ff, 0 0 10px #0066ff, 0 0 15px #0066ff, 0 0 20px #0066ff;
+  --neon-glow-red: 0 0 5px #ff0066, 0 0 10px #ff0066, 0 0 15px #ff0066, 0 0 20px #ff0066;
+  --neon-glow-cyan: 0 0 5px #00ffff, 0 0 10px #00ffff, 0 0 15px #00ffff, 0 0 20px #00ffff;
+  --neon-glow-yellow: 0 0 5px #ffff00, 0 0 10px #ffff00, 0 0 15px #ffff00, 0 0 20px #ffff00;
 
-  // Terminal 阴影
-  --terminal-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
-  --terminal-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.9);
+  // Terminal 阴影 - 更深的阴影
+  --terminal-shadow: 0 4px 12px rgba(0, 255, 65, 0.3);
+  --terminal-shadow-lg: 0 8px 24px rgba(0, 255, 65, 0.4);
 
   // 字体定义
   --font-mono: 'JetBrains Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
   --font-display: 'Orbitron', 'JetBrains Mono', monospace;
   --font-pixel: 'PixelFont', 'JetBrains Mono', monospace;
+
+  // 8-bit 动画变量
+  --pixel-size: 2px;
+  --scanline-opacity: 0.1;
+  --crt-curvature: 0.1;
 }
 
 // Terminal 主题应用
@@ -70,8 +76,8 @@
   --bg-tertiary: var(--terminal-bg-tertiary);
   --bg-hover: var(--terminal-surface);
   --bg-active: var(--terminal-border-active);
-  --bg-modal: rgba(13, 17, 23, 0.95);
-  --bg-overlay: rgba(0, 0, 0, 0.8);
+  --bg-modal: rgba(0, 0, 0, 0.95);
+  --bg-overlay: rgba(0, 0, 0, 0.9);
 
   --text-primary: var(--terminal-text);
   --text-secondary: var(--terminal-text-secondary);
@@ -101,63 +107,36 @@ body[data-theme='terminal'] {
   font-family: var(--font-mono);
   background: var(--terminal-bg);
   color: var(--terminal-text);
+  overflow-x: hidden;
 
-  // 添加扫描线效果
-  &::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(transparent 50%, rgba(0, 255, 65, 0.02) 50%);
-    background-size: 100% 4px;
-    pointer-events: none;
-    z-index: 1000;
-    animation: scanlines 0.1s linear infinite;
-  }
+  // 移除所有背景动画效果，保持干净背景
+  // 不添加扫描线、CRT效果等动画
 
-  // 添加CRT显示器效果
-  &::after {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(
-      ellipse at center,
-      transparent 0%,
-      transparent 70%,
-      rgba(0, 0, 0, 0.2) 100%
-    );
-    pointer-events: none;
-    z-index: 999;
+  // 保留像素化效果（不是动画）
+  * {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
   }
 }
 
-// 扫描线动画
-@keyframes scanlines {
-  0% {
-    transform: translateY(0);
-  }
-  100% {
-    transform: translateY(4px);
-  }
-}
+// 移除所有动画效果，保持静态样式
 
 // Terminal 组件样式
 .terminal-window {
   background: var(--terminal-bg);
-  border: 1px solid var(--terminal-border);
-  border-radius: 8px;
+  border: 2px solid var(--terminal-border);
+  border-radius: 0; // 8-bit 风格，无圆角
   box-shadow: var(--terminal-shadow-lg);
   overflow: hidden;
+  position: relative;
+
+  // 移除动画边框效果，保持静态样式
 
   .terminal-header {
     background: var(--terminal-bg-secondary);
     padding: 8px 16px;
-    border-bottom: 1px solid var(--terminal-border);
+    border-bottom: 2px solid var(--terminal-border);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -169,31 +148,42 @@ body[data-theme='terminal'] {
       .control-btn {
         width: 12px;
         height: 12px;
-        border-radius: 50%;
-        border: none;
+        border-radius: 0; // 8-bit 风格，方形按钮
+        border: 1px solid var(--terminal-border);
         cursor: pointer;
+        transition: all 0.2s ease;
 
         &.close {
           background: var(--terminal-error);
+          &:hover {
+            box-shadow: var(--neon-glow-red);
+          }
         }
         &.minimize {
           background: var(--terminal-warning);
+          &:hover {
+            box-shadow: var(--neon-glow-yellow);
+          }
         }
         &.maximize {
           background: var(--terminal-success);
+          &:hover {
+            box-shadow: var(--neon-glow-green);
+          }
         }
 
         &:hover {
-          filter: brightness(1.2);
+          transform: scale(1.1);
         }
       }
     }
 
     .terminal-title {
-      color: var(--terminal-text-secondary);
+      color: var(--terminal-text);
       font-size: 12px;
       font-family: var(--font-mono);
       margin-left: auto;
+      text-shadow: var(--neon-glow-green);
     }
   }
 
@@ -207,25 +197,26 @@ body[data-theme='terminal'] {
   }
 }
 
-// 8-bit 按钮样式
+// 8-bit 按钮样式（移除霓虹效果）
 .btn-8bit {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   background: var(--terminal-bg-secondary);
   color: var(--pixel-green);
-  border: 2px solid var(--pixel-green);
-  padding: 8px 16px;
+  border: 3px solid var(--pixel-green);
+  padding: 12px 20px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   position: relative;
+  border-radius: 0; // 8-bit 风格，无圆角
 
+  // 简化悬停效果，移除霓虹效果
   &:hover {
     background: var(--pixel-green);
     color: var(--terminal-bg);
-    box-shadow: var(--neon-glow-green);
-    transform: translateY(-2px);
+    transform: translateY(-3px);
   }
 
   &:active {
@@ -238,7 +229,6 @@ body[data-theme='terminal'] {
 
     &:hover {
       background: var(--pixel-red);
-      box-shadow: var(--neon-glow-red);
     }
   }
 
@@ -248,7 +238,6 @@ body[data-theme='terminal'] {
 
     &:hover {
       background: var(--pixel-cyan);
-      box-shadow: var(--neon-glow-cyan);
     }
   }
 
@@ -263,12 +252,13 @@ body[data-theme='terminal'] {
   }
 }
 
-// 霓虹文字效果
+// 霓虹文字效果（移除动画）
 .neon-text {
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
+  // 移除动画，保持静态发光效果
 
   &.neon-green {
     color: var(--pixel-green);
@@ -289,12 +279,18 @@ body[data-theme='terminal'] {
     color: var(--pixel-cyan);
     text-shadow: var(--neon-glow-cyan);
   }
+
+  &.neon-yellow {
+    color: var(--pixel-yellow);
+    text-shadow: var(--neon-glow-yellow);
+  }
 }
 
-// 命令行提示符样式
+// 增强命令行提示符样式
 .terminal-prompt {
   color: var(--terminal-prompt);
-  font-weight: 600;
+  font-weight: 700;
+  text-shadow: var(--neon-glow-green);
 
   &::before {
     content: '$ ';
@@ -304,6 +300,7 @@ body[data-theme='terminal'] {
 
 .terminal-command {
   color: var(--terminal-command);
+  text-shadow: var(--neon-glow-cyan);
 }
 
 .terminal-output {
@@ -312,103 +309,95 @@ body[data-theme='terminal'] {
 
 .terminal-error {
   color: var(--terminal-error);
+  text-shadow: var(--neon-glow-red);
 }
 
-// 8-bit 卡片样式
+// 8-bit 卡片样式（移除动画）
 .card-8bit {
   background: var(--terminal-bg-secondary);
-  border: 2px solid var(--terminal-border);
-  border-radius: 0;
+  border: 3px solid var(--terminal-border);
+  border-radius: 0; // 8-bit 风格，无圆角
   box-shadow:
-    4px 4px 0 var(--terminal-surface),
-    8px 8px 0 var(--terminal-border);
-  transition: all 0.2s ease;
+    6px 6px 0 var(--terminal-surface),
+    12px 12px 0 var(--terminal-border);
+  transition: all 0.3s ease;
+  position: relative;
+
+  // 移除动画边框效果
 
   &:hover {
-    transform: translate(-2px, -2px);
+    transform: translate(-3px, -3px);
     box-shadow:
-      6px 6px 0 var(--terminal-surface),
-      10px 10px 0 var(--terminal-border);
+      9px 9px 0 var(--terminal-surface),
+      15px 15px 0 var(--terminal-border);
   }
 }
 
-// 像素化图标
+// 像素化图标（保留静态效果）
 .icon-pixel {
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
+  filter: drop-shadow(0 0 5px var(--pixel-green));
 }
 
-// 闪烁动画
-@keyframes blink {
-  0%,
-  50% {
-    opacity: 1;
-  }
-  51%,
-  100% {
-    opacity: 0;
-  }
-}
+// 移除所有动画效果，保持静态样式
 
-.blink {
-  animation: blink 1s infinite;
-}
-
-// 打字机效果
-@keyframes typewriter {
-  from {
-    width: 0;
-  }
-  to {
-    width: 100%;
-  }
-}
-
-.typewriter {
-  overflow: hidden;
-  border-right: 2px solid var(--pixel-green);
-  white-space: nowrap;
-  animation:
-    typewriter 2s steps(40, end),
-    blink 1s infinite step-end;
-}
-
-// 矩阵雨效果背景
-.matrix-bg {
-  position: fixed;
-  top: 0;
-  left: 0;
+// 8-bit 进度条（移除动画）
+.progress-8bit {
   width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: -1;
-  opacity: 0.1;
+  height: 20px;
+  background: var(--terminal-bg-secondary);
+  border: 2px solid var(--terminal-border);
+  position: relative;
+  overflow: hidden;
 
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
+  .progress-fill {
     height: 100%;
-    background-image: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      var(--pixel-green) 2px,
-      var(--pixel-green) 4px
-    );
-    animation: matrix-rain 20s linear infinite;
+    background: linear-gradient(90deg, var(--pixel-green), var(--pixel-cyan));
+    transition: width 0.3s ease;
+    box-shadow: var(--neon-glow-green);
+  }
+
+  .progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--terminal-text);
+    font-family: var(--font-mono);
+    font-weight: 700;
+    text-shadow: var(--neon-glow-green);
   }
 }
 
-@keyframes matrix-rain {
-  0% {
-    transform: translateY(-100%);
+// 8-bit 状态指示器（移除动画）
+.status-8bit {
+  display: inline-block;
+  padding: 4px 8px;
+  border: 2px solid var(--terminal-border);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+
+  &.status-online {
+    color: var(--pixel-green);
+    border-color: var(--pixel-green);
+    text-shadow: var(--neon-glow-green);
+    // 移除动画效果
   }
-  100% {
-    transform: translateY(100vh);
+
+  &.status-offline {
+    color: var(--pixel-red);
+    border-color: var(--pixel-red);
+    text-shadow: var(--neon-glow-red);
+  }
+
+  &.status-warning {
+    color: var(--pixel-yellow);
+    border-color: var(--pixel-yellow);
+    text-shadow: var(--neon-glow-yellow);
   }
 }
 
@@ -432,12 +421,20 @@ body[data-theme='terminal'] {
   }
 
   .btn-8bit {
-    padding: 6px 12px;
+    padding: 8px 16px;
     font-size: 12px;
+    letter-spacing: 1px;
   }
 
   .neon-text {
     font-size: 14px;
-    letter-spacing: 1px;
+    letter-spacing: 2px;
+  }
+
+  // 移动端保持静态效果
+  .btn-8bit:hover {
+    transform: translateY(-2px);
   }
 }
+
+// 所有动画都已移除，不需要减少动画模式支持

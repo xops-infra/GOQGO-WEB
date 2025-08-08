@@ -618,8 +618,9 @@ onUnmounted(() => {
 
   .namespace-info {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    flex-direction: row; // 改为水平排列
+    align-items: center; // 垂直居中对齐
+    gap: 8px; // 调整间距
     min-width: 0;
     flex: 1;
 
@@ -636,6 +637,7 @@ onUnmounted(() => {
     .namespace-stats {
       display: flex;
       align-items: center;
+      flex-shrink: 0; // 防止标签被压缩
     }
   }
 

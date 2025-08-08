@@ -14,123 +14,27 @@
     <!-- 标题栏 -->
     <div ref="headerRef" class="modal-header" @mousedown="startDrag">
       <div class="header-left">
-        <n-icon size="18" color="#07c160">
-          <svg viewBox="0 0 24 24">
-            <path
-              fill="currentColor"
-              d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,19H5V5H19V19Z"
-            />
-          </svg>
-        </n-icon>
+        <LogsIcon :size="18" color="#07c160" />
         <div class="header-title">
           <h3>{{ agent?.name }} - 实时日志</h3>
           <span class="header-subtitle">{{ agent?.namespace }} / {{ agent?.role }}</span>
         </div>
       </div>
       <div class="header-right">
-        <n-space>
-          <!-- 实时输出开关 -->
-          <n-tooltip>
-            <template #trigger>
-              <n-button
-                size="small"
-                quaternary
-                :type="isRealTimeEnabled ? 'primary' : 'default'"
-                @click="toggleRealTime"
-                :disabled="!isConnected"
-              >
-                <template #icon>
-                  <n-icon>
-                    <svg viewBox="0 0 24 24">
-                      <path
-                        fill="currentColor"
-                        d="M12,2A2,2 0 0,1 14,4V8A2,2 0 0,1 12,10A2,2 0 0,1 10,8V4A2,2 0 0,1 12,2M21,11H20A8,8 0 0,1 12,19A8,8 0 0,1 4,11H3A1,1 0 0,1 2,10A1,1 0 0,1 3,9H4A8,8 0 0,1 12,1A8,8 0 0,1 20,9H21A1,1 0 0,1 22,10A1,1 0 0,1 21,11Z"
-                      />
-                    </svg>
-                  </n-icon>
-                </template>
-              </n-button>
-            </template>
-            {{ isRealTimeEnabled ? '关闭实时' : '开启实时' }}
-          </n-tooltip>
-          
-          <!-- 清空日志 -->
-          <n-tooltip>
-            <template #trigger>
-              <n-button size="small" quaternary @click="clearLogs">
-                <template #icon>
-                  <n-icon>
-                    <svg viewBox="0 0 24 24">
-                      <path
-                        fill="currentColor"
-                        d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"
-                      />
-                    </svg>
-                  </n-icon>
-                </template>
-              </n-button>
-            </template>
-            清空日志
-          </n-tooltip>
-          
-          <!-- 刷新日志 -->
-          <n-tooltip>
-            <template #trigger>
-              <n-button 
-                size="small" 
-                quaternary 
-                @click="refreshLogs" 
-                :loading="isRefreshing"
-                :disabled="!props.agent"
-              >
-                <template #icon>
-                  <n-icon>
-                    <svg viewBox="0 0 24 24">
-                      <path
-                        fill="currentColor"
-                        d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"
-                      />
-                    </svg>
-                  </n-icon>
-                </template>
-              </n-button>
-            </template>
-            刷新日志
-          </n-tooltip>
-          
-          <!-- 一键复制 -->
-          <n-tooltip>
-            <template #trigger>
-              <n-button size="small" quaternary @click="copyAllLogs" :disabled="logs.length === 0">
-                <template #icon>
-                  <n-icon>
-                    <svg viewBox="0 0 24 24">
-                      <path
-                        fill="currentColor"
-                        d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"
-                      />
-                    </svg>
-                  </n-icon>
-                </template>
-              </n-button>
-            </template>
-            一键复制
-          </n-tooltip>
-          
-          <!-- 关闭 -->
-          <n-button size="small" quaternary @click="closeModal">
-            <template #icon>
-              <n-icon>
-                <svg viewBox="0 0 24 24">
-                  <path
-                    fill="currentColor"
-                    d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
-                  />
-                </svg>
-              </n-icon>
-            </template>
-          </n-button>
-        </n-space>
+        <LogsControlButtons
+          :is-real-time-enabled="isRealTimeEnabled"
+          :is-connected="isConnected"
+          :is-loading-history="isLoadingHistory"
+          :is-refreshing="isRefreshing"
+          :has-reached-top="hasReachedTop"
+          :log-count="logs.length"
+          @toggle-realtime="toggleRealTime"
+          @load-history="loadMoreHistory"
+          @refresh="refreshLogs"
+          @clear="clearLogs"
+          @copy="copyAllLogs"
+          @close="closeModal"
+        />
       </div>
     </div>
 
@@ -142,44 +46,36 @@
         <span>加载历史日志中...</span>
       </div>
 
-      <div 
-        ref="logsContainerRef" 
-        class="logs-container"
-        @scroll="handleScroll"
-        tabindex="0"
-      >
-        <div class="logs-content" ref="logsContentRef">
-          <div
-            v-for="(log, index) in logs"
-            :key="`${log.timestamp}-${index}`"
-            :class="['log-line', `log-${log.level}`]"
-          >
-            <span class="log-timestamp">{{ formatTimestamp(log.timestamp) }}</span>
-            <span class="log-level">{{ log.level.toUpperCase() }}</span>
-            <span class="log-source" v-if="log.source" :class="`source-${log.source}`">[{{ log.source }}]</span>
-            <span class="log-message">{{ log.message }}</span>
-          </div>
-
-          <!-- 空状态 -->
-          <div v-if="logs.length === 0 && !isConnecting" class="empty-logs">
-            <n-icon size="48" color="#ccc">
-              <svg viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,19H5V5H19V19Z"
-                />
-              </svg>
-            </n-icon>
-            <p>暂无日志数据</p>
-          </div>
-
-          <!-- 连接中状态 -->
-          <div v-if="isConnecting" class="connecting-logs">
-            <n-spin size="large" />
-            <p>正在连接日志流...</p>
-          </div>
-        </div>
+      <!-- 渲染器切换 -->
+      <div class="renderer-switch">
+        <n-radio-group v-model:value="rendererType" size="small">
+          <n-radio value="xterm">XTerm 渲染器</n-radio>
+          <n-radio value="ansi">ANSI 渲染器</n-radio>
+        </n-radio-group>
       </div>
+
+      <!-- XTerm 终端日志渲染器 -->
+      <XTermLogRenderer
+        v-if="rendererType === 'xterm'"
+        ref="xtermRendererRef"
+        :logs="logs"
+        :is-loading="isConnecting"
+        :loading-text="isConnecting ? '正在连接日志流...' : ''"
+        :auto-scroll="isRealTimeEnabled"
+        :max-lines="10000"
+      />
+
+      <!-- ANSI 终端日志渲染器 -->
+      <TerminalLogRenderer
+        v-else
+        ref="ansiRendererRef"
+        :logs="logs"
+        :is-loading="isConnecting"
+        :loading-text="isConnecting ? '正在连接日志流...' : ''"
+        :auto-scroll="isRealTimeEnabled"
+        :max-lines="10000"
+        @scroll="handleScroll"
+      />
     </div>
 
     <!-- 状态栏 -->
@@ -196,7 +92,7 @@
       </div>
       <div class="footer-right">
         <span class="last-update" v-if="lastUpdateTime">
-          最后更新: {{ formatTimestamp(lastUpdateTime) }}
+          最后更新: {{ new Date(lastUpdateTime).toLocaleTimeString() }}
         </span>
       </div>
     </div>
@@ -213,6 +109,10 @@ import { type Agent, type LogEntry } from '@/api/agents'
 import { logsApi } from '@/api/logs'
 import { LogSocket } from '@/utils/logSocket'
 import { buildApiUrl, apiConfig } from '@/config/api'
+import LogsControlButtons from './logs/LogsControlButtons.vue'
+import LogsIcon from './icons/LogsIcon.vue'
+import TerminalLogRenderer from './logs/TerminalLogRenderer.vue'
+import XTermLogRenderer from './logs/XTermLogRenderer.vue'
 
 // Props
 interface Props {
@@ -244,8 +144,8 @@ const visible = computed({
 
 const modalRef = ref<HTMLElement>()
 const headerRef = ref<HTMLElement>()
-const logsContainerRef = ref<HTMLElement>()
-const logsContentRef = ref<HTMLElement>()
+const xtermRendererRef = ref<InstanceType<typeof XTermLogRenderer>>()
+const ansiRendererRef = ref<InstanceType<typeof TerminalLogRenderer>>()
 const message = useMessage()
 
 // 日志相关状态
@@ -262,6 +162,9 @@ const lastUpdateTime = ref<string>()
 const logSocket = ref<LogSocket | null>(null)
 const isConnectionPending = ref(false) // 连接状态标记
 
+// 渲染器类型
+const rendererType = ref<'ansi' | 'xterm'>('xterm') // 默认使用 xterm
+
 // 模态框位置和大小
 const modalPosition = ref({ x: 0, y: 0 })
 const modalSize = ref({ width: 800, height: 600 })
@@ -273,7 +176,7 @@ const dragStart = ref({ x: 0, y: 0 })
 const resizeStart = ref({ x: 0, y: 0, width: 0, height: 0 })
 
 // 日志容器状态
-const isLogsContainerActive = ref(false) // 日志容器是否处于活跃状态
+// 移除了不需要的日志容器状态管理
 
 // 连接WebSocket获取实时日志
 const connectLogStream = async () => {
@@ -445,11 +348,6 @@ const connectLogStream = async () => {
             return
           }
 
-          // 保存当前滚动位置
-          const container = logsContainerRef.value
-          const oldScrollHeight = container?.scrollHeight || 0
-          const oldScrollTop = container?.scrollTop || 0
-
           // 对历史日志进行去重处理
           const deduplicatedHistoryLogs = []
           const existingLogKeys = new Set(
@@ -472,17 +370,12 @@ const connectLogStream = async () => {
           logs.value = [...deduplicatedHistoryLogs, ...logs.value]
           hasReachedTop.value = !hasMore
 
-          // 恢复滚动位置
-          nextTick(() => {
-            if (container) {
-              const newScrollHeight = container.scrollHeight
-              const heightDiff = newScrollHeight - oldScrollHeight
-              container.scrollTop = oldScrollTop + heightDiff
-            }
-          })
+          // 终端渲染器会自动处理滚动位置
         },
         onRefreshed: (lines) => {
           console.log('🔄 收到刷新确认:', lines)
+          isRefreshing.value = false
+          clearLoadingTimeout()
           message.success(`日志已刷新 (${lines} 行)`)
         },
         onSessionClosed: (msg) => {
@@ -495,8 +388,7 @@ const connectLogStream = async () => {
         onFollowToggled: (data) => {
           console.log('🔄 收到实时跟踪状态切换:', data)
           // 更新前端的实时跟踪状态（WebSocket确认）
-          // 后端返回的字段是 follow，不是 enabled
-          const followState = data.follow !== undefined ? data.follow : data.enabled
+          const followState = data.follow
           isRealTimeEnabled.value = followState
           console.log('🔄 WebSocket状态同步:', { 
             received: data, 
@@ -587,7 +479,7 @@ const getLogStatus = async () => {
 
 // 刷新日志
 const refreshLogs = async () => {
-  if (!props.agent || isRefreshing.value) {
+  if (!props.agent || !isConnected.value || isRefreshing.value) {
     return
   }
 
@@ -597,19 +489,15 @@ const refreshLogs = async () => {
     
     console.log('🔄 开始刷新日志:', props.agent.name)
     
-    // 清空当前日志
-    logs.value = []
+    // 使用 WebSocket 发送刷新请求
+    if (logSocket.value) {
+      logSocket.value.refresh(1000) // 刷新显示1000行
+    }
     
-    // 重新连接日志流
-    await disconnectLogStream()
-    await connectLogStream()
-    
-    console.log('✅ 日志刷新完成')
-    message.success('日志已刷新')
+    console.log('✅ 日志刷新请求已发送')
   } catch (error) {
     console.error('❌ 刷新日志失败:', error)
     message.error('刷新日志失败')
-  } finally {
     isRefreshing.value = false
     clearLoadingTimeout()
   }
@@ -622,12 +510,6 @@ const loadHistoryLogs = async () => {
   }
 
   try {
-    const token = localStorage.getItem('goqgo_token')
-    if (!token) {
-      message.error('未找到认证token，请先登录')
-      return
-    }
-
     console.log('📜 请求加载历史日志')
     isLoadingHistory.value = true
     setLoadingTimeout('history') // 设置超时保护
@@ -635,66 +517,24 @@ const loadHistoryLogs = async () => {
     // 计算偏移量（当前日志数量）
     const offset = logs.value.length
 
-    // 使用正确的日志获取API
-    const response = await logsApi.getHistory(
-      props.agent.namespace, 
-      props.agent.name, 
-      { 
-        offset: offset,
-        lines: 50 
-      }
-    )
-
-    console.log('✅ 历史日志API响应:', response)
-    
-    // 检查是否有更多日志
-    if (!response.content || response.content.trim() === '') {
-      console.log('📜 没有更多历史日志')
-      hasReachedTop.value = true
-      message.info('没有更多历史日志')
-      return
+    // 使用 WebSocket 发送加载历史记录请求
+    if (logSocket.value) {
+      logSocket.value.loadHistory(offset, 50)
     }
-    
-    // 解析历史日志
-    const logLines = response.content.split('\n').filter(line => line.trim())
-    const historyLogs = logLines.map(line => ({
-      content: line,
-      timestamp: new Date().toISOString(),
-      source: 'history' as const
-    }))
-    
-    if (historyLogs.length === 0) {
-      hasReachedTop.value = true
-      message.info('没有更多历史日志')
-    } else {
-      // 保存当前滚动位置
-      const container = logsContainerRef.value
-      const oldScrollHeight = container?.scrollHeight || 0
-      const oldScrollTop = container?.scrollTop || 0
 
-      // 将历史日志添加到开头
-      logs.value = [...historyLogs, ...logs.value]
-      hasReachedTop.value = !response.hasMore
-
-      // 恢复滚动位置
-      nextTick(() => {
-        if (container) {
-          const newScrollHeight = container.scrollHeight
-          const heightDiff = newScrollHeight - oldScrollHeight
-          container.scrollTop = oldScrollTop + heightDiff
-        }
-      })
-
-      message.success(`加载了 ${historyLogs.length} 条历史日志`)
-    }
+    console.log('✅ 历史日志请求已发送')
   } catch (error) {
     console.error('❌ 加载历史日志失败:', error)
     message.error('加载历史日志失败: ' + (error as Error).message)
-  } finally {
     // 确保loading状态被重置
     clearLoadingTimeout()
     isLoadingHistory.value = false
   }
+}
+
+// 手动加载更多历史日志
+const loadMoreHistory = () => {
+  loadHistoryLogs()
 }
 
 // 切换实时输出
@@ -704,12 +544,6 @@ const toggleRealTime = async () => {
   }
 
   try {
-    const token = localStorage.getItem('goqgo_token')
-    if (!token) {
-      message.error('未找到认证token，请先登录')
-      return
-    }
-
     // 先保存当前状态，再计算新状态
     const currentState = isRealTimeEnabled.value
     const newRealTimeState = !currentState
@@ -722,31 +556,10 @@ const toggleRealTime = async () => {
     // 立即更新UI状态，提供即时反馈
     isRealTimeEnabled.value = newRealTimeState
     
-    // 调用后端API切换Follow模式 - 使用正确的接口
-    const response = await fetch(
-      buildApiUrl(`/api/v1/namespaces/${props.agent.namespace}/agents/${props.agent.name}/logs`),
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          action: "follow", 
-          enabled: newRealTimeState 
-        })
-      }
-    )
-
-    if (!response.ok) {
-      // API调用失败，回滚状态
-      isRealTimeEnabled.value = currentState
-      const errorText = await response.text()
-      throw new Error(`API调用失败: ${response.status} ${errorText}`)
+    // 使用 WebSocket 发送切换请求
+    if (logSocket.value) {
+      logSocket.value.toggleFollow(newRealTimeState)
     }
-
-    const result = await response.json()
-    console.log('🔄 实时输出切换API响应:', result)
 
     // 显示状态切换成功的消息
     if (newRealTimeState) {
@@ -759,6 +572,8 @@ const toggleRealTime = async () => {
   } catch (error) {
     console.error('❌ 切换实时输出失败:', error)
     message.error('切换实时输出失败: ' + (error as Error).message)
+    // 回滚状态
+    isRealTimeEnabled.value = !isRealTimeEnabled.value
   }
 }
 
@@ -771,33 +586,30 @@ const clearLogs = () => {
 
 // 滚动到底部
 const scrollToBottom = () => {
-  if (logsContainerRef.value) {
-    logsContainerRef.value.scrollTop = logsContainerRef.value.scrollHeight
+  if (isRealTimeEnabled.value) {
+    nextTick(() => {
+      if (rendererType.value === 'xterm' && xtermRendererRef.value) {
+        xtermRendererRef.value.scrollToBottom()
+      } else if (rendererType.value === 'ansi' && ansiRendererRef.value) {
+        ansiRendererRef.value.scrollToBottom()
+      }
+    })
   }
 }
 
 // 处理滚动事件
-const handleScroll = () => {
-  if (!logsContainerRef.value) return
+const handleScroll = (event: Event) => {
+  const target = event.target as HTMLElement
+  if (!target) return
 
-  const { scrollTop, scrollHeight, clientHeight } = logsContainerRef.value
-  const isAtBottom = scrollHeight - scrollTop - clientHeight < 10
+  const { scrollTop, scrollHeight, clientHeight } = target
   const isAtTop = scrollTop < 10
 
-  // 如果用户手动滚动到非底部位置，停止自动跟随
   // 如果滚动到顶部且有更多历史日志，自动加载
   if (isAtTop && !isLoadingHistory.value && !hasReachedTop.value && isConnected.value) {
     loadHistoryLogs()
   }
 }
-// 点击日志容器时获得焦点
-const focusLogsContainer = () => {
-  if (logsContainerRef.value) {
-    logsContainerRef.value.focus()
-    console.log('🎯 日志容器获得焦点')
-  }
-}
-
 // 复制所有日志内容
 const copyAllLogs = async () => {
   if (logs.value.length === 0) {
@@ -806,13 +618,12 @@ const copyAllLogs = async () => {
   }
 
   try {
-    // 格式化日志内容为纯文本
+    // 格式化日志内容为纯文本，保持终端输出格式
     const logText = logs.value
       .map(log => {
-        const timestamp = formatTimestamp(log.timestamp)
-        const level = log.level.toUpperCase()
-        const source = log.source ? `[${log.source}]` : ''
-        return `${timestamp} ${level} ${source} ${log.message}`
+        const source = log.source ? `[${log.source}] ` : ''
+        // 直接使用原始消息，保持 ANSI 转义序列
+        return `${source}${log.message}`
       })
       .join('\n')
 
@@ -946,16 +757,6 @@ const closeModal = () => {
   emit('close')
 }
 
-// 格式化时间戳
-const formatTimestamp = (timestamp: string) => {
-  return new Date(timestamp).toLocaleTimeString('zh-CN', {
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  })
-}
-
 // 获取连接状态
 const getConnectionStatus = () => {
   if (isConnecting.value) {
@@ -1065,13 +866,6 @@ watch(
         console.log('🔗 准备连接日志流...')
         await connectLogStream()
         console.log('✅ 日志流连接完成')
-        
-        // 连接成功后让日志容器获得焦点并激活
-        nextTick(() => {
-          focusLogsContainer()
-          isLogsContainerActive.value = true
-          console.log('🎯 日志容器自动激活')
-        })
       } catch (error) {
         console.error('❌ 连接日志流失败:', error)
         message.error('连接日志流失败: ' + (error as Error).message)
@@ -1079,7 +873,6 @@ watch(
     } else {
       console.log('🔌 断开日志流连接')
       disconnectLogStream()
-      isLogsContainerActive.value = false
     }
   },
   { immediate: true }
@@ -1203,223 +996,9 @@ onUnmounted(() => {
 .modal-body {
   flex: 1;
   overflow: hidden;
-
-  .logs-container {
-    height: 100%;
-    overflow-y: auto;
-    background: #f8f9fa;
-    font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
-    font-size: 13px;
-    line-height: 1.4;
-    outline: none;
-    border: 2px solid transparent;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-    cursor: text;
-    position: relative; // 为隐藏的 textarea 提供定位上下文
-    
-    // 启用文本选择
-    user-select: text;
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
-    
-    // 获得焦点时的样式
-    &:focus {
-      border-color: #0d6efd;
-      background: #ffffff;
-      box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.1);
-    }
-    
-    // 鼠标悬停时的提示
-    &:hover {
-      background: #ffffff;
-      border-color: #dee2e6;
-    }
-    
-    // 活跃状态样式
-    &.active {
-      border-color: #0d6efd;
-      background: #ffffff;
-      box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.15);
-    }
-
-    &::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: #f1f3f4;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: #c1c1c1;
-      border-radius: 4px;
-
-      &:hover {
-        background: #a8a8a8;
-      }
-    }
-  }
-  
-  // 隐藏的 textarea 样式
-  .hidden-textarea {
-    position: absolute;
-    top: -9999px;
-    left: -9999px;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-    pointer-events: none;
-    border: none;
-    outline: none;
-    resize: none;
-    font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
-    font-size: 13px;
-    line-height: 1.4;
-    white-space: pre-wrap;
-  }
-
-  .logs-content {
-    padding: 8px;
-    // 确保内容区域也支持文本选择
-    user-select: text;
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
-  }
-
-  .log-line {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    padding: 2px 0;
-    border-left: 3px solid transparent;
-    padding-left: 8px;
-    // 启用文本选择
-    user-select: text;
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
-    
-    // 选中时的样式
-    &::selection {
-      background: rgba(13, 110, 253, 0.2);
-    }
-    
-    &::-moz-selection {
-      background: rgba(13, 110, 253, 0.2);
-    }
-
-    &.log-error {
-      border-left-color: #dc3545;
-      background: rgba(220, 53, 69, 0.1);
-    }
-
-    &.log-warn {
-      border-left-color: #fd7e14;
-      background: rgba(253, 126, 20, 0.1);
-    }
-
-    &.log-info {
-      border-left-color: #0d6efd;
-      background: rgba(13, 110, 253, 0.1);
-    }
-
-    &.log-debug {
-      border-left-color: #198754;
-      background: rgba(25, 135, 84, 0.1);
-    }
-
-    .log-timestamp {
-      color: #6c757d;
-      font-size: 11px;
-      min-width: 80px;
-      flex-shrink: 0;
-      user-select: text;
-    }
-
-    .log-level {
-      color: #495057;
-      font-weight: 600;
-      min-width: 50px;
-      flex-shrink: 0;
-      font-size: 11px;
-      user-select: text;
-    }
-
-    .log-source {
-      color: #6c757d;
-      font-size: 11px;
-      flex-shrink: 0;
-      user-select: text;
-      
-      // 不同源的样式
-      &.source-default-sys {
-        color: #0d6efd;
-        font-weight: 600;
-      }
-      
-      &.source-unknown {
-        color: #dc3545;
-        font-weight: 600;
-        background: rgba(220, 53, 69, 0.1);
-        padding: 1px 4px;
-        border-radius: 2px;
-      }
-      
-      &.source-websocket {
-        color: #198754;
-        font-weight: 600;
-      }
-    }
-
-    .log-message {
-      color: #212529;
-      flex: 1;
-      word-break: break-all;
-      user-select: text;
-      
-      // 选中文本的样式
-      &::selection {
-        background: rgba(13, 110, 253, 0.3);
-        color: #212529;
-      }
-      
-      &::-moz-selection {
-        background: rgba(13, 110, 253, 0.3);
-        color: #212529;
-      }
-    }
-  }
-
-  .empty-logs {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 200px;
-    color: #6c757d;
-
-    p {
-      margin: 16px 0 0 0;
-      font-size: 14px;
-    }
-  }
-
-  .connecting-logs {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 200px;
-    color: #6c757d;
-
-    p {
-      margin: 16px 0 0 0;
-      font-size: 14px;
-    }
-  }
+  position: relative;
+  display: flex;
+  flex-direction: column;
 
   .loading-history {
     position: absolute;
@@ -1439,6 +1018,39 @@ onUnmounted(() => {
     span {
       color: #6c757d;
     }
+  }
+
+  .renderer-switch {
+    padding: 8px 16px;
+    background: var(--terminal-bg-secondary, #161b22);
+    border-bottom: 1px solid var(--terminal-border, #21262d);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--terminal-text-secondary, #c9d1d9);
+    flex-shrink: 0;
+
+    :deep(.n-radio-group) {
+      .n-radio {
+        .n-radio__label {
+          color: var(--terminal-text-secondary, #c9d1d9);
+          font-size: 11px;
+        }
+        
+        &.n-radio--checked {
+          .n-radio__label {
+            color: var(--terminal-text, #f0f6fc);
+          }
+        }
+      }
+    }
+  }
+
+  // 渲染器容器占满剩余空间
+  > div:last-child {
+    flex: 1;
+    overflow: hidden;
   }
 }
 

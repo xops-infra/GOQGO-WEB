@@ -983,7 +983,9 @@ const handleDrop = async (e: DragEvent) => {
   background-color: var(--bg-primary);
   border-top: 1px solid var(--border-primary);
   color: var(--text-primary);
-  position: relative;
+  position: sticky; // 固定在底部
+  bottom: 0; // 固定在底部
+  z-index: 10; // 确保在统计面板之上
   transition: all 0.3s ease;
 
   &.drag-over {
@@ -1021,7 +1023,7 @@ const handleDrop = async (e: DragEvent) => {
   display: flex;
   align-items: flex-end;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 8px 16px; // 减少上下padding，让输入框更紧凑
   background-color: var(--bg-primary);
 }
 
@@ -1115,7 +1117,7 @@ const handleDrop = async (e: DragEvent) => {
   // textarea特殊处理
   :deep(.n-input__textarea-el) {
     resize: none !important;
-    min-height: 36px !important;
+    min-height: 32px !important; // 减少最小高度
     max-height: 144px !important;
   }
 }

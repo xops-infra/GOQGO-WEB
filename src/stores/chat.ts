@@ -96,35 +96,6 @@ export const useChatStore = defineStore('chat', () => {
         updateMessageStatusById(messageId, 'delivered')
       },
 
-      onHistoryLoaded: (historyMessages) => {
-        console.log('📜 加载历史消息:', historyMessages?.length || 0, '条')
-
-        if (!Array.isArray(historyMessages) || historyMessages.length === 0) {
-          console.log('📜 历史消息为空，设置hasMoreHistory为false')
-          hasMoreHistory.value = false
-          isLoadingHistory.value = false
-          return
-        }
-
-        // 合并历史消息，避免重复
-        const existingIds = new Set(messages.value.map((m) => m.id))
-        const newMessages = historyMessages.filter((m) => m && m.id && !existingIds.has(m.id))
-
-        console.log('📜 消息去重结果:', {
-          existing: messages.value.length,
-          received: historyMessages.length,
-          new: newMessages.length
-        })
-
-        if (newMessages.length > 0) {
-          // 将新的历史消息添加到开头
-          messages.value.unshift(...newMessages)
-          console.log('📜 历史消息已添加，当前总数:', messages.value.length)
-        }
-
-        isLoadingHistory.value = false
-      },
-
       onHistoryInfo: (info) => {
         hasMoreHistory.value = info.hasMore
         console.log('📜 历史消息信息更新:', info)
@@ -221,58 +192,6 @@ export const useChatStore = defineStore('chat', () => {
         if (historyMessages.length < 20) {
           hasMoreHistory.value = false
           console.log('📜 历史消息数量少于20条，设置hasMoreHistory为false')
-        }
-      },
-
-      onHistoryInfo: (info) => {
-        hasMoreHistory.value = info.hasMore
-        console.log('📜 历史消息信息更新:', info)
-      },
-
-      onUserJoin: (username) => {
-        console.log('👤 用户加入聊天室:', username)
-        if (username && !onlineUsers.value.includes(username)) {
-          onlineUsers.value.push(username)
-        }
-      },
-
-      onUserLeave: (username) => {
-        console.log('👤 用户离开聊天室:', username)
-        if (username) {
-          const index = onlineUsers.value.indexOf(username)
-          if (index > -1) {
-            onlineUsers.value.splice(index, 1)
-          }
-        }
-      },
-
-      onTyping: (username, isTyping) => {
-        console.log('⌨️ 用户输入状态:', username, isTyping)
-        if (username !== userStore.username) {
-          if (isTyping) {
-            typingUsers.value.add(username)
-          } else {
-            typingUsers.value.delete(username)
-          }
-        }
-      },
-
-      onStatus: (connected) => {
-        console.log('🔗 连接状态变化:', connected)
-        isConnected.value = connected
-        if (connected) {
-          console.log('✅ 聊天室连接成功')
-        } else {
-          console.log('❌ 聊天室连接断开')
-        }
-      },
-
-      onError: (error) => {
-        console.error('❌ WebSocket连接错误:', error)
-        
-        // 处理特定类型的错误
-        if (error?.type === 'MESSAGE_TOO_LARGE') {
-          console.log('💡 消息过大，建议分段发送')
         }
       }
     })
@@ -790,11 +709,10 @@ export const useChatStore = defineStore('chat', () => {
       
       // 更新思考内容
       if (content !== undefined) {
+        // 如果有实际的思考内容，直接使用
         thinkingMessage.thinkingContent = content
-      }
-      
-      // 更新进度（如果有的话）
-      if (progress !== undefined) {
+      } else if (progress !== undefined) {
+        // 只有在没有实际内容时才显示进度
         thinkingMessage.thinkingContent = `正在思考... (${Math.round(progress * 100)}%)`
       }
       
@@ -803,7 +721,9 @@ export const useChatStore = defineStore('chat', () => {
         conversationId,
         tempId,
         content: thinkingMessage.thinkingContent,
-        progress
+        progress,
+        hasContent: content !== undefined,
+        hasProgress: progress !== undefined
       })
       
       // 触发响应式更新

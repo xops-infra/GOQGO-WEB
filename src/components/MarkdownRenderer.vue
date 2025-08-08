@@ -28,6 +28,8 @@ const renderedContent = computed(() => {
 .markdown-content {
   line-height: 1.6;
   word-wrap: break-word;
+  overflow-wrap: break-word; /* 现代浏览器的换行属性 */
+  max-width: 100%; /* 确保内容不会超出容器宽度 */
 
   // 标题样式
   :deep(h1), :deep(h2), :deep(h3), :deep(h4), :deep(h5), :deep(h6) {
@@ -79,6 +81,7 @@ const renderedContent = computed(() => {
     background-color: #f6f8fa;
     border-radius: 6px;
     overflow-x: auto;
+    max-width: 100%; /* 确保代码块不会超出容器宽度 */
     
     code {
       padding: 0;
@@ -108,11 +111,16 @@ const renderedContent = computed(() => {
     border-collapse: collapse;
     margin: 8px 0;
     width: 100%;
+    max-width: 100%; /* 确保表格不会超出容器宽度 */
+    table-layout: fixed; /* 固定表格布局，防止内容撑开 */
   }
 
   :deep(th), :deep(td) {
     border: 1px solid #e1e4e8;
     padding: 6px 13px;
+    word-wrap: break-word; /* 确保单元格内容换行 */
+    overflow-wrap: break-word; /* 现代浏览器的换行属性 */
+    max-width: 0; /* 允许单元格收缩 */
   }
 
   :deep(th) {

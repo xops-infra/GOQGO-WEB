@@ -24,6 +24,10 @@
     "@types/markdown-it": "^14.1.2",
     "@vicons/ionicons5": "^0.12.0",
     "@vue/runtime-core": "^3.5.18",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/addon-web-links": "^0.11.0",
+    "@xterm/xterm": "^5.5.0",
+    "ansi-to-html": "^0.7.2",
     "axios": "^1.6.2",
     "highlight.js": "^11.11.1",
     "markdown-it": "^14.1.0",
@@ -31,7 +35,8 @@
     "pinia": "^2.1.7",
     "socket.io-client": "^4.7.4",
     "vue": "^3.4.0",
-    "vue-router": "^4.2.5"
+    "vue-router": "^4.2.5",
+    "xterm": "^5.3.0"
   },
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.12.0",

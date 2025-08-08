@@ -159,7 +159,7 @@ export const useAgentsStore = defineStore('agents', () => {
       const createRequest = {
         name: data.name || `agent-${Date.now()}`,
         role: data.role || 'general-assistant',
-        workDir: data.workDir || './', // 使用后端支持的workDir字段
+        workDir: data.workDir || data.workingDir || './', // 支持两种格式，优先使用workDir
         namespace: namespace,
         context: data.context || undefined,
         env: data.env || undefined
@@ -255,7 +255,7 @@ export const useAgentsStore = defineStore('agents', () => {
 
   const getLogs = async (name: string, lines: number = 50) => {
     try {
-      const logs = await agentApi.getLogs(namespacesStore.currentNamespace, name, lines)
+      const logs = await agentApi.getLogs(namespacesStore.currentNamespace, name, { lines })
       return logs
     } catch (error) {
       console.error('获取日志失败:', error)

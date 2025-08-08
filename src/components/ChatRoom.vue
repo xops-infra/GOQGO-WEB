@@ -615,10 +615,13 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%; // 填充父容器高度
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
+  min-height: 0; // 关键：允许flex子元素收缩
+  background-color: var(--bg-primary, #ffffff);
+  color: var(--text-primary, #1f2937);
   position: relative;
   overflow: hidden; // 防止整体滚动
+  width: 100%; /* 确保聊天室占满父容器宽度 */
+  box-sizing: border-box; /* 确保padding不会增加总宽度 */
   transition:
     background-color 0.3s ease,
     color 0.3s ease;
@@ -674,6 +677,10 @@ onUnmounted(() => {
   flex-direction: column;
   overflow: hidden; // 防止容器本身滚动
   min-height: 0; // 允许flex子项收缩
+  // 动态高度：当统计面板显示时留出空间，否则占满可用空间
+  max-height: v-bind('props.showStats ? "calc(100% - 250px)" : "100%"');
+  width: 100%; /* 确保容器占满父容器宽度 */
+  box-sizing: border-box; /* 确保padding不会增加总宽度 */
 
   .messages-toolbar {
     flex-shrink: 0; // 工具栏不收缩
@@ -685,15 +692,19 @@ onUnmounted(() => {
     align-items: center;
     justify-content: space-between;
     z-index: 10;
+    width: 100%; /* 确保工具栏占满容器宽度 */
+    box-sizing: border-box; /* 确保padding不会增加总宽度 */
     transition:
       background-color 0.3s ease,
       border-color 0.3s ease;
 
     .toolbar-left {
+      flex-shrink: 0; /* 防止收缩 */
       .message-count {
         font-size: 12px;
         color: var(--text-tertiary);
         font-weight: 500;
+        white-space: nowrap; /* 防止换行 */
       }
     }
 
@@ -701,17 +712,21 @@ onUnmounted(() => {
       display: flex;
       align-items: center;
       gap: 8px;
+      flex-shrink: 0; /* 防止收缩 */
     }
   }
 
   .messages-list {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden; /* 禁止水平滚动 */
     padding: 16px;
     display: flex;
     flex-direction: column;
     gap: 16px;
     scroll-behavior: smooth;
+    min-height: 0; /* 关键：允许flex子元素收缩 */
+    box-sizing: border-box; /* 确保padding不会增加总宽度 */
 
     // 禁用滚动动画的类
     &.no-scroll-animation {
@@ -762,6 +777,8 @@ onUnmounted(() => {
 
         .divider-text {
           white-space: nowrap;
+          overflow: hidden; /* 防止文本溢出 */
+          text-overflow: ellipsis; /* 超出时显示省略号 */
         }
 
         &:hover {
@@ -822,9 +839,15 @@ onUnmounted(() => {
   padding: 8px 16px;
   background: #fff;
   border-top: 1px solid #e0e0e0;
+  width: 100%; /* 确保连接状态占满容器宽度 */
+  box-sizing: border-box; /* 确保padding不会增加总宽度 */
 }
 
 .message-item {
+  max-width: 100%; /* 确保消息项不会超出容器宽度 */
+  word-wrap: break-word; /* 确保长单词换行 */
+  overflow-wrap: break-word; /* 现代浏览器的换行属性 */
+  
   &.message-self {
     align-self: flex-end;
   }
@@ -836,10 +859,15 @@ onUnmounted(() => {
 
 .stats-panel {
   flex-shrink: 0; // 统计面板不收缩
-  border-top: 1px solid #f0f0f0;
-  background: #fafafa;
-  max-height: 400px;
+  border-top: 1px solid var(--border-primary, #e0e0e0);
+  background: var(--bg-secondary, #fafafa);
+  max-height: 250px; // 减少最大高度，给聊天输入框留更多空间
   overflow-y: auto;
+  overflow-x: hidden; /* 禁止水平滚动 */
+  z-index: 5; // 确保在聊天内容之上，但在输入框之下
+  position: relative; // 确保正确的定位
+  width: 100%; /* 确保统计面板占满容器宽度 */
+  box-sizing: border-box; /* 确保padding不会增加总宽度 */
 }
 
 // 输入区域固定在底部
@@ -847,8 +875,10 @@ onUnmounted(() => {
   flex-shrink: 0; // 输入框不收缩
   position: sticky;
   bottom: 0;
-  background: #fff;
-  border-top: 1px solid #e0e0e0;
-  z-index: 10;
+  background: var(--bg-primary, #fff);
+  border-top: 1px solid var(--border-primary, #e0e0e0);
+  z-index: 10; // 确保在统计面板之上
+  width: 100%; /* 确保输入框占满容器宽度 */
+  box-sizing: border-box; /* 确保padding不会增加总宽度 */
 }
 </style>

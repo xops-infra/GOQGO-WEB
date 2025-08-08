@@ -71,7 +71,10 @@
                 <span class="dot">●</span>
                 <span class="dot">●</span>
                 <span class="dot">●</span>
-                <span class="thinking-text">{{ cleanThinkingContent(message.thinkingContent) || '正在思考...' }}</span>
+                <!-- 新的思考内容显示 -->
+                <div class="thinking-stream-content">
+                  <ThinkingStreamDisplay :content="message.thinkingContent" />
+                </div>
               </div>
             </div>
           </div>
@@ -93,6 +96,7 @@ import { useChatStore } from '@/stores/chat'
 import { formatRelativeTime, useTimeManager } from '@/utils/timeManager'
 import MarkdownRenderer from './MarkdownRenderer.vue'
 import ThinkingMessage from './ThinkingMessage.vue'
+import ThinkingStreamDisplay from './ThinkingStreamDisplay.vue'
 import type { ChatMessage } from '@/types/api'
 import { useUserStore } from '@/stores/user'
 
@@ -342,6 +346,8 @@ const handleStatusClick = () => {
 .message-item {
   padding: 8px 16px;
   margin-bottom: 8px;
+  width: 100%; /* 确保消息项占满容器宽度 */
+  box-sizing: border-box; /* 确保padding不会增加总宽度 */
 
   // 用户消息样式
   &.message-user {
@@ -420,6 +426,12 @@ const handleStatusClick = () => {
             font-style: italic;
             font-size: 13px;
           }
+          
+          .thinking-stream-content {
+            margin-left: 8px;
+            flex: 1;
+            min-width: 0;
+          }
         }
       }
     }
@@ -445,6 +457,9 @@ const handleStatusClick = () => {
   color: var(--text-primary);
   transition: all 0.3s ease;
   overflow: hidden;
+  max-width: 100%; /* 确保卡片不会超出容器宽度 */
+  word-wrap: break-word; /* 确保长单词换行 */
+  overflow-wrap: break-word; /* 现代浏览器的换行属性 */
 
   &:hover {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
@@ -562,6 +577,9 @@ const handleStatusClick = () => {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   transition: all 0.3s ease;
+  max-width: 100%; /* 确保内容框不会超出容器宽度 */
+  word-wrap: break-word; /* 确保长单词换行 */
+  overflow-wrap: break-word; /* 现代浏览器的换行属性 */
 
   .markdown-content {
     font-size: 14px;

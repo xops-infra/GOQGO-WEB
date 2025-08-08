@@ -236,6 +236,7 @@ import { API_ENDPOINTS, apiConfig } from '@/config/api'
 import type { Role } from '@/types/api'
 import { useNamespacesStore } from '@/stores/namespaces'
 import { useAgentsStore } from '@/stores/agents'
+import { useTheme } from '@/utils/theme'
 import { storeToRefs } from 'pinia'
 
 // Props
@@ -255,6 +256,7 @@ const emit = defineEmits<{
 const namespacesStore = useNamespacesStore()
 const agentsStore = useAgentsStore()
 const { currentNamespace } = storeToRefs(namespacesStore)
+const { isTerminal } = useTheme()
 const message = useMessage()
 
 // 响应式数据
@@ -386,7 +388,7 @@ const resetForm = () => {
     name: '',
     role: '',
     directoryType: 'local',
-    path: ''
+    path: './' // 设置默认路径
   }
 }
 
@@ -410,20 +412,33 @@ const handleCreate = async () => {
     return
   }
 
+  console.log('🔍 创建前验证:', {
+    directoryType: formData.value.directoryType,
+    path: formData.value.path,
+    canCreate: canCreate.value
+  })
+
   // 验证Git地址格式
   if (formData.value.directoryType === 'git') {
     const path = formData.value.path.trim()
-    // 支持多种Git URL格式
+    // 支持多种Git URL格式，更宽松的验证
     const gitUrlPatterns = [
-      /^https?:\/\/[\w.-]+\/[\w.-]+\/[\w.-]+(\.git)?$/,  // HTTPS
-      /^git@[\w.-]+:[\w.-]+\/[\w.-]+(\.git)?$/,         // SSH
-      /^ssh:\/\/git@[\w.-]+\/[\w.-]+\/[\w.-]+(\.git)?$/, // SSH with protocol
-      /^git:\/\/[\w.-]+\/[\w.-]+\/[\w.-]+(\.git)?$/      // Git protocol
+      /^https?:\/\/[^\s]+(\.git)?$/,                    // HTTPS (更宽松)
+      /^git@[^\s]+:[^\s]+(\.git)?$/,                    // SSH (更宽松)
+      /^ssh:\/\/git@[^\s]+:[^\s]+(\.git)?$/,            // SSH with protocol (更宽松)
+      /^git:\/\/[^\s]+(\.git)?$/,                       // Git protocol (更宽松)
+      /^[^\s]+@[^\s]+:[^\s]+(\.git)?$/                  // 通用SSH格式
     ]
     
     const isValidGitUrl = gitUrlPatterns.some(pattern => pattern.test(path))
+    console.log('🔍 Git URL验证:', {
+      path,
+      patterns: gitUrlPatterns.map(p => p.toString()),
+      isValid: isValidGitUrl
+    })
+    
     if (!isValidGitUrl) {
-      message.error('Git地址格式不正确，支持HTTPS、SSH等格式')
+      message.error('Git地址格式不正确，支持HTTPS、SSH等格式，例如：https://github.com/user/repo.git')
       return
     }
   }
@@ -450,7 +465,11 @@ const handleCreate = async () => {
         : `工作在本地目录: ${formData.value.path.trim()}`
     }
 
-    console.log('创建实例数据:', createData)
+    console.log('📤 创建实例数据:', createData)
+    console.log('📤 发送到agentsStore:', {
+      namespace: currentNamespace.value,
+      data: createData
+    })
 
     // 调用API创建实例
     const newAgent = await agentsStore.createAgent(currentNamespace.value, createData)
@@ -483,6 +502,18 @@ watch(
     }
   }
 )
+
+// 监听目录类型变化，自动设置默认路径
+watch(
+  () => formData.value.directoryType,
+  (newType) => {
+    if (newType === 'local' && !formData.value.path) {
+      formData.value.path = './'
+    } else if (newType === 'git' && !formData.value.path) {
+      formData.value.path = 'https://github.com/username/repo.git'
+    }
+  }
+)
 </script>
 
 <style scoped lang="scss">
@@ -493,8 +524,11 @@ watch(
     .section-title {
       font-size: 14px;
       font-weight: 600;
-      color: #333;
+      color: #ffffff;
       margin-bottom: 8px;
+      font-family: 'Courier New', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .section-tip {
@@ -503,10 +537,11 @@ watch(
       gap: 6px;
       margin-top: 6px;
       font-size: 12px;
-      color: #666;
+      color: #cccccc;
+      font-family: 'Courier New', monospace;
 
       .n-icon {
-        color: #999;
+        color: #00ff41;
       }
     }
   }
@@ -516,18 +551,20 @@ watch(
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    background: #f5f5f5;
+    background: rgba(0, 255, 65, 0.1);
     border-radius: 6px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid rgba(0, 255, 65, 0.3);
 
     .namespace-icon {
-      color: #666;
+      color: #00ff41;
     }
 
     .namespace-name {
       font-size: 14px;
       font-weight: 500;
-      color: #333;
+      color: #ffffff;
+      font-family: 'Courier New', monospace;
+      text-transform: uppercase;
     }
   }
 
@@ -545,20 +582,22 @@ watch(
       padding: 8px 12px;
       border-radius: 6px;
       transition: all 0.2s ease;
+      color: #cccccc;
+      font-family: 'Courier New', monospace;
       
       &:hover {
-        background: #f5f5f5;
+        background: rgba(0, 255, 65, 0.1);
       }
     }
 
     // 选中状态的样式
     :deep(.n-radio--checked) {
       .radio-option {
-        background: #e6f7ff;
-        color: #1890ff;
+        background: rgba(0, 255, 65, 0.2);
+        color: #00ff41;
         
         .n-icon {
-          color: #1890ff;
+          color: #00ff41;
         }
       }
     }
@@ -621,9 +660,15 @@ watch(
   .selected-role-info {
     margin-top: 12px;
     padding: 12px;
-    background: #f8f9fa;
+    background: var(--bg-secondary, #f8f9fa);
     border-radius: 6px;
-    border: 1px solid #e9ecef;
+    border: 1px solid var(--border-color, #e9ecef);
+    
+    // Terminal 主题适配
+    [data-theme='terminal'] & {
+      background: rgba(0, 255, 65, 0.1);
+      border: 1px solid rgba(0, 255, 65, 0.3);
+    }
     
     .role-info-header {
       display: flex;
@@ -632,20 +677,38 @@ watch(
       margin-bottom: 6px;
       
       .role-icon {
-        color: #1890ff;
+        color: var(--color-primary, #1890ff);
+        
+        // Terminal 主题适配
+        [data-theme='terminal'] & {
+          color: #00ff41;
+        }
       }
       
       .role-name {
         font-size: 14px;
         font-weight: 600;
-        color: #333;
+        color: var(--text-primary, #333);
+        
+        // Terminal 主题适配
+        [data-theme='terminal'] & {
+          color: #00ff41;
+          font-family: 'Courier New', monospace;
+          text-transform: uppercase;
+        }
       }
     }
     
     .role-description {
       font-size: 13px;
-      color: #666;
+      color: var(--text-secondary, #666);
       line-height: 1.4;
+      
+      // Terminal 主题适配
+      [data-theme='terminal'] & {
+        color: #cccccc;
+        font-family: 'Courier New', monospace;
+      }
     }
   }
 }
@@ -656,28 +719,88 @@ watch(
   justify-content: flex-end;
 }
 
-// 深度样式优化
+// 深度样式优化 - 添加 Terminal 主题支持
 :deep(.n-card-header) {
+  // Terminal 主题适配
+  [data-theme='terminal'] & {
+    background: #0a0a0a;
+    border-bottom: 1px solid rgba(0, 255, 65, 0.3);
+  }
+  
   .n-card-header__main {
     font-size: 16px;
     font-weight: 600;
-    color: #333;
+    color: var(--text-primary, #333);
+    
+    // Terminal 主题适配
+    [data-theme='terminal'] & {
+      color: #00ff41;
+      font-family: 'Courier New', monospace;
+      text-transform: uppercase;
+    }
   }
 }
 
 :deep(.n-input) {
+  // Terminal 主题适配
+  [data-theme='terminal'] & {
+    .n-input__border,
+    .n-input__state-border {
+      border-color: rgba(0, 255, 65, 0.3);
+    }
+    
+    .n-input-wrapper {
+      background: rgba(0, 255, 65, 0.05);
+    }
+    
+    .n-input__input-el {
+      color: #ffffff;
+      font-family: 'Courier New', monospace;
+      
+      &::placeholder {
+        color: #666666;
+      }
+    }
+  }
+  
   .n-input__input-el {
     font-size: 14px;
   }
 }
 
 :deep(.n-select) {
+  // Terminal 主题适配
+  [data-theme='terminal'] & {
+    .n-base-selection {
+      background: rgba(0, 255, 65, 0.05);
+      border-color: rgba(0, 255, 65, 0.3);
+    }
+    
+    .n-base-selection-label {
+      color: #ffffff;
+      font-family: 'Courier New', monospace;
+    }
+    
+    .n-base-selection-placeholder {
+      color: #666666;
+      font-family: 'Courier New', monospace;
+    }
+  }
+  
   .n-base-selection-label {
     font-size: 14px;
   }
 }
 
 :deep(.n-radio) {
+  // Terminal 主题适配
+  [data-theme='terminal'] & {
+    .n-radio__label {
+      color: #cccccc;
+      font-family: 'Courier New', monospace;
+    }
+  }
+  
   .n-radio__label {
     font-size: 14px;
   }
@@ -685,20 +808,48 @@ watch(
 
 // 角色选项的下拉样式
 :deep(.n-base-select-menu) {
+  // Terminal 主题适配
+  [data-theme='terminal'] & {
+    background: #0a0a0a;
+    border: 1px solid rgba(0, 255, 65, 0.3);
+  }
+  
   .role-option {
     padding: 8px 0;
     
     .role-option-name {
       font-size: 14px;
       font-weight: 500;
-      color: #333;
+      color: var(--text-primary, #333);
       margin-bottom: 2px;
+      
+      // Terminal 主题适配
+      [data-theme='terminal'] & {
+        color: #ffffff;
+        font-family: 'Courier New', monospace;
+        text-transform: uppercase;
+      }
     }
     
     .role-option-description {
       font-size: 12px;
-      color: #666;
+      color: var(--text-secondary, #666);
       line-height: 1.3;
+      
+      // Terminal 主题适配
+      [data-theme='terminal'] & {
+        color: #cccccc;
+        font-family: 'Courier New', monospace;
+      }
+    }
+    
+    // Terminal 主题下的悬停效果
+    [data-theme='terminal'] &:hover {
+      background: rgba(0, 255, 65, 0.1);
+      
+      .role-option-name {
+        color: #00ff41;
+      }
     }
   }
 }

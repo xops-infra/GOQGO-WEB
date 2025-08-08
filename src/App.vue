@@ -1,28 +1,22 @@
 <template>
   <n-config-provider :theme="naiveTheme" :theme-overrides="themeOverrides">
-    <n-message-provider>
+    <n-message-provider :container-style="messageContainerStyle">
       <n-dialog-provider>
-        <n-notification-provider>
+        <n-notification-provider :container-style="notificationContainerStyle">
           <div class="app theme-transition" :class="{ 'terminal-mode': isTerminal }">
             <!-- Terminal主题背景特效 -->
-            <div v-if="isTerminal" class="terminal-effects">
-              <div class="scanlines"></div>
-              <div class="crt-overlay"></div>
-            </div>
+            <TerminalEffects v-if="isTerminal" />
 
             <!-- Socket状态监控器 -->
             <SocketStatusMonitor v-if="showSocketMonitor" />
 
             <!-- 页面刷新恢复提示 -->
-            <n-alert 
-              v-if="showRestorePrompt" 
-              type="info" 
-              closable
-              @close="handleCloseRestorePrompt"
-              class="restore-prompt"
-            >
+            <n-alert v-if="showRestorePrompt" type="info" closable @close="handleCloseRestorePrompt"
+              class="restore-prompt">
               <template #header>
-                <n-icon><RestoreIcon /></n-icon>
+                <n-icon>
+                  <RestoreIcon />
+                </n-icon>
                 检测到页面刷新
               </template>
               <div class="restore-content">
@@ -52,6 +46,7 @@ import { darkTheme, type GlobalThemeOverrides, NAlert, NButton, NIcon, useMessag
 import { useTheme } from '@/utils/theme'
 import { useRoute } from 'vue-router'
 import SocketStatusMonitor from '@/components/SocketStatusMonitor.vue'
+import TerminalEffects from '@/components/TerminalEffects.vue'
 
 const themeStore = useTheme()
 const { currentTheme, isTerminal } = themeStore
@@ -68,6 +63,23 @@ let pageRefreshHandler: any = null
 let initPageRefreshHandler: any = null
 let cleanupPageRefreshHandler: any = null
 
+// 通知容器样式 - 左下角
+const messageContainerStyle = computed(() => ({
+  position: 'fixed',
+  left: '20px',
+  bottom: '100px', // 增加距离，避免与页脚重叠
+  zIndex: 1000,
+  maxWidth: '400px'
+}))
+
+const notificationContainerStyle = computed(() => ({
+  position: 'fixed',
+  left: '20px',
+  bottom: '100px', // 增加距离，避免与页脚重叠
+  zIndex: 1000,
+  maxWidth: '400px'
+}))
+
 // 简单的恢复图标
 const RestoreIcon = {
   render: () => {
@@ -78,98 +90,48 @@ const RestoreIcon = {
   }
 }
 
-// Naive UI 主题配置
+// Naive UI 主题配置 - 只使用terminal主题
 const naiveTheme = computed(() => {
-  if (currentTheme.value === 'terminal') {
-    return darkTheme // Terminal主题基于dark主题
-  }
-  return currentTheme.value === 'dark' ? darkTheme : null
+  return darkTheme // Terminal主题基于dark主题
 })
 
-// Naive UI 主题覆盖
+// Naive UI 主题覆盖 - 只使用terminal主题
 const themeOverrides = computed<GlobalThemeOverrides>(() => {
-  const theme = currentTheme.value
-
-  // Terminal主题特殊配置
-  if (theme === 'terminal') {
-    return {
-      common: {
-        primaryColor: '#00ff41',
-        primaryColorHover: '#00ffff',
-        primaryColorPressed: '#0066ff',
-        primaryColorSuppl: '#00ff41',
-
-        successColor: '#7ee787',
-        warningColor: '#ffa657',
-        errorColor: '#ff7b72',
-        infoColor: '#39c5cf',
-
-        textColorBase: '#f0f6fc',
-        textColor1: '#f0f6fc',
-        textColor2: '#c9d1d9',
-        textColor3: '#8b949e',
-        textColorDisabled: '#6e7681',
-
-        bodyColor: '#0d1117',
-        cardColor: '#161b22',
-        modalColor: '#161b22',
-        popoverColor: '#21262d',
-
-        borderColor: '#21262d',
-        dividerColor: '#30363d',
-
-        hoverColor: '#30363d',
-        pressedColor: '#1e40af',
-
-        boxShadow1: '0 4px 12px rgba(0, 0, 0, 0.8)',
-        boxShadow2: '0 8px 24px rgba(0, 0, 0, 0.9)',
-        boxShadow3: '0 12px 32px rgba(0, 0, 0, 0.95)',
-
-        fontFamily: 'JetBrains Mono, Consolas, Monaco, monospace',
-        fontFamilyMono: 'JetBrains Mono, Consolas, Monaco, monospace'
-      }
-    }
-  }
-
-  // 普通深色主题
-  const isDark = theme === 'dark'
-
   return {
     common: {
-      primaryColor: isDark ? '#60a5fa' : '#3b82f6',
-      primaryColorHover: isDark ? '#3b82f6' : '#2563eb',
-      primaryColorPressed: isDark ? '#2563eb' : '#1d4ed8',
-      primaryColorSuppl: isDark ? '#60a5fa' : '#3b82f6',
+      primaryColor: '#00ff41',
+      primaryColorHover: '#00ffff',
+      primaryColorPressed: '#0066ff',
+      primaryColorSuppl: '#00ff41',
 
-      successColor: isDark ? '#34d399' : '#10b981',
-      warningColor: isDark ? '#fbbf24' : '#f59e0b',
-      errorColor: isDark ? '#f87171' : '#ef4444',
-      infoColor: isDark ? '#22d3ee' : '#06b6d4',
+      successColor: '#7ee787',
+      warningColor: '#ffa657',
+      errorColor: '#ff7b72',
+      infoColor: '#39c5cf',
 
-      textColorBase: isDark ? '#f8fafc' : '#1f2937',
-      textColor1: isDark ? '#f8fafc' : '#1f2937',
-      textColor2: isDark ? '#e2e8f0' : '#4b5563',
-      textColor3: isDark ? '#cbd5e1' : '#6b7280',
-      textColorDisabled: isDark ? '#94a3b8' : '#9ca3af',
+      textColorBase: '#ffffff',
+      textColor1: '#ffffff',
+      textColor2: '#cccccc',
+      textColor3: '#999999',
+      textColorDisabled: '#666666',
 
-      bodyColor: isDark ? '#0f172a' : '#ffffff',
-      cardColor: isDark ? '#1e293b' : '#ffffff',
-      modalColor: isDark ? '#1e293b' : '#ffffff',
-      popoverColor: isDark ? '#334155' : '#ffffff',
+      bodyColor: '#000000',
+      cardColor: '#0a0a0a',
+      modalColor: '#0a0a0a',
+      popoverColor: '#1a1a1a',
 
-      borderColor: isDark ? '#475569' : '#e5e7eb',
-      dividerColor: isDark ? '#475569' : '#f3f4f6',
+      borderColor: '#333333',
+      dividerColor: '#2a2a2a',
 
-      hoverColor: isDark ? '#475569' : '#f5f5f5',
-      pressedColor: isDark ? '#1e40af' : '#e8f0fe',
+      hoverColor: '#2a2a2a',
+      pressedColor: '#1a1a1a',
 
-      boxShadow1: isDark ? '0 1px 2px 0 rgba(0, 0, 0, 0.3)' : '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-      boxShadow2: isDark
-        ? '0 4px 6px -1px rgba(0, 0, 0, 0.4)'
-        : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-      boxShadow3: isDark
-        ? '0 10px 15px -3px rgba(0, 0, 0, 0.5)'
-        : '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+      boxShadow1: '0 4px 12px rgba(0, 0, 0, 0.8)',
+      boxShadow2: '0 8px 24px rgba(0, 0, 0, 0.9)',
+      boxShadow3: '0 12px 32px rgba(0, 0, 0, 0.95)',
+
+      fontFamily: 'JetBrains Mono, Consolas, Monaco, monospace',
+      fontFamilyMono: 'JetBrains Mono, Consolas, Monaco, monospace'
     }
   }
 })
@@ -178,13 +140,13 @@ onMounted(async () => {
   try {
     // 初始化message实例
     message = useMessage()
-    
+
     // 初始化主题
     console.log('App mounted with theme:', currentTheme.value)
-    
+
     // 等待下一个tick，确保所有组件和store都已初始化
     await nextTick()
-    
+
     // 延迟初始化页面刷新处理器，避免在setup阶段出错
     setTimeout(async () => {
       try {
@@ -193,21 +155,21 @@ onMounted(async () => {
         pageRefreshHandler = handler
         initPageRefreshHandler = init
         cleanupPageRefreshHandler = cleanup
-        
+
         initPageRefreshHandler()
-        
+
         // 检查是否在聊天页面
-        const isChatPage = route.path === '/' || route.path.startsWith('/chat')
-        
+        const isChatPage = route.path === '/'
+
         if (isChatPage) {
           // 显示Socket状态监控器
           showSocketMonitor.value = true
-          
+
           // 检查是否有可恢复的状态
           try {
             if (pageRefreshHandler.hasRestorableState()) {
               restoreInfo.value = pageRefreshHandler.getSavedStateInfo()
-              
+
               if (restoreInfo.value && !restoreInfo.value.isExpired) {
                 console.log('📦 发现可恢复的页面状态:', restoreInfo.value)
                 showRestorePrompt.value = true
@@ -224,7 +186,7 @@ onMounted(async () => {
         console.warn('⚠️ 页面刷新处理器初始化失败:', error)
       }
     }, 500) // 延迟500ms，确保所有store都已初始化
-    
+
   } catch (error) {
     console.error('❌ App初始化时出错:', error)
   }
@@ -240,19 +202,19 @@ onUnmounted(() => {
 // 处理恢复连接
 const handleRestore = async () => {
   showRestorePrompt.value = false
-  
+
   if (!pageRefreshHandler) {
     console.warn('⚠️ pageRefreshHandler未初始化')
     return
   }
-  
+
   try {
     if (message) {
       message.loading('正在恢复连接...', { duration: 0, key: 'restore' })
     }
-    
+
     const success = await pageRefreshHandler.restorePageState()
-    
+
     if (success) {
       if (message) {
         message.success('连接已恢复', { key: 'restore' })
@@ -296,7 +258,7 @@ const handleCloseRestorePrompt = () => {
 #app {
   height: 100vh;
   width: 100vw;
-  overflow: hidden;
+  overflow: hidden; /* 保持这个，防止页面滚动 */
 }
 
 .app {
@@ -304,76 +266,34 @@ const handleCloseRestorePrompt = () => {
   width: 100%;
   display: flex;
   flex-direction: column;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
+  background-color: var(--bg-primary, #ffffff);
+  color: var(--text-primary, #1f2937);
   position: relative;
 
   &.terminal-mode {
-    font-family: var(--font-mono);
+    font-family: var(--font-mono, 'Courier New', monospace);
   }
 }
 
 // Terminal主题特效
-.terminal-effects {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 1000;
 
-  .scanlines {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(transparent 50%, rgba(0, 255, 65, 0.02) 50%);
-    background-size: 100% 4px;
-    animation: scanlines 0.1s linear infinite;
-  }
-
-  .crt-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(
-      ellipse at center,
-      transparent 0%,
-      transparent 70%,
-      rgba(0, 0, 0, 0.2) 100%
-    );
-  }
-}
-
-@keyframes scanlines {
-  0% {
-    transform: translateY(0);
-  }
-  100% {
-    transform: translateY(4px);
-  }
-}
 
 // 全局组件样式覆盖
 .n-card {
-  background-color: var(--bg-primary) !important;
-  border-color: var(--border-primary) !important;
+  background-color: var(--bg-primary, #ffffff) !important;
+  border-color: var(--border-primary, #e5e7eb) !important;
 
   .n-card__content {
-    color: var(--text-primary) !important;
+    color: var(--text-primary, #1f2937) !important;
   }
 
   // Terminal主题下的卡片样式
   [data-theme='terminal'] & {
-    border: 1px solid var(--terminal-border) !important;
-    box-shadow: var(--terminal-shadow) !important;
+    border: 1px solid var(--terminal-border, #21262d) !important;
+    box-shadow: var(--terminal-shadow, 0 4px 12px rgba(0, 0, 0, 0.8)) !important;
 
     &:hover {
-      border-color: var(--pixel-green) !important;
+      border-color: var(--pixel-green, #00ff41) !important;
       box-shadow: 0 0 10px rgba(0, 255, 65, 0.3) !important;
     }
   }
@@ -384,20 +304,20 @@ const handleCloseRestorePrompt = () => {
 
   // Terminal主题下的按钮样式
   [data-theme='terminal'] & {
-    font-family: var(--font-display) !important;
+    font-family: var(--font-display, 'Orbitron', monospace) !important;
     font-weight: 600 !important;
     text-transform: uppercase !important;
     letter-spacing: 1px !important;
 
     &.n-button--primary-type {
-      background: var(--terminal-bg-secondary) !important;
-      color: var(--pixel-green) !important;
-      border: 2px solid var(--pixel-green) !important;
+      background: var(--terminal-bg-secondary, #161b22) !important;
+      color: var(--pixel-green, #00ff41) !important;
+      border: 2px solid var(--pixel-green, #00ff41) !important;
 
       &:hover {
-        background: var(--pixel-green) !important;
-        color: var(--terminal-bg) !important;
-        box-shadow: var(--neon-glow-green) !important;
+        background: var(--pixel-green, #00ff41) !important;
+        color: var(--terminal-bg, #0d1117) !important;
+        box-shadow: var(--neon-glow-green, 0 0 5px #00ff41, 0 0 10px #00ff41, 0 0 15px #00ff41) !important;
         transform: translateY(-2px) !important;
       }
 
@@ -407,22 +327,22 @@ const handleCloseRestorePrompt = () => {
     }
 
     &.n-button--error-type {
-      color: var(--pixel-red) !important;
-      border-color: var(--pixel-red) !important;
+      color: var(--pixel-red, #ff0066) !important;
+      border-color: var(--pixel-red, #ff0066) !important;
 
       &:hover {
-        background: var(--pixel-red) !important;
-        box-shadow: var(--neon-glow-red) !important;
+        background: var(--pixel-red, #ff0066) !important;
+        box-shadow: var(--neon-glow-red, 0 0 5px #ff0066, 0 0 10px #ff0066, 0 0 15px #ff0066) !important;
       }
     }
 
     &.n-button--info-type {
-      color: var(--pixel-cyan) !important;
-      border-color: var(--pixel-cyan) !important;
+      color: var(--pixel-cyan, #00ffff) !important;
+      border-color: var(--pixel-cyan, #00ffff) !important;
 
       &:hover {
-        background: var(--pixel-cyan) !important;
-        box-shadow: var(--neon-glow-cyan) !important;
+        background: var(--pixel-cyan, #00ffff) !important;
+        box-shadow: var(--neon-glow-cyan, 0 0 5px #00ffff, 0 0 10px #00ffff, 0 0 15px #00ffff) !important;
       }
     }
   }
@@ -433,22 +353,23 @@ const handleCloseRestorePrompt = () => {
 .n-input .n-input-wrapper,
 .n-input .n-input__input,
 .n-input .n-input__textarea {
-  background-color: var(--bg-secondary) !important;
-  color: var(--text-primary) !important;
+  background-color: var(--bg-secondary, #f8f9fa) !important;
+  color: var(--text-primary, #1f2937) !important;
 
   [data-theme='terminal'] & {
-    font-family: var(--font-mono) !important;
-    background-color: var(--terminal-bg-secondary) !important;
-    border: 1px solid var(--terminal-border) !important;
+    font-family: var(--font-mono, 'Courier New', monospace) !important;
+    background-color: var(--terminal-bg-secondary, #161b22) !important;
+    border: 1px solid var(--terminal-border, #21262d) !important;
 
     &:focus-within {
-      border-color: var(--pixel-green) !important;
+      border-color: var(--pixel-green, #00ff41) !important;
       box-shadow: 0 0 10px rgba(0, 255, 65, 0.3) !important;
     }
   }
 }
 
 .n-input {
+
   .n-input__input-el,
   .n-input__textarea-el {
     background-color: var(--bg-secondary) !important;
@@ -674,11 +595,11 @@ const handleCloseRestorePrompt = () => {
     transform: none;
     max-width: none;
   }
-  
+
   .restore-actions {
     flex-direction: column;
   }
-  
+
   .restore-actions .n-button {
     flex: none;
   }

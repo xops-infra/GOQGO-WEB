@@ -9,10 +9,13 @@ export interface LogSocketOptions {
 export interface LogSocketCallbacks {
   onInitial?: (logs: LogEntry[]) => void
   onAppend?: (log: LogEntry) => void
+  onHistory?: (logs: LogEntry[], hasMore: boolean) => void
+  onRefreshed?: (lines: number) => void
+  onFollowToggled?: (data: { follow: boolean }) => void
+  onSessionClosed?: (message: string) => void
   onError?: (error: string) => void
   onConnect?: () => void
   onDisconnect?: () => void
-  onFollowToggled?: (data: { enabled: boolean; websocketActive: boolean }) => void
 }
 
 export class LogSocket {
@@ -142,11 +145,30 @@ export class LogSocket {
         }
         break
 
+      case 'history':
+        if (message.data) {
+          const logEntries = this.parseLogContent(message.data)
+          const hasMore = message.data.hasMore || false
+          this.callbacks.onHistory?.(logEntries, hasMore)
+        }
+        break
+
+      case 'refreshed':
+        if (message.data && typeof message.data.lines === 'number') {
+          this.callbacks.onRefreshed?.(message.data.lines)
+        }
+        break
+
       case 'follow_toggled':
         console.log('🔄 实时跟踪状态切换:', message.data)
         if (message.data) {
           this.callbacks.onFollowToggled?.(message.data)
         }
+        break
+
+      case 'session_closed':
+        console.log('❌ 会话已关闭:', message.message)
+        this.callbacks.onSessionClosed?.(message.message || '会话已关闭')
         break
 
       case 'pong':
@@ -178,40 +200,24 @@ export class LogSocket {
         return []
       }
 
+      // 直接将每行作为一个日志条目，不添加时间戳
       const logLines = data.content.split('\n').filter((line) => line.trim())
-      return logLines.map((line) => {
-        // 尝试解析时间戳和消息
-        const match = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}):\s*(.+)$/)
-        if (match) {
-          return {
-            timestamp: new Date(match[1]).toISOString(),
-            level: 'info',
-            message: match[2],
-            source: data.agent || data.source || 'unknown'
-          }
-        } else {
-          return {
-            timestamp: data.timestamp
-              ? new Date(data.timestamp * 1000).toISOString()
-              : new Date().toISOString(),
-            level: 'info',
-            message: line,
-            source: data.agent || data.source || 'unknown'
-          }
-        }
-      })
+      return logLines.map((line, index) => ({
+        timestamp: '', // 不使用时间戳
+        level: 'info',
+        message: line, // 保持原始内容，包括 ANSI 转义序列
+        source: data.agent || data.source || 'terminal'
+      }))
     }
 
     // 处理单条日志的情况
     if (data.message || data.content) {
       return [
         {
-          timestamp: data.timestamp
-            ? new Date(data.timestamp * 1000).toISOString()
-            : new Date().toISOString(),
+          timestamp: '', // 不使用时间戳
           level: data.level || 'info',
-          message: data.message || data.content,
-          source: data.agent || data.source || 'unknown'
+          message: data.message || data.content, // 保持原始内容
+          source: data.agent || data.source || 'terminal'
         }
       ]
     }
@@ -252,6 +258,55 @@ export class LogSocket {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer)
       this.reconnectTimer = null
+    }
+  }
+
+  // 发送加载历史记录请求
+  loadHistory(offset: number, lines: number = 50): void {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      const message = {
+        type: 'load_history',
+        data: {
+          offset,
+          lines
+        }
+      }
+      console.log('📜 发送加载历史记录请求:', message)
+      this.socket.send(JSON.stringify(message))
+    } else {
+      console.warn('⚠️ WebSocket 未连接，无法发送历史记录请求')
+    }
+  }
+
+  // 切换实时跟踪
+  toggleFollow(follow: boolean): void {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      const message = {
+        type: 'toggle_follow',
+        data: {
+          follow
+        }
+      }
+      console.log('🔄 发送切换实时跟踪请求:', message)
+      this.socket.send(JSON.stringify(message))
+    } else {
+      console.warn('⚠️ WebSocket 未连接，无法切换实时跟踪')
+    }
+  }
+
+  // 刷新日志
+  refresh(lines: number = 200): void {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      const message = {
+        type: 'refresh',
+        data: {
+          lines
+        }
+      }
+      console.log('🔄 发送刷新日志请求:', message)
+      this.socket.send(JSON.stringify(message))
+    } else {
+      console.warn('⚠️ WebSocket 未连接，无法刷新日志')
     }
   }
 

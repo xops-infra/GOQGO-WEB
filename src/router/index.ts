@@ -1,11 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import Layout from '@/components/Layout.vue'
-import AppLayout from '@/components/AppLayout.vue'
+import BaseLayout from '@/components/BaseLayout.vue'
+
 import LoginView from '@/views/LoginView.vue'
 import ChatView from '@/views/ChatView.vue'
 import AgentsView from '@/views/AgentsView.vue'
+import DashboardView from '@/views/DashboardView.vue'
 import RolesView from '@/views/RolesView.vue'
+import SettingsView from '@/views/SettingsView.vue'
 import TerminalDemo from '@/views/TerminalDemo.vue'
 import TextColorTest from '@/views/TextColorTest.vue'
 import MessageConfirmDebug from '@/views/MessageConfirmDebug.vue'
@@ -19,6 +21,7 @@ import AuthTest from '@/views/AuthTest.vue'
 import MarkdownTest from '@/views/MarkdownTest.vue'
 import MentionTest from '@/views/MentionTest.vue'
 import ThinkingTest from '@/views/ThinkingTest.vue'
+import LogsTest from '@/views/LogsTest.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -36,33 +39,58 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: Layout,
+      component: BaseLayout,
       meta: {
-        title: 'Q Chat Manager',
+        title: 'GoQGo - 聊天室',
         requiresAuth: true
-      }
+      },
+      children: [
+        {
+          path: '',
+          name: 'chat',
+          component: ChatView
+        }
+      ]
     },
     {
-      path: '/chat',
-      name: 'chat',
-      component: ChatView,
+      path: '/dashboard',
+      name: 'dashboard',
+      component: BaseLayout,
       meta: {
-        title: '聊天室',
+        title: 'GoQGo - 系统看板',
         requiresAuth: true
-      }
+      },
+      children: [
+        {
+          path: '',
+          name: 'dashboard-content',
+          component: DashboardView,
+          meta: {
+            title: '系统看板'
+          }
+        }
+      ]
     },
     {
       path: '/agents',
       name: 'agents',
-      component: AgentsView,
+      component: BaseLayout,
       meta: {
         title: '智能体管理',
         requiresAuth: true
-      }
+      },
+      children: [
+        {
+          path: '',
+          name: 'agents-content',
+          component: AgentsView
+        }
+      ]
     },
     {
       path: '/roles',
-      component: AppLayout,
+      name: 'roles',
+      component: BaseLayout,
       meta: {
         title: '角色管理',
         requiresAuth: true
@@ -70,8 +98,24 @@ const router = createRouter({
       children: [
         {
           path: '',
-          name: 'roles',
+          name: 'roles-content',
           component: RolesView
+        }
+      ]
+    },
+    {
+      path: '/settings',
+      name: 'settings',
+      component: BaseLayout,
+      meta: {
+        title: '系统设置',
+        requiresAuth: true
+      },
+      children: [
+        {
+          path: '',
+          name: 'settings-content',
+          component: SettingsView
         }
       ]
     },
@@ -180,6 +224,15 @@ const router = createRouter({
       component: ThinkingTest,
       meta: {
         title: '思考消息测试',
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/test/logs',
+      name: 'logs-test',
+      component: LogsTest,
+      meta: {
+        title: '日志功能测试',
         requiresAuth: true
       }
     },

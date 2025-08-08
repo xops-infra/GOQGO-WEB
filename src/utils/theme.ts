@@ -1,5 +1,5 @@
 // 主题管理工具
-export type ThemeType = 'light' | 'dark' | 'terminal'
+export type ThemeType = 'terminal'
 
 export class ThemeManager {
   private static instance: ThemeManager
@@ -18,12 +18,8 @@ export class ThemeManager {
   }
 
   private initTheme() {
-    // 从localStorage读取保存的主题
-    const savedTheme = localStorage.getItem('goqgo-theme') as ThemeType
-    if (savedTheme && ['light', 'dark', 'terminal'].includes(savedTheme)) {
-      this.currentTheme = savedTheme
-    }
-
+    // 只使用terminal主题
+    this.currentTheme = 'terminal'
     this.applyTheme(this.currentTheme)
   }
 
@@ -56,10 +52,8 @@ export class ThemeManager {
   }
 
   toggleTheme() {
-    const themes: ThemeType[] = ['light', 'dark', 'terminal']
-    const currentIndex = themes.indexOf(this.currentTheme)
-    const nextIndex = (currentIndex + 1) % themes.length
-    this.setTheme(themes[nextIndex])
+    // 只保留terminal主题，无需切换
+    this.setTheme('terminal')
   }
 
   onThemeChange(callback: (theme: ThemeType) => void) {
@@ -74,46 +68,16 @@ export class ThemeManager {
 
   // 获取主题相关的配置
   getThemeConfig(theme?: ThemeType) {
-    const targetTheme = theme || this.currentTheme
-
-    switch (targetTheme) {
-      case 'terminal':
-        return {
-          name: 'Terminal',
-          icon: '⚡',
-          description: '8-bit Terminal Style',
-          colors: {
-            primary: '#00ff41',
-            secondary: '#0066ff',
-            accent: '#ff0066',
-            background: '#0d1117'
-          }
-        }
-      case 'dark':
-        return {
-          name: 'Dark',
-          icon: '🌙',
-          description: 'Dark Mode',
-          colors: {
-            primary: '#60a5fa',
-            secondary: '#1e293b',
-            accent: '#3b82f6',
-            background: '#0f172a'
-          }
-        }
-      case 'light':
-      default:
-        return {
-          name: 'Light',
-          icon: '☀️',
-          description: 'Light Mode',
-          colors: {
-            primary: '#3b82f6',
-            secondary: '#f8f9fa',
-            accent: '#2563eb',
-            background: '#ffffff'
-          }
-        }
+    return {
+      name: 'Terminal',
+      icon: '⚡',
+      description: '8-bit Terminal Style',
+      colors: {
+        primary: '#00ff41',
+        secondary: '#0066ff',
+        accent: '#ff0066',
+        background: '#000000'
+      }
     }
   }
 
@@ -125,8 +89,6 @@ export class ThemeManager {
   // 获取所有可用主题
   getAvailableThemes() {
     return [
-      this.getThemeConfig('light'),
-      this.getThemeConfig('dark'),
       this.getThemeConfig('terminal')
     ]
   }
