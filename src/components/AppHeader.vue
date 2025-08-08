@@ -183,7 +183,7 @@ const handleUserMenuSelect = (key: string) => {
       window.location.reload()
       break
     case 'logout':
-      authManager.logout()
+      authManager.clearAuth()
       router.push('/login')
       break
   }
@@ -300,16 +300,19 @@ onUnmounted(() => {
 .header-container {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 20px 32px;
   height: 90px;
   width: 100%;
   box-sizing: border-box;
+  position: relative;
 }
 
 // 左侧品牌区域
 .terminal-brand {
-  flex-shrink: 0;
+  position: absolute;
+  left: 32px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -419,13 +422,14 @@ onUnmounted(() => {
 }
 
 // 导航区域
-// 导航区域
 .navigation-section {
-  flex: 1;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   justify-content: center;
   min-width: 0;
-  margin: 0 20px;
 }
 
 .main-nav {
@@ -478,7 +482,10 @@ onUnmounted(() => {
 
 // 右侧区域
 .right-section {
-  flex-shrink: 0;
+  position: absolute;
+  right: 32px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   gap: 20px;
