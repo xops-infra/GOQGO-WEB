@@ -27,52 +27,6 @@
 
     <!-- 操作按钮组 -->
     <div class="control-group">
-      <!-- 加载历史 -->
-      <n-button
-        size="small"
-        quaternary
-        round
-        @click="$emit('load-history')"
-        :loading="isLoadingHistory"
-        :disabled="!isConnected || hasReachedTop"
-        class="control-button"
-      >
-        <template #icon>
-          <n-icon>
-            <svg viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M13,3A9,9 0 0,0 4,12H1L4.89,15.89L4.96,16.03L9,12H6A7,7 0 0,1 13,5A7,7 0 0,1 20,12A7,7 0 0,1 13,19C11.07,19 9.32,18.21 8.06,16.94L6.64,18.36C8.27,20 10.5,21 13,21A9,9 0 0,0 22,12A9,9 0 0,0 13,3Z"
-              />
-            </svg>
-          </n-icon>
-        </template>
-        {{ hasReachedTop ? '已全部加载' : '加载历史' }}
-      </n-button>
-
-      <!-- 刷新 -->
-      <n-button
-        size="small"
-        quaternary
-        round
-        @click="$emit('refresh')"
-        :loading="isRefreshing"
-        :disabled="!isConnected"
-        class="control-button"
-      >
-        <template #icon>
-          <n-icon>
-            <svg viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"
-              />
-            </svg>
-          </n-icon>
-        </template>
-        刷新
-      </n-button>
-
       <!-- 清空 -->
       <n-button
         size="small"
@@ -100,7 +54,6 @@
         quaternary
         round
         @click="$emit('copy')"
-        :disabled="logCount === 0"
         class="control-button"
       >
         <template #icon>
@@ -145,9 +98,6 @@
 interface Props {
   isRealTimeEnabled: boolean
   isConnected: boolean
-  isLoadingHistory: boolean
-  isRefreshing: boolean
-  hasReachedTop: boolean
   logCount: number
 }
 
@@ -155,8 +105,6 @@ defineProps<Props>()
 
 defineEmits<{
   'toggle-realtime': []
-  'load-history': []
-  'refresh': []
   'clear': []
   'copy': []
   'close': []

@@ -48,6 +48,28 @@
         </div>
         <div class="time-info">
           <span class="message-time">{{ formattedTime }}</span>
+          <!-- 取消思考按钮 - 只在思考状态时显示 -->
+          <n-button
+            v-if="message.isThinking"
+            size="small"
+            type="error"
+            ghost
+            @click="handleCancelThinking"
+            :loading="isCancelling"
+            class="cancel-thinking-btn header-cancel-btn"
+          >
+            <template #icon>
+              <n-icon>
+                <svg viewBox="0 0 24 24">
+                  <path
+                    fill="currentColor"
+                    d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                  />
+                </svg>
+              </n-icon>
+            </template>
+            取消思考
+          </n-button>
           <!-- 消息状态图标 -->
           <n-icon 
             v-if="statusIcon" 
@@ -66,7 +88,6 @@
         <div v-if="message.isThinking" class="thinking-content">
           <div class="simple-thinking-display">
             <div class="thinking-header">
-              <div class="agent-name">{{ message.senderName }}</div>
               <div class="thinking-animation">
                 <span class="dot">●</span>
                 <span class="dot">●</span>
@@ -90,7 +111,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, onMounted, onUnmounted } from 'vue'
+import { computed, h, onMounted, onUnmounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useChatStore } from '@/stores/chat'
 import { formatRelativeTime, useTimeManager } from '@/utils/timeManager'
@@ -99,6 +120,8 @@ import ThinkingMessage from './ThinkingMessage.vue'
 import ThinkingStreamDisplay from './ThinkingStreamDisplay.vue'
 import type { ChatMessage } from '@/types/api'
 import { useUserStore } from '@/stores/user'
+import { agentApi } from '@/api/agents'
+import { useNamespacesStore } from '@/stores/namespaces'
 
 // Props定义
 interface Props {
@@ -118,6 +141,12 @@ const { onlineUsers } = storeToRefs(chatStore)
 
 // 获取用户store中的当前用户名
 const userStore = useUserStore()
+
+// 获取命名空间store
+const namespacesStore = useNamespacesStore()
+
+// 取消思考的状态管理
+const isCancelling = ref(false)
 
 // 使用时间管理器
 const { currentTime, cleanup } = useTimeManager()
@@ -154,6 +183,38 @@ const isValidMessage = computed(() => {
     props.message.content !== undefined
   )
 })
+
+// 取消思考的方法
+const handleCancelThinking = async () => {
+  if (!props.message.senderName) {
+    console.error('无法获取agent名称')
+    return
+  }
+
+  try {
+    isCancelling.value = true
+    
+    // 获取当前命名空间
+    const namespace = namespacesStore.currentNamespace || 'default'
+    const agentName = props.message.senderName
+    
+    // 发送取消命令
+    await agentApi.sendRawCommand(namespace, agentName, {
+      command: 'cancel' // 或者使用其他取消命令，根据后端API的具体要求
+    })
+    
+    console.log('已发送取消思考命令给agent:', agentName)
+    
+    // 可以在这里添加成功提示或其他UI反馈
+    // 注意：实际的思考状态变化需要通过WebSocket或其他机制来更新
+    
+  } catch (error) {
+    console.error('取消思考失败:', error)
+    // 可以在这里添加错误提示
+  } finally {
+    isCancelling.value = false
+  }
+}
 
 // 消息ID
 const messageId = computed(() => {
@@ -349,6 +410,7 @@ const handleStatusClick = () => {
   width: 100%; /* 确保消息项占满容器宽度 */
   box-sizing: border-box; /* 确保padding不会增加总宽度 */
 
+
   // 用户消息样式
   &.message-user {
     .sender-name.sender-user {
@@ -400,11 +462,7 @@ const handleStatusClick = () => {
         flex-direction: column;
         gap: 8px;
         
-        .agent-name {
-          font-weight: 600;
-          color: var(--color-info);
-          font-size: 14px;
-        }
+
         
         .thinking-animation {
           display: flex;
@@ -433,6 +491,8 @@ const handleStatusClick = () => {
             min-width: 0;
           }
         }
+
+
       }
     }
   }
@@ -531,6 +591,18 @@ const handleStatusClick = () => {
       font-size: 12px;
       color: var(--text-tertiary);
       white-space: nowrap;
+    }
+
+    .header-cancel-btn {
+      font-size: 11px;
+      padding: 2px 6px;
+      height: 20px;
+      border-radius: 3px;
+      
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
+      }
     }
 
     .status-icon {
@@ -638,6 +710,74 @@ const handleStatusClick = () => {
     .markdown-content {
       font-size: 13px;
       line-height: 1.5;
+    }
+  }
+}
+
+// 终端模式适配
+.terminal-mode {
+  .message-item {
+
+    
+    .message-card {
+      background: var(--terminal-card-bg, #0a0a0a);
+      border: 1px solid var(--terminal-border-subtle, rgba(0, 255, 65, 0.15));
+      color: var(--terminal-text-primary, #ffffff);
+      
+      &:hover {
+        border-color: var(--terminal-border-hover, rgba(0, 255, 65, 0.5));
+        box-shadow: 0 0 8px rgba(0, 255, 65, 0.2);
+      }
+    }
+
+    .message-header {
+      background: var(--terminal-panel-bg, #111111);
+      border-bottom: 1px solid var(--terminal-border-subtle, rgba(0, 255, 65, 0.15));
+      
+      .user-info {
+        .user-details {
+          .sender-name {
+            color: var(--terminal-text-primary, #ffffff);
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+          }
+        }
+      }
+
+      .time-info {
+        .message-time {
+          color: var(--terminal-text-primary, #ffffff);
+          font-family: 'Courier New', monospace;
+        }
+
+        .header-cancel-btn {
+          background: transparent !important;
+          border: 1px solid var(--terminal-border, rgba(0, 255, 65, 0.3)) !important;
+          color: var(--terminal-text-primary, #ffffff) !important;
+          font-family: 'Courier New', monospace !important;
+          text-transform: uppercase !important;
+          font-size: 9px !important;
+          padding: 2px 4px !important;
+          height: 18px !important;
+          
+          &:hover {
+            background: rgba(220, 53, 69, 0.1) !important;
+            border-color: rgba(220, 53, 69, 0.5) !important;
+            box-shadow: 0 0 6px rgba(220, 53, 69, 0.3) !important;
+          }
+        }
+      }
+    }
+
+    .message-content-box {
+      background: var(--terminal-card-bg, #0a0a0a);
+      color: var(--terminal-text-primary, #ffffff);
+      
+      .markdown-content {
+        color: var(--terminal-text-primary, #ffffff);
+      }
+
+
     }
   }
 }

@@ -8,3 +8,10 @@
 @use './input-fix.scss';
 
 // 全局样式重置和基础设置
+
+// 默认页尾样式变量
+:root {
+  --footer-bg: #2d3748;
+  --border-color: #4a5568;
+  --text-secondary: #ffffff;
+}

@@ -1,241 +1,197 @@
 <template>
   <div class="settings-view">
-    <!-- 页面头部信息 -->
-    <div class="page-header">
-      <div class="page-info">
-        <h1 class="page-title">{{ isTerminal ? 'SYSTEM_SETTINGS' : '系统设置' }}</h1>
-        <p class="page-description">{{ isTerminal ? 'CONFIGURE_SYSTEM_PARAMETERS' : '配置系统参数和偏好设置' }}</p>
-      </div>
-    </div>
-
-    <!-- 页面内容 -->
-    <div class="page-content">
-      <div class="settings-content" :class="{ 'terminal-mode': isTerminal }">
-        <!-- 设置分类 -->
-        <n-tabs type="line" animated>
-          <n-tab-pane name="general" :tab="isTerminal ? 'GENERAL' : '常规'">
-            <div class="settings-section">
-              <h3>{{ isTerminal ? 'GENERAL_SETTINGS' : '常规设置' }}</h3>
-              <n-form :model="generalSettings" label-placement="left" label-width="auto">
-                <n-form-item :label="isTerminal ? 'LANGUAGE' : '语言'">
-                  <n-select v-model:value="generalSettings.language" :options="languageOptions" />
-                </n-form-item>
-                <n-form-item :label="isTerminal ? 'TIMEZONE' : '时区'">
-                  <n-select v-model:value="generalSettings.timezone" :options="timezoneOptions" />
-                </n-form-item>
-              </n-form>
-            </div>
-          </n-tab-pane>
-          
-          <n-tab-pane name="appearance" :tab="isTerminal ? 'APPEARANCE' : '外观'">
-            <div class="settings-section">
-              <h3>{{ isTerminal ? 'APPEARANCE_SETTINGS' : '外观设置' }}</h3>
-              <n-form :model="appearanceSettings" label-placement="left" label-width="auto">
-                <n-form-item :label="isTerminal ? 'THEME' : '主题'">
-                  <n-select v-model:value="appearanceSettings.theme" :options="themeOptions" />
-                </n-form-item>
-                <n-form-item :label="isTerminal ? 'FONT_SIZE' : '字体大小'">
-                  <n-slider v-model:value="appearanceSettings.fontSize" :min="12" :max="20" />
-                </n-form-item>
-              </n-form>
-            </div>
-          </n-tab-pane>
-          
-          <n-tab-pane name="notifications" :tab="isTerminal ? 'NOTIFICATIONS' : '通知'">
-            <div class="settings-section">
-              <h3>{{ isTerminal ? 'NOTIFICATION_SETTINGS' : '通知设置' }}</h3>
-              <n-form :model="notificationSettings" label-placement="left" label-width="auto">
-                <n-form-item :label="isTerminal ? 'ENABLE_NOTIFICATIONS' : '启用通知'">
-                  <n-switch v-model:value="notificationSettings.enabled" />
-                </n-form-item>
-                <n-form-item :label="isTerminal ? 'SOUND_NOTIFICATIONS' : '声音通知'">
-                  <n-switch v-model:value="notificationSettings.sound" />
-                </n-form-item>
-              </n-form>
-            </div>
-          </n-tab-pane>
-        </n-tabs>
+    <!-- 开发中提示 -->
+    <div class="development-notice">
+      <div class="notice-content">
+        <div class="notice-icon">
+          <n-icon size="64" color="#f0a020">
+            <ConstructOutline />
+          </n-icon>
+        </div>
+        <h1 class="notice-title">开发中</h1>
+        <p class="notice-description">Settings 功能正在开发中，敬请期待...</p>
+        <div class="notice-progress">
+          <n-progress 
+            type="line" 
+            :percentage="25" 
+            :show-indicator="false"
+            :color="'#f0a020'"
+            :height="8"
+          />
+          <span class="progress-text">开发进度: 25%</span>
+        </div>
+        <div class="notice-features">
+          <h3>即将推出的功能：</h3>
+          <ul>
+            <li>⚙️ 系统参数配置</li>
+            <li>🎨 主题和外观设置</li>
+            <li>🔔 通知偏好设置</li>
+            <li>🌍 语言和时区设置</li>
+            <li>🔐 安全和权限管理</li>
+          </ul>
+        </div>
+        <div class="notice-actions">
+          <n-button 
+            type="primary" 
+            size="large"
+            @click="goToChat"
+            class="back-button"
+          >
+            返回聊天室
+          </n-button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { NForm, NFormItem, NInput, NSelect, NSwitch, NButton, NSpace, NCard, NInputNumber, useMessage } from 'naive-ui'
-import { useTheme } from '@/utils/theme'
-import { useUserStore } from '@/stores/user'
-import PageLayout from '@/components/PageLayout.vue'
+import { NIcon, NProgress, NButton } from 'naive-ui'
+import { ConstructOutline } from '@vicons/ionicons5'
+import { useRouter } from 'vue-router'
 
-const { isTerminal } = useTheme()
-const userStore = useUserStore()
-const message = useMessage()
+const router = useRouter()
 
-// 响应式数据
-const formRef = ref()
-const saving = ref(false)
-
-const formData = reactive({
-  apiEndpoint: 'http://localhost:8000',
-  websocketUrl: 'ws://localhost:8000/ws',
-  defaultNamespace: 'default',
-  themeMode: 'auto',
-  autoRefresh: true,
-  refreshInterval: 30
-})
-
-const themeModeOptions = [
-  { label: isTerminal.value ? 'AUTO' : '自动', value: 'auto' },
-  { label: isTerminal.value ? 'LIGHT' : '浅色', value: 'light' },
-  { label: isTerminal.value ? 'DARK' : '深色', value: 'dark' },
-  { label: isTerminal.value ? 'TERMINAL' : '终端', value: 'terminal' }
-]
-
-const rules = {
-  apiEndpoint: [
-    { required: true, message: '请输入API端点地址', trigger: 'blur' },
-    { type: 'url', message: '请输入有效的URL地址', trigger: 'blur' }
-  ],
-  websocketUrl: [
-    { required: true, message: '请输入WebSocket地址', trigger: 'blur' }
-  ],
-  defaultNamespace: [
-    { required: true, message: '请输入默认命名空间', trigger: 'blur' }
-  ],
-  refreshInterval: [
-    { type: 'number', min: 5, max: 300, message: '刷新间隔必须在5-300秒之间', trigger: 'blur' }
-  ]
-}
-
-// 方法
-const handleSave = async () => {
-  try {
-    await formRef.value?.validate()
-    saving.value = true
-    
-    // 这里应该调用API保存设置
-    await new Promise(resolve => setTimeout(resolve, 1000)) // 模拟API调用
-    
-    message.success(isTerminal.value ? 'SETTINGS_SAVED' : '设置已保存')
-  } catch (error) {
-    console.error('保存设置失败:', error)
-    message.error(isTerminal.value ? 'SAVE_FAILED' : '保存失败')
-  } finally {
-    saving.value = false
-  }
-}
-
-const handleReset = () => {
-  formData.apiEndpoint = 'http://localhost:8000'
-  formData.websocketUrl = 'ws://localhost:8000/ws'
-  formData.defaultNamespace = 'default'
-  formData.themeMode = 'auto'
-  formData.autoRefresh = true
-  formData.refreshInterval = 30
-  
-  message.info(isTerminal.value ? 'SETTINGS_RESET' : '设置已重置')
+const goToChat = () => {
+  router.push('/')
 }
 </script>
 
 <style scoped lang="scss">
-.settings-content {
-  max-width: 800px;
-  margin: 0 auto;
+.settings-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--page-bg);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
 
-  &.terminal-mode {
-    background: var(--terminal-bg);
+.development-notice {
+  max-width: 600px;
+  width: 100%;
+  text-align: center;
+}
+
+.notice-content {
+  background: var(--card-color);
+  border-radius: 16px;
+  padding: 48px 32px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.notice-icon {
+  margin-bottom: 24px;
+  animation: pulse 2s infinite;
+}
+
+.notice-title {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--text-color-1);
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #f0a020, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.notice-description {
+  font-size: 18px;
+  color: var(--text-color-3);
+  margin-bottom: 32px;
+  line-height: 1.6;
+}
+
+.notice-progress {
+  margin-bottom: 32px;
+  
+  .progress-text {
+    display: block;
+    margin-top: 12px;
+    font-size: 14px;
+    color: var(--text-color-3);
   }
 }
 
-:deep(.n-card) {
-  &.terminal-window {
-    background: var(--terminal-card-bg);
-    border: 1px solid var(--terminal-border);
+.notice-features {
+  margin-bottom: 32px;
+  text-align: left;
+  
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-color-1);
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
     
-    .n-card-header {
-      background: var(--terminal-header-bg);
-      border-bottom-color: var(--terminal-border);
+    li {
+      padding: 8px 0;
+      font-size: 16px;
+      color: var(--text-color-2);
+      border-bottom: 1px solid var(--border-color);
       
-      .card-header {
-        &.terminal-header {
-          color: var(--terminal-text);
-          font-family: 'Courier New', monospace;
-        }
+      &:last-child {
+        border-bottom: none;
       }
     }
   }
 }
 
-:deep(.n-form) {
-  &.terminal-form {
-    .n-form-item-label {
-      color: var(--terminal-text);
-      font-family: 'Courier New', monospace;
-    }
+.notice-actions {
+  .back-button {
+    min-width: 160px;
+    height: 48px;
+    font-size: 16px;
+    font-weight: 500;
   }
 }
 
-// Terminal模式样式
-.terminal-mode {
-  .terminal-input {
-    :deep(.n-input) {
-      background: var(--terminal-input-bg);
-      border-color: var(--terminal-border);
-      color: var(--terminal-text);
-      font-family: 'Courier New', monospace;
-    }
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
   }
-  
-  .terminal-select {
-    :deep(.n-base-selection) {
-      background: var(--terminal-input-bg);
-      border-color: var(--terminal-border);
-      color: var(--terminal-text);
-      font-family: 'Courier New', monospace;
-    }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
   }
-  
-  .terminal-input-number {
-    :deep(.n-input-number) {
-      background: var(--terminal-input-bg);
-      border-color: var(--terminal-border);
-      color: var(--terminal-text);
-      font-family: 'Courier New', monospace;
-    }
-  }
-  
-  .terminal-switch {
-    :deep(.n-switch) {
-      --n-rail-color: var(--terminal-border);
-      --n-rail-color-active: var(--terminal-primary);
-    }
-  }
-  
-  .btn-8bit {
-    background: var(--terminal-button-bg);
-    border-color: var(--terminal-border);
-    color: var(--terminal-text);
-    font-family: 'Courier New', monospace;
-    
-    &:hover {
-      background: var(--terminal-button-hover-bg);
-    }
-    
-    &.n-button--primary-type {
-      background: var(--terminal-primary);
-      border-color: var(--terminal-primary);
-      
-      &:hover {
-        background: var(--terminal-primary-hover);
-      }
-    }
+  100% {
+    transform: scale(1);
+    opacity: 1;
   }
 }
 
 // 响应式设计
 @media (max-width: 768px) {
-  .settings-content {
-    max-width: 100%;
+  .settings-view {
+    padding: 16px;
+  }
+  
+  .notice-content {
+    padding: 32px 24px;
+  }
+  
+  .notice-title {
+    font-size: 28px;
+  }
+  
+  .notice-description {
+    font-size: 16px;
+  }
+  
+  .notice-features {
+    ul li {
+      font-size: 14px;
+    }
   }
 }
 </style>

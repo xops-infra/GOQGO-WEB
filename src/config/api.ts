@@ -67,7 +67,8 @@ export const API_ENDPOINTS = {
     SEND: (namespace: string, name: string) => `/api/v1/namespaces/${namespace}/agents/${name}/send`,
     LOGS: (namespace: string, name: string) => `/api/v1/namespaces/${namespace}/agents/${name}/logs`,
     RESTART: (namespace: string, name: string) => `/api/v1/namespaces/${namespace}/agents/${name}/restart`,
-    BROADCAST: (namespace: string) => `/api/v1/namespaces/${namespace}/agents/broadcast`
+    BROADCAST: (namespace: string) => `/api/v1/namespaces/${namespace}/agents/broadcast`,
+    RAW_COMMAND: (namespace: string, name: string) => `/api/v1/namespaces/${namespace}/agents/${name}/raw-command`
   },
   
   // 角色相关

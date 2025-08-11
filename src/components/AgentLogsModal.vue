@@ -24,57 +24,24 @@
         <LogsControlButtons
           :is-real-time-enabled="isRealTimeEnabled"
           :is-connected="isConnected"
-          :is-loading-history="isLoadingHistory"
-          :is-refreshing="isRefreshing"
-          :has-reached-top="hasReachedTop"
           :log-count="logs.length"
           @toggle-realtime="toggleRealTime"
-          @load-history="loadMoreHistory"
-          @refresh="refreshLogs"
           @clear="clearLogs"
           @copy="copyAllLogs"
           @close="closeModal"
+          @send-command="handleSendCommand"
         />
       </div>
     </div>
 
     <!-- 日志内容区域 -->
     <div class="modal-body">
-      <!-- 加载历史日志提示 -->
-      <div v-if="isLoadingHistory" class="loading-history">
-        <n-spin size="small" />
-        <span>加载历史日志中...</span>
-      </div>
-
-      <!-- 渲染器切换 -->
-      <div class="renderer-switch">
-        <n-radio-group v-model:value="rendererType" size="small">
-          <n-radio value="xterm">XTerm 渲染器</n-radio>
-          <n-radio value="ansi">ANSI 渲染器</n-radio>
-        </n-radio-group>
-      </div>
-
-      <!-- XTerm 终端日志渲染器 -->
-      <XTermLogRenderer
-        v-if="rendererType === 'xterm'"
+      <!-- 原始日志 XTerm 渲染器 -->
+      <RawLogXTermRenderer
         ref="xtermRendererRef"
-        :logs="logs"
-        :is-loading="isConnecting"
-        :loading-text="isConnecting ? '正在连接日志流...' : ''"
+        :raw-content="rawLogContent"
         :auto-scroll="isRealTimeEnabled"
         :max-lines="10000"
-      />
-
-      <!-- ANSI 终端日志渲染器 -->
-      <TerminalLogRenderer
-        v-else
-        ref="ansiRendererRef"
-        :logs="logs"
-        :is-loading="isConnecting"
-        :loading-text="isConnecting ? '正在连接日志流...' : ''"
-        :auto-scroll="isRealTimeEnabled"
-        :max-lines="10000"
-        @scroll="handleScroll"
       />
     </div>
 
@@ -88,8 +55,54 @@
           {{ isRealTimeEnabled ? '实时追踪' : '已暂停' }}
         </n-tag>
         <span class="log-count">共 {{ logs.length }} 条日志</span>
-        <span v-if="hasReachedTop" class="history-status">已加载全部历史</span>
       </div>
+      
+      <!-- 快捷键区域 -->
+      <div class="footer-shortcuts">
+        <span class="shortcut-label">快捷键:</span>
+        <!-- Ctrl+C 中断信号 -->
+        <div class="shortcut-item" title="Ctrl+C - 中断信号">
+          <n-button
+            size="small"
+            quaternary
+            circle
+            @click="handleSendCommand('C-c')"
+            :disabled="!isConnected"
+            class="footer-shortcut-button"
+          >
+            <template #icon>
+              <n-icon>
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6M12,8A4,4 0 0,0 8,12A4,4 0 0,0 12,16A4,4 0 0,0 16,12A4,4 0 0,0 12,8Z"/>
+                </svg>
+              </n-icon>
+            </template>
+          </n-button>
+          <span class="shortcut-text">Ctrl+C</span>
+        </div>
+
+        <!-- Enter 回车键 -->
+        <div class="shortcut-item" title="Enter - 回车键">
+          <n-button
+            size="small"
+            quaternary
+            circle
+            @click="handleSendCommand('Enter')"
+            :disabled="!isConnected"
+            class="footer-shortcut-button"
+          >
+            <template #icon>
+              <n-icon>
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M9,10V15H15V10H17L12,5L7,10H9M2,17V19H22V17H2Z"/>
+                </svg>
+              </n-icon>
+            </template>
+          </n-button>
+          <span class="shortcut-text">Enter</span>
+        </div>
+      </div>
+      
       <div class="footer-right">
         <span class="last-update" v-if="lastUpdateTime">
           最后更新: {{ new Date(lastUpdateTime).toLocaleTimeString() }}
@@ -106,13 +119,14 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useMessage } from 'naive-ui'
 import { type Agent, type LogEntry } from '@/api/agents'
+import { agentApi } from '@/api/agents'
 import { logsApi } from '@/api/logs'
-import { LogSocket } from '@/utils/logSocket'
+import { LogManager, type LogEntry as LogManagerEntry } from '@/utils/logManager'
+import { usePageWebSocket, type WebSocketMessage } from '@/utils/pageWebSocketManager'
 import { buildApiUrl, apiConfig } from '@/config/api'
 import LogsControlButtons from './logs/LogsControlButtons.vue'
 import LogsIcon from './icons/LogsIcon.vue'
-import TerminalLogRenderer from './logs/TerminalLogRenderer.vue'
-import XTermLogRenderer from './logs/XTermLogRenderer.vue'
+import RawLogXTermRenderer from './logs/RawLogXTermRenderer.vue'
 
 // Props
 interface Props {
@@ -144,26 +158,23 @@ const visible = computed({
 
 const modalRef = ref<HTMLElement>()
 const headerRef = ref<HTMLElement>()
-const xtermRendererRef = ref<InstanceType<typeof XTermLogRenderer>>()
-const ansiRendererRef = ref<InstanceType<typeof TerminalLogRenderer>>()
+const xtermRendererRef = ref<InstanceType<typeof RawLogXTermRenderer>>()
 const message = useMessage()
 
 // 日志相关状态
 const logs = ref<LogEntry[]>([])
+const rawLogContent = ref<string>('') // 新增：存储原始日志内容
 const initialLines = ref(1000) // 初始加载的日志行数
 const isRealTimeEnabled = ref(true) // 实时输出开关
 const isConnected = ref(false)
 const isConnecting = ref(false)
-const isLoadingHistory = ref(false)
-const isRefreshing = ref(false) // 刷新状态
 const loadingTimeoutId = ref<number | null>(null) // loading超时ID
-const hasReachedTop = ref(false)
 const lastUpdateTime = ref<string>()
-const logSocket = ref<LogSocket | null>(null)
+const logManager = ref<LogManager | null>(null)
 const isConnectionPending = ref(false) // 连接状态标记
 
-// 渲染器类型
-const rendererType = ref<'ansi' | 'xterm'>('xterm') // 默认使用 xterm
+// 页面级 WebSocket 管理
+const wsHook = usePageWebSocket('AgentLogsModal')
 
 // 模态框位置和大小
 const modalPosition = ref({ x: 0, y: 0 })
@@ -178,8 +189,22 @@ const resizeStart = ref({ x: 0, y: 0, width: 0, height: 0 })
 // 日志容器状态
 // 移除了不需要的日志容器状态管理
 
-// 连接WebSocket获取实时日志
+// 连接日志流（改为API轮询方式）
 const connectLogStream = async () => {
+  // 立即输出调试信息，确保函数被调用
+  console.log('🚀🚀🚀 connectLogStream 函数开始执行 🚀🚀🚀')
+  console.log('📊 当前环境信息:', {
+    agent: props.agent,
+    agentName: props.agent?.name,
+    namespace: props.agent?.namespace,
+    visible: visible.value,
+    isConnecting: isConnecting.value,
+    isConnectionPending: isConnectionPending.value,
+    timestamp: new Date().toISOString(),
+    userAgent: navigator.userAgent,
+    url: window.location.href
+  })
+
   console.log('🔗 connectLogStream 函数被调用:', {
     agent: props.agent,
     agentName: props.agent?.name,
@@ -232,206 +257,155 @@ const connectLogStream = async () => {
     isConnecting.value = true
 
     // 断开现有连接
-    if (logSocket.value) {
+    if (logManager.value) {
       console.log('🔄 断开现有连接')
-      logSocket.value.disconnect()
+      logManager.value.destroy()
     }
 
-    // 创建新的日志连接
-    logSocket.value = new LogSocket(
+    // 创建新的日志管理器
+    logManager.value = new LogManager(
       props.agent.namespace,
       props.agent.name,
-      { lines: initialLines.value, follow: true },
       {
-        onConnect: () => {
-          console.log('📡 日志流连接成功')
-          isConnected.value = true
-          isConnecting.value = false
-          isConnectionPending.value = false
+        onLogsUpdate: (logEntries, response, rawContent) => {
+          console.log('📋 收到日志更新:', logEntries.length, '条')
+          console.log('📄 原始内容长度:', rawContent?.length || 0)
           
-          // 连接成功后获取日志状态，同步前端状态
-          getLogStatus().then(status => {
-            if (status) {
-              // 这里可以根据状态更新前端状态
-              console.log('📊 同步日志状态:', status)
-            }
-          })
-        },
-        onDisconnect: () => {
-          console.log('📡 日志流连接断开')
-          isConnected.value = false
-          isConnecting.value = false
-          isConnectionPending.value = false
-        },
-        onInitial: (initialLogs) => {
-          console.log('📋 收到初始日志:', initialLogs.length, '条')
-          
-          // 对初始日志进行去重处理
-          const deduplicatedLogs = []
-          const seenLogs = new Set()
-          
-          for (const log of initialLogs) {
-            const logKey = `${log.timestamp}-${log.message}-${log.source}`
-            if (!seenLogs.has(logKey)) {
-              seenLogs.add(logKey)
-              deduplicatedLogs.push(log)
-            } else {
-              console.log('⚠️ 跳过重复的初始日志:', log.message.substring(0, 30))
-            }
+          // 存储原始内容供xterm使用
+          if (rawContent) {
+            rawLogContent.value = rawContent
           }
           
-          console.log('📋 去重后的初始日志:', deduplicatedLogs.length, '条')
-          logs.value = [...deduplicatedLogs]
-          lastUpdateTime.value = new Date().toISOString()
-
-          // 滚动到底部
-          nextTick(() => {
-            scrollToBottom()
-          })
-        },
-        onAppend: (newLog) => {
-          // 只有在实时输出开启时才处理新日志
-          if (!isRealTimeEnabled.value) {
-            console.log('⏸️ 实时输出已关闭，跳过新日志:', newLog.message.substring(0, 50))
-            return
-          }
+          // 转换为组件需要的格式（用于兼容性和其他渲染器）
+          const formattedLogs: LogEntry[] = logEntries.map(entry => ({
+            id: entry.id,
+            timestamp: entry.timestamp,
+            level: entry.level,
+            message: entry.message,
+            source: entry.source
+          }))
           
-          console.log('➕ 收到新日志:', newLog.message.substring(0, 50), '来源:', newLog.source)
+          logs.value = formattedLogs
+          lastUpdateTime.value = response.timestamp
           
-          // 检查是否是重复日志（基于时间戳和消息内容）
-          const isDuplicate = logs.value.some(existingLog => 
-            existingLog.timestamp === newLog.timestamp && 
-            existingLog.message === newLog.message &&
-            Math.abs(new Date(existingLog.timestamp).getTime() - new Date(newLog.timestamp).getTime()) < 1000 // 1秒内的重复
-          )
-          
-          if (isDuplicate) {
-            console.log('⚠️ 检测到重复日志，跳过添加:', newLog.message.substring(0, 30))
-            return
-          }
-          
-          // 过滤 unknown 源的日志（如果已有相同内容的 default-sys 日志）
-          if (newLog.source === 'unknown') {
-            const hasDefaultSysVersion = logs.value.some(existingLog => 
-              existingLog.source === 'default-sys' && 
-              existingLog.message === newLog.message &&
-              Math.abs(new Date(existingLog.timestamp).getTime() - new Date(newLog.timestamp).getTime()) < 5000 // 5秒内
-            )
-            
-            if (hasDefaultSysVersion) {
-              console.log('⚠️ 检测到 unknown 源的重复日志，跳过添加:', newLog.message.substring(0, 30))
-              return
-            }
-          }
-          
-          logs.value.push(newLog)
-          lastUpdateTime.value = new Date().toISOString()
-
           // 如果开启实时追踪，自动滚动到底部
           if (isRealTimeEnabled.value) {
             nextTick(() => {
-              scrollToBottom()
+              // 滚动到底部的逻辑
             })
           }
         },
-        onHistory: (historyLogs, hasMore) => {
-          console.log('📜 收到历史日志:', historyLogs.length, '条, hasMore:', hasMore)
-
-          // 清除超时保护并重置loading状态
-          clearLoadingTimeout()
-          isLoadingHistory.value = false
-
-          // 如果没有历史日志，直接设置hasReachedTop
-          if (historyLogs.length === 0) {
-            hasReachedTop.value = true
-            console.log('📜 没有更多历史日志')
-            return
-          }
-
-          // 对历史日志进行去重处理
-          const deduplicatedHistoryLogs = []
-          const existingLogKeys = new Set(
-            logs.value.map(log => `${log.timestamp}-${log.message}-${log.source}`)
-          )
-          
-          for (const log of historyLogs) {
-            const logKey = `${log.timestamp}-${log.message}-${log.source}`
-            if (!existingLogKeys.has(logKey)) {
-              existingLogKeys.add(logKey)
-              deduplicatedHistoryLogs.push(log)
-            } else {
-              console.log('⚠️ 跳过重复的历史日志:', log.message.substring(0, 30))
-            }
-          }
-          
-          console.log('📜 去重后的历史日志:', deduplicatedHistoryLogs.length, '条')
-
-          // 将去重后的历史日志添加到开头
-          logs.value = [...deduplicatedHistoryLogs, ...logs.value]
-          hasReachedTop.value = !hasMore
-
-          // 终端渲染器会自动处理滚动位置
-        },
-        onRefreshed: (lines) => {
-          console.log('🔄 收到刷新确认:', lines)
-          isRefreshing.value = false
-          clearLoadingTimeout()
-          message.success(`日志已刷新 (${lines} 行)`)
-        },
-        onSessionClosed: (msg) => {
-          console.log('❌ 会话已关闭:', msg)
-          message.warning('Agent会话已关闭: ' + msg)
-          isConnected.value = false
-          isConnecting.value = false
-          isConnectionPending.value = false
-        },
-        onFollowToggled: (data) => {
-          console.log('🔄 收到实时跟踪状态切换:', data)
-          // 更新前端的实时跟踪状态（WebSocket确认）
-          const followState = data.follow
-          isRealTimeEnabled.value = followState
-          console.log('🔄 WebSocket状态同步:', { 
-            received: data, 
-            followState, 
-            currentUI: isRealTimeEnabled.value 
-          })
-        },
         onError: (error) => {
           console.error('📡 日志流错误:', error)
-          message.error(`日志连接错误: ${error}`)
+          message.error(`日志获取错误: ${error}`)
           isConnected.value = false
           isConnecting.value = false
           isConnectionPending.value = false
-          isLoadingHistory.value = false // 重置历史加载状态
-          isRefreshing.value = false // 重置刷新状态
+        },
+        onRefresh: () => {
+          console.log('🔄 日志刷新中...')
         }
       }
     )
 
-    console.log('🔗 尝试连接 WebSocket...')
-    await logSocket.value.connect()
-    console.log('✅ WebSocket 连接完成')
+    // 模拟连接成功
+    console.log('✅ 日志管理器创建成功')
+    
+    // 连接到页面级 WebSocket
+    try {
+      const connection = await wsHook.connect(props.agent.namespace)
+      console.log('✅ 页面级 WebSocket 连接建立:', wsHook.componentId)
+      
+      // 监听原始命令执行结果
+      wsHook.on('raw_command_result', (result: any) => {
+        console.log('📨 原始命令执行结果:', result)
+        if (result.success) {
+          message.success(`命令执行成功: ${result.message || ''}`)
+        } else {
+          message.error(`命令执行失败: ${result.error || '未知错误'}`)
+        }
+      })
+      
+      // 监听日志相关消息（如果后续需要实时日志）
+      wsHook.on('log_initial', (logs: any) => {
+        console.log('📋 收到初始日志:', logs)
+      })
+      
+      wsHook.on('log_append', (log: any) => {
+        console.log('📋 收到新日志:', log)
+      })
+      
+      // 监听连接状态
+      wsHook.on('connect', () => {
+        console.log('✅ 页面级 WebSocket 重新连接成功')
+      })
+      
+      wsHook.on('disconnect', () => {
+        console.log('🔌 页面级 WebSocket 连接断开')
+      })
+      
+      wsHook.on('error', (error: any) => {
+        console.error('❌ 页面级 WebSocket 错误:', error)
+        message.error('WebSocket 连接错误')
+      })
+      
+    } catch (error) {
+      console.error('❌ 页面级 WebSocket 连接失败:', error)
+      message.warning('快捷键功能可能不可用')
+    }
+    
+    isConnected.value = true
+    isConnecting.value = false
+    isConnectionPending.value = false
+    
+    // 立即获取一次日志
+    await logManager.value.fetchLogs(initialLines.value)
+    
+    // 如果启用实时模式，开始自动刷新
+    if (isRealTimeEnabled.value) {
+      logManager.value.startAutoRefresh(3000) // 3秒刷新间隔
+    }
+    
+    console.log('✅ 日志流连接完成')
   } catch (error) {
     console.error('❌ 创建日志流失败:', error)
-    message.error('无法连接日志流: ' + error.message)
+    message.error('无法连接日志流: ' + (error as Error).message)
     isConnected.value = false
     isConnecting.value = false
     isConnectionPending.value = false
+    
+    // 自动运行API测试以诊断问题
+    console.log('🧪 开始API诊断测试...')
+    try {
+      const testResult = await testLogsApi(props.agent.namespace, props.agent.name)
+      console.log('🧪 API测试结果:', testResult)
+      
+      if (!testResult.success) {
+        console.error('🧪 API测试失败，详细错误信息:', testResult.error)
+      }
+    } catch (testError) {
+      console.error('🧪 API测试本身失败:', testError)
+    }
   }
 }
 
 // 断开日志流
 const disconnectLogStream = () => {
   console.log('🔌 断开日志流连接')
-  if (logSocket.value) {
-    logSocket.value.disconnect()
-    logSocket.value = null
+  if (logManager.value) {
+    logManager.value.destroy()
+    logManager.value = null
   }
+  
+  // 断开页面级 WebSocket 连接（只是取消组件订阅）
+  wsHook.disconnect()
+  console.log('🔌 页面级 WebSocket 组件订阅已取消')
+  
   isConnected.value = false
   isConnecting.value = false
   isConnectionPending.value = false
-  isLoadingHistory.value = false // 重置历史加载状态
-  isRefreshing.value = false // 重置刷新状态
+  // isLoadingHistory.value = false // 重置历史加载状态 // 移除
+  // isRefreshing.value = false // 重置刷新状态 // 移除
 }
 
 // 设置loading超时保护
@@ -439,11 +413,11 @@ const setLoadingTimeout = (type: 'history' | 'refresh', timeout = 10000) => {
   clearLoadingTimeout()
   loadingTimeoutId.value = window.setTimeout(() => {
     console.warn(`⏰ ${type} loading 超时，强制重置状态`)
-    if (type === 'history') {
-      isLoadingHistory.value = false
-    } else if (type === 'refresh') {
-      isRefreshing.value = false
-    }
+    // if (type === 'history') { // 移除
+    //   isLoadingHistory.value = false // 移除
+    // } else if (type === 'refresh') { // 移除
+    //   isRefreshing.value = false // 移除
+    // } // 移除
     message.warning(`${type === 'history' ? '加载历史日志' : '刷新日志'}超时，请重试`)
   }, timeout)
 }
@@ -477,66 +451,6 @@ const getLogStatus = async () => {
   }
 }
 
-// 刷新日志
-const refreshLogs = async () => {
-  if (!props.agent || !isConnected.value || isRefreshing.value) {
-    return
-  }
-
-  try {
-    isRefreshing.value = true
-    setLoadingTimeout('refresh')
-    
-    console.log('🔄 开始刷新日志:', props.agent.name)
-    
-    // 使用 WebSocket 发送刷新请求
-    if (logSocket.value) {
-      logSocket.value.refresh(1000) // 刷新显示1000行
-    }
-    
-    console.log('✅ 日志刷新请求已发送')
-  } catch (error) {
-    console.error('❌ 刷新日志失败:', error)
-    message.error('刷新日志失败')
-    isRefreshing.value = false
-    clearLoadingTimeout()
-  }
-}
-
-// 加载历史日志
-const loadHistoryLogs = async () => {
-  if (!props.agent || !isConnected.value || isLoadingHistory.value || hasReachedTop.value) {
-    return
-  }
-
-  try {
-    console.log('📜 请求加载历史日志')
-    isLoadingHistory.value = true
-    setLoadingTimeout('history') // 设置超时保护
-
-    // 计算偏移量（当前日志数量）
-    const offset = logs.value.length
-
-    // 使用 WebSocket 发送加载历史记录请求
-    if (logSocket.value) {
-      logSocket.value.loadHistory(offset, 50)
-    }
-
-    console.log('✅ 历史日志请求已发送')
-  } catch (error) {
-    console.error('❌ 加载历史日志失败:', error)
-    message.error('加载历史日志失败: ' + (error as Error).message)
-    // 确保loading状态被重置
-    clearLoadingTimeout()
-    isLoadingHistory.value = false
-  }
-}
-
-// 手动加载更多历史日志
-const loadMoreHistory = () => {
-  loadHistoryLogs()
-}
-
 // 切换实时输出
 const toggleRealTime = async () => {
   if (!props.agent || !isConnected.value) {
@@ -556,9 +470,13 @@ const toggleRealTime = async () => {
     // 立即更新UI状态，提供即时反馈
     isRealTimeEnabled.value = newRealTimeState
     
-    // 使用 WebSocket 发送切换请求
-    if (logSocket.value) {
-      logSocket.value.toggleFollow(newRealTimeState)
+    // 使用 LogManager 控制自动刷新
+    if (logManager.value) {
+      if (newRealTimeState) {
+        logManager.value.startAutoRefresh(3000) // 3秒刷新间隔
+      } else {
+        logManager.value.stopAutoRefresh()
+      }
     }
 
     // 显示状态切换成功的消息
@@ -567,8 +485,6 @@ const toggleRealTime = async () => {
     } else {
       message.info('实时跟踪已暂停')
     }
-
-    // WebSocket的 follow_toggled 消息会进一步确认状态，如果不一致会自动同步
   } catch (error) {
     console.error('❌ 切换实时输出失败:', error)
     message.error('切换实时输出失败: ' + (error as Error).message)
@@ -577,84 +493,99 @@ const toggleRealTime = async () => {
   }
 }
 
-// 切换跟随模式
 // 清空日志
 const clearLogs = () => {
-  logs.value = []
-  hasReachedTop.value = false
-}
-
-// 滚动到底部
-const scrollToBottom = () => {
-  if (isRealTimeEnabled.value) {
-    nextTick(() => {
-      if (rendererType.value === 'xterm' && xtermRendererRef.value) {
-        xtermRendererRef.value.scrollToBottom()
-      } else if (rendererType.value === 'ansi' && ansiRendererRef.value) {
-        ansiRendererRef.value.scrollToBottom()
-      }
-    })
+  if (logManager.value) {
+    logManager.value.clearLogs()
+  } else {
+    logs.value = []
   }
 }
 
-// 处理滚动事件
-const handleScroll = (event: Event) => {
-  const target = event.target as HTMLElement
-  if (!target) return
-
-  const { scrollTop, scrollHeight, clientHeight } = target
-  const isAtTop = scrollTop < 10
-
-  // 如果滚动到顶部且有更多历史日志，自动加载
-  if (isAtTop && !isLoadingHistory.value && !hasReachedTop.value && isConnected.value) {
-    loadHistoryLogs()
-  }
-}
-// 复制所有日志内容
-const copyAllLogs = async () => {
-  if (logs.value.length === 0) {
-    message.warning('没有日志内容可复制')
+// 手动刷新日志
+const refreshLogs = async () => {
+  if (!logManager.value) {
+    message.warning('日志管理器未初始化')
     return
   }
 
   try {
-    // 格式化日志内容为纯文本，保持终端输出格式
-    const logText = logs.value
-      .map(log => {
-        const source = log.source ? `[${log.source}] ` : ''
-        // 直接使用原始消息，保持 ANSI 转义序列
-        return `${source}${log.message}`
-      })
-      .join('\n')
+    await logManager.value.refresh(initialLines.value)
+    message.success('日志已刷新')
+  } catch (error) {
+    console.error('❌ 刷新日志失败:', error)
+    message.error('刷新日志失败: ' + (error as Error).message)
+  }
+}
 
-    // 使用现代 Clipboard API
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(logText)
-      message.success(`已复制 ${logs.value.length} 条日志到剪贴板`)
-    } else {
-      // 降级方案：使用传统方法
-      const textArea = document.createElement('textarea')
-      textArea.value = logText
-      textArea.style.position = 'fixed'
-      textArea.style.left = '-999999px'
-      textArea.style.top = '-999999px'
-      document.body.appendChild(textArea)
-      textArea.focus()
-      textArea.select()
-      
-      try {
-        document.execCommand('copy')
-        message.success(`已复制 ${logs.value.length} 条日志到剪贴板`)
-      } catch (err) {
-        console.error('复制失败:', err)
-        message.error('复制失败，请手动选择并复制')
-      } finally {
-        document.body.removeChild(textArea)
-      }
-    }
+// 复制所有日志
+const copyAllLogs = async () => {
+  try {
+    const logText = logs.value
+      .map(log => `[${log.timestamp}] ${log.level.toUpperCase()}: ${log.message}`)
+      .join('\n')
+    
+    await navigator.clipboard.writeText(logText)
+    message.success('日志已复制到剪贴板')
   } catch (error) {
     console.error('复制日志失败:', error)
-    message.error('复制失败: ' + (error as Error).message)
+    message.error('复制日志失败')
+  }
+}
+
+// 处理发送命令事件
+const handleSendCommand = async (command: string) => {
+  console.log('👉 收到发送命令:', command)
+  
+  // 特殊处理：Enter键滚动到底部
+  if (command === 'Enter') {
+    console.log('📍 Enter键触发，滚动到底部')
+    if (xtermRendererRef.value) {
+      xtermRendererRef.value.scrollToBottom()
+      message.info('已滚动到底部')
+    }
+    return
+  }
+  
+  if (!props.agent) {
+    message.warning('Agent 信息未加载，无法发送命令')
+    return
+  }
+
+  if (!wsHook.isConnected) {
+    message.error('WebSocket 未连接，无法发送命令')
+    return
+  }
+
+  try {
+    console.log('📤 通过页面级 WebSocket 发送原始命令:', {
+      agent: props.agent.name,
+      namespace: props.agent.namespace,
+      command
+    })
+
+    const commandId = `cmd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    
+    const success = wsHook.send({
+      type: "raw_command",
+      data: {
+        agentName: props.agent.name,
+        command,
+        commandId
+      },
+      timestamp: new Date().toISOString(),
+      from: "frontend-client"
+    })
+
+    if (success) {
+      console.log('✅ 命令已发送，ID:', commandId)
+    } else {
+      throw new Error('发送失败')
+    }
+    
+  } catch (error) {
+    console.error('❌ 发送原始命令失败:', error)
+    message.error(`发送命令失败: ${(error as Error).message}`)
   }
 }
 
@@ -784,7 +715,7 @@ watch(
       console.log('🔄 Agent 变化，重新连接日志流')
       disconnectLogStream()
       logs.value = []
-      hasReachedTop.value = false
+      // hasReachedTop.value = false // 移除
       connectLogStream()
     }
   }
@@ -858,7 +789,7 @@ watch(
       // 重置日志相关状态
       logs.value = []
       isRealTimeEnabled.value = true // 重置实时输出状态
-      hasReachedTop.value = false
+      // hasReachedTop.value = false // 移除
       lastUpdateTime.value = undefined
 
       // 连接日志流
@@ -916,6 +847,21 @@ watch(
   }
 )
 
+// 键盘事件处理
+const handleKeyDown = (event: KeyboardEvent) => {
+  // 只在日志窗口可见时处理键盘事件
+  if (!visible.value) return
+  
+  // 回车键滚动到底部
+  if (event.key === 'Enter' && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+    event.preventDefault()
+    console.log('⌨️ 键盘回车键触发，滚动到底部')
+    if (xtermRendererRef.value) {
+      xtermRendererRef.value.scrollToBottom()
+    }
+  }
+}
+
 // 生命周期
 onMounted(() => {
   console.log('🚀 AgentLogsModal 组件挂载:', {
@@ -924,6 +870,9 @@ onMounted(() => {
     show: props.show,
     visible: visible.value
   })
+  
+  // 添加键盘事件监听
+  document.addEventListener('keydown', handleKeyDown)
 })
 
 onUnmounted(() => {
@@ -936,7 +885,7 @@ onUnmounted(() => {
   document.removeEventListener('mouseup', stopDrag)
   document.removeEventListener('mousemove', handleResize)
   document.removeEventListener('mouseup', stopResize)
-  document.removeEventListener('keydown', handleKeydown)
+  document.removeEventListener('keydown', handleKeyDown)
 })
 </script>
 
@@ -1020,33 +969,6 @@ onUnmounted(() => {
     }
   }
 
-  .renderer-switch {
-    padding: 8px 16px;
-    background: var(--terminal-bg-secondary, #161b22);
-    border-bottom: 1px solid var(--terminal-border, #21262d);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 12px;
-    color: var(--terminal-text-secondary, #c9d1d9);
-    flex-shrink: 0;
-
-    :deep(.n-radio-group) {
-      .n-radio {
-        .n-radio__label {
-          color: var(--terminal-text-secondary, #c9d1d9);
-          font-size: 11px;
-        }
-        
-        &.n-radio--checked {
-          .n-radio__label {
-            color: var(--terminal-text, #f0f6fc);
-          }
-        }
-      }
-    }
-  }
-
   // 渲染器容器占满剩余空间
   > div:last-child {
     flex: 1;
@@ -1055,8 +977,8 @@ onUnmounted(() => {
 }
 
 .modal-footer {
-  background: #f8f9fa;
-  border-top: 1px solid #e0e0e0;
+  background: var(--terminal-bg-secondary, #161b22);
+  border-top: 1px solid var(--terminal-border, #21262d);
   padding: 8px 16px;
   display: flex;
   align-items: center;
@@ -1070,18 +992,72 @@ onUnmounted(() => {
     gap: 12px;
 
     .log-count {
-      color: #6c757d;
+      color: var(--terminal-text-secondary, #c9d1d9);
     }
 
     .initial-lines {
-      color: #6c757d;
+      color: var(--terminal-text-secondary, #c9d1d9);
       font-size: 11px;
     }
     
     .shortcuts-hint {
-      color: #6c757d;
+      color: var(--terminal-text-secondary, #c9d1d9);
       font-size: 11px;
       font-style: italic;
+    }
+  }
+
+  .footer-shortcuts {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 auto;
+
+    .shortcut-label {
+      color: var(--terminal-text-secondary, #c9d1d9);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .shortcut-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      .shortcut-text {
+        color: var(--terminal-text-secondary, #c9d1d9);
+        font-size: 11px;
+        font-family: monospace;
+      }
+
+      .footer-shortcut-button {
+        padding: 0;
+        min-width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        background-color: #ffffff;
+        color: #495057;
+        transition: all 0.2s ease;
+
+        &:hover:not(:disabled) {
+          background-color: #e9ecef;
+          border-color: #adb5bd;
+        }
+
+        &:active:not(:disabled) {
+          background-color: #dee2e6;
+        }
+
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          background-color: #f8f9fa;
+        }
+      }
     }
   }
 

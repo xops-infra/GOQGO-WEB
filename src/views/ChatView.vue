@@ -147,7 +147,7 @@
           <!-- 空状态显示 -->
           <div v-if="!agents.length && !agentsStore.loading" class="empty-state" :class="{ 'terminal-empty': isTerminal }">
             <div class="empty-icon">
-              <n-icon size="48" :color="isTerminal ? '#00ff41' : 'var(--text-color-3)'">
+              <n-icon size="48" :color="isTerminal ? 'var(--terminal-text-primary, #ffffff)' : 'var(--text-color-3)'">
                 <svg viewBox="0 0 24 24">
                   <path
                     fill="currentColor"
@@ -175,6 +175,53 @@
               </div>
             </n-spin>
           </div>
+        </div>
+      </div>
+
+      <!-- 版本信息和 github issue 等信息 -->
+      <div class="version-section">
+        <div class="version-info">
+          <span class="version-text">{{ versionInfo.version }}</span>
+          <span class="build-time">{{ formatBuildTime(versionInfo.buildTime) }}</span>
+        </div>
+        <div class="footer-links">
+          <a 
+            href="https://github.com/zhoushoujianwork/GOQGO-WEB" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            class="footer-link"
+            :class="{ 'terminal-link': isTerminal }"
+            title="GitHub"
+          >
+            <n-icon size="16">
+              <svg viewBox="0 0 24 24">
+                <path
+                  fill="currentColor"
+                  d="M12,2A10,10 0 0,0 2,12C2,16.42 4.87,20.17 8.84,21.5C9.34,21.58 9.5,21.27 9.5,21C9.5,20.77 9.5,20.14 9.5,19.31C6.73,19.91 6.14,17.97 6.14,17.97C5.68,16.81 5.03,16.5 5.03,16.5C4.12,15.88 5.1,15.9 5.1,15.9C6.1,15.97 6.63,16.93 6.63,16.93C7.5,18.45 8.97,18 9.54,17.76C9.63,17.11 9.89,16.67 10.17,16.42C7.95,16.17 5.62,15.31 5.62,11.5C5.62,10.39 6,9.5 6.65,8.79C6.55,8.54 6.2,7.5 6.75,6.15C6.75,6.15 7.59,5.88 9.5,7.17C10.29,6.95 11.15,6.84 12,6.84C12.85,6.84 13.71,6.95 14.5,7.17C16.41,5.88 17.25,6.15 17.25,6.15C17.8,7.5 17.45,8.54 17.35,8.79C18,9.5 18.38,10.39 18.38,11.5C18.38,15.32 16.04,16.16 13.81,16.41C14.17,16.72 14.5,17.33 14.5,18.26C14.5,19.6 14.5,20.68 14.5,21C14.5,21.27 14.66,21.59 15.17,21.5C19.14,20.16 22,16.42 22,12A10,10 0 0,0 12,2Z"
+                />
+              </svg>
+            </n-icon>
+          </a>
+          <a 
+            href="https://github.com/zhoushoujianwork/GOQGO-WEB/issues" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            class="footer-link"
+            :class="{ 'terminal-link': isTerminal }"
+            title="Issues"
+          >
+            <n-icon size="16">
+              <svg viewBox="0 0 24 24">
+                <path
+                  fill="currentColor"
+                  d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,16.5L6.5,12L7.91,10.59L11,13.67L16.59,8.09L18,9.5L11,16.5Z"
+                />
+              </svg>
+            </n-icon>
+          </a>
+          <span class="project-info" :class="{ 'terminal-text': isTerminal }">
+            {{ isTerminal ? 'DEVOPS' : 'DevOps' }}
+          </span>
         </div>
       </div>
     </aside>
@@ -236,6 +283,7 @@ import { useAgentsStore } from '@/stores/agents'
 import { useNamespacesStore } from '@/stores/namespaces'
 import { useTheme } from '@/utils/theme'
 import { formatAgentUptime } from '@/utils/timeManager'
+import versionData from '@/version.json'
 import NamespaceManager from '@/components/NamespaceManager.vue'
 import ChatRoom from '@/components/ChatRoom.vue'
 import AgentCreateModal from '@/components/AgentCreateModal.vue'
@@ -260,6 +308,29 @@ const showCreateModal = ref(false)
 const showLogsModal = ref(false)
 const selectedAgentForLogs = ref(null)
 const showStatsPanel = ref(false)
+
+// 版本信息
+const versionInfo = computed(() => ({
+  version: versionData.version || 'v0.2.0',
+  buildTime: versionData.buildTime || new Date().toISOString(),
+  commit: versionData.commitHash || 'unknown'
+}))
+
+// 格式化构建时间
+const formatBuildTime = (buildTime: string) => {
+  try {
+    const date = new Date(buildTime)
+    return date.toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch (error) {
+    return buildTime
+  }
+}
 
 // 计算属性
 const safeCurrentNamespace = computed(() => currentNamespace.value || 'default')
@@ -343,11 +414,17 @@ const getStatusType = (status: string): 'success' | 'warning' | 'error' | 'info'
 onMounted(() => {
   // 初始化时获取agents列表
   agentsStore.fetchAgents(safeCurrentNamespace.value)
+  
+  // 设置namespace变化事件监听器
+  agentsStore.setupEventListeners()
 })
 
 onUnmounted(() => {
   // 清理
   agentsStore.cleanup()
+  
+  // 清理事件监听器
+  agentsStore.cleanupEventListeners()
 })
 </script>
 
@@ -379,7 +456,7 @@ onUnmounted(() => {
 
   &.terminal-panel {
     background: var(--terminal-panel-bg, #111111);
-    border-right: 1px solid var(--terminal-border, #00ff41);
+    border-right: 1px solid var(--terminal-border-subtle, rgba(0, 255, 65, 0.15));
   }
 }
 
@@ -393,7 +470,7 @@ onUnmounted(() => {
   // max-height: 200px;
 
   .terminal-mode & {
-    border-bottom: 1px solid var(--terminal-border, #00ff41);
+    border-bottom: 1px solid var(--terminal-border-subtle, rgba(0, 255, 65, 0.15));
   }
 }
 
@@ -422,10 +499,10 @@ onUnmounted(() => {
   }
 
   &.terminal-header {
-    border-bottom: 1px solid var(--terminal-border, #00ff41);
+    border-bottom: 1px solid var(--terminal-border-subtle, rgba(0, 255, 65, 0.15));
 
     h3 {
-      color: #00ff41;
+      color: var(--terminal-text-primary, #ffffff);
       font-family: 'Courier New', monospace;
       text-transform: uppercase;
     }
@@ -461,11 +538,12 @@ onUnmounted(() => {
 
   &.terminal-instance {
     background: var(--terminal-card-bg, #000000);
-    border: 1px solid var(--terminal-border, #00ff41);
+    border: 1px solid var(--terminal-border-subtle, rgba(0, 255, 65, 0.15));
 
     &:hover {
-      background: rgba(0, 255, 65, 0.1);
-      box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+      background: rgba(0, 255, 65, 0.05);
+      border-color: var(--terminal-border-hover, rgba(0, 255, 65, 0.5));
+      box-shadow: 0 0 8px rgba(0, 255, 65, 0.2);
     }
   }
 }
@@ -478,16 +556,16 @@ onUnmounted(() => {
     margin-bottom: 8px;
   }
 
-  .instance-name {
-    font-weight: 600;
-    font-size: 14px;
-    color: var(--text-primary, #1f2937);
+      .instance-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text-primary, #1f2937);
 
-    &.terminal-text {
-      color: #00ff41;
-      font-family: 'Courier New', monospace;
+      &.terminal-text {
+        color: var(--terminal-text-primary, #ffffff);
+        font-family: 'Courier New', monospace;
+      }
     }
-  }
 
   .instance-actions {
     display: flex;
@@ -501,15 +579,15 @@ onUnmounted(() => {
     margin-bottom: 8px;
   }
 
-  .instance-uptime {
-    font-size: 12px;
-    color: var(--text-secondary, #6b7280);
+      .instance-uptime {
+      font-size: 12px;
+      color: var(--text-secondary, #6b7280);
 
-    &.terminal-text {
-      color: #00ff41;
-      font-family: 'Courier New', monospace;
+      &.terminal-text {
+        color: var(--terminal-text-primary, #ffffff);
+        font-family: 'Courier New', monospace;
+      }
     }
-  }
 
   .instance-status {
     display: flex;
@@ -517,38 +595,38 @@ onUnmounted(() => {
     gap: 8px;
   }
 
-  .restart-count {
-    font-size: 12px;
-    color: var(--text-secondary, #6b7280);
+      .restart-count {
+      font-size: 12px;
+      color: var(--text-secondary, #6b7280);
 
-    &.terminal-text {
-      color: #00ff41;
-      font-family: 'Courier New', monospace;
+      &.terminal-text {
+        color: var(--terminal-text-primary, #ffffff);
+        font-family: 'Courier New', monospace;
+      }
     }
-  }
 }
 
 .terminal-button {
-  color: #00ff41;
+  color: var(--terminal-text-primary, #ffffff);
   font-family: 'Courier New', monospace;
   text-transform: uppercase;
   font-size: 12px;
 
   &:hover {
     background: rgba(0, 255, 65, 0.1);
-    color: #00ff41;
+            color: var(--terminal-text-primary, #ffffff);
     box-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
   }
 }
 
 .log-button-active {
   background: rgba(0, 255, 65, 0.2) !important;
-  color: #00ff41 !important;
+  color: var(--terminal-text-primary, #ffffff) !important;
   box-shadow: 0 0 15px rgba(0, 255, 65, 0.5) !important;
 }
 
 .terminal-tag {
-  color: #00ff41;
+  color: var(--terminal-text-primary, #ffffff);
   font-family: 'Courier New', monospace;
   text-transform: uppercase;
 }
@@ -565,6 +643,120 @@ onUnmounted(() => {
 
   .terminal-mode & {
     background: var(--terminal-chat-bg, #000000);
+  }
+}
+
+// 版本信息区域
+.version-section {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-secondary, #f8f9fa);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .terminal-mode & {
+    border-top: 1px solid var(--terminal-border-subtle, rgba(0, 255, 65, 0.15));
+    background: var(--terminal-bg-secondary, #0a0a0a);
+  }
+
+  .version-info {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: center;
+
+    .version-text,
+    .build-time {
+      color: var(--text-secondary, #6b7280);
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      opacity: 0.8;
+      transition: opacity 0.2s ease;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+
+    .version-text {
+      color: var(--color-primary, #3b82f6);
+    }
+
+    .build-time {
+      color: var(--text-tertiary, #9ca3af);
+    }
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+
+    .footer-link {
+      color: var(--text-secondary, #6b7280);
+      text-decoration: none;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 3px;
+
+      &:hover {
+        color: var(--primary-color, #3b82f6);
+        background: rgba(59, 130, 246, 0.1);
+        transform: translateY(-1px);
+      }
+
+      &.terminal-link {
+        color: var(--terminal-text-secondary, #cccccc);
+        font-family: 'Courier New', monospace;
+        text-transform: uppercase;
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+
+        &:hover {
+          color: var(--terminal-neon-green, #00ff41);
+          text-shadow: 0 0 10px rgba(0, 255, 65, 0.8);
+          background: rgba(0, 255, 65, 0.1);
+          transform: translateY(-1px);
+        }
+      }
+    }
+
+    .project-info {
+      color: var(--text-secondary, #6b7280);
+      font-size: 10px;
+      font-weight: 600;
+      margin-left: 6px;
+      padding: 3px 6px;
+      border-radius: 3px;
+      background: rgba(107, 114, 128, 0.1);
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(107, 114, 128, 0.2);
+      }
+
+      &.terminal-text {
+        color: var(--terminal-text-primary, #ffffff);
+        font-family: 'Courier New', monospace;
+        text-transform: uppercase;
+        background: rgba(0, 255, 65, 0.1);
+        border: 1px solid rgba(0, 255, 65, 0.3);
+        text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+
+        &:hover {
+          background: rgba(0, 255, 65, 0.2);
+          border-color: rgba(0, 255, 65, 0.5);
+          transform: translateY(-1px);
+        }
+      }
+    }
   }
 }
 
@@ -594,13 +786,13 @@ onUnmounted(() => {
   }
 
   &.terminal-header {
-    border-bottom: 2px solid #333333;
+    border-bottom: 1px solid var(--terminal-border-subtle, rgba(0, 255, 65, 0.15));
     background: #0a0a0a;
     position: relative;
     overflow: hidden;
 
     h3 {
-      color: #ffffff;
+      color: var(--terminal-text-primary, #ffffff);
       font-family: 'Courier New', monospace;
       font-weight: 700;
       letter-spacing: 1px;
@@ -611,8 +803,8 @@ onUnmounted(() => {
 
 .btn-8bit {
   background: #0a0a0a !important;
-  border: 2px solid #00ff41 !important;
-  color: #00ff41 !important;
+  border: 1px solid var(--terminal-border, rgba(0, 255, 65, 0.3)) !important;
+  color: var(--terminal-text-primary, #ffffff) !important;
   font-family: 'Courier New', monospace !important;
   text-transform: uppercase !important;
   font-weight: 700 !important;
@@ -622,9 +814,11 @@ onUnmounted(() => {
   position: relative !important;
 
   &:hover {
-    background: #00ff41 !important;
-    color: #000000 !important;
+    background: rgba(0, 255, 65, 0.1) !important;
+    border-color: var(--terminal-border-hover, rgba(0, 255, 65, 0.5)) !important;
+    color: var(--terminal-text-primary, #ffffff) !important;
     transform: translateY(-2px) !important;
+    box-shadow: 0 0 8px rgba(0, 255, 65, 0.3) !important;
   }
 
   &:active {
@@ -645,7 +839,7 @@ onUnmounted(() => {
     .empty-text {
       .empty-title,
       .empty-description {
-        color: #ffffff;
+        color: var(--terminal-text-primary, #ffffff);
         font-family: 'Courier New', monospace;
         letter-spacing: 1px;
       }
@@ -661,7 +855,7 @@ onUnmounted(() => {
 
   &.terminal-loading {
     .loading-text {
-      color: #ffffff;
+      color: var(--terminal-text-primary, #ffffff);
       font-family: 'Courier New', monospace;
       letter-spacing: 1px;
     }

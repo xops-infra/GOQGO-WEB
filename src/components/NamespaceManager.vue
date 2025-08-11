@@ -243,6 +243,7 @@ import { ref, computed, onMounted, onUnmounted, h } from 'vue'
 import { RefreshOutline, AddOutline } from '@vicons/ionicons5'
 import { useNamespacesStore } from '@/stores/namespaces'
 import { useAgentsStore } from '@/stores/agents'
+import { useChatStore } from '@/stores/chat'
 import { storeToRefs } from 'pinia'
 import { useMessage, NModal, NInput, NButton, NIcon } from 'naive-ui'
 import NamespaceIcon from './icons/NamespaceIcon.vue'
@@ -252,6 +253,7 @@ console.log('🚀 NamespaceManager 开始加载')
 // 状态管理
 const namespacesStore = useNamespacesStore()
 const agentsStore = useAgentsStore()
+const chatStore = useChatStore()
 const { namespaces, currentNamespace } = storeToRefs(namespacesStore)
 const { agents } = storeToRefs(agentsStore)
 const message = useMessage()
@@ -409,8 +411,16 @@ const switchNamespace = async (namespace: string) => {
 
   loading.value = true
   try {
+    console.log('🔄 开始切换namespace:', { from: currentNamespace.value, to: namespace })
+    
+    // 1. 切换namespace
     await namespacesStore.switchNamespace(namespace)
+    
+    // 2. 更新相关资源
+    await updateNamespaceResources(namespace)
+    
     message.success(`已切换到命名空间: ${namespace}`)
+    console.log('✅ namespace切换完成:', namespace)
   } catch (error) {
     console.error('❌ 切换命名空间失败:', error)
     message.error('切换命名空间失败')
@@ -419,10 +429,59 @@ const switchNamespace = async (namespace: string) => {
   }
 }
 
+// 更新namespace相关的资源
+const updateNamespaceResources = async (namespace: string) => {
+  console.log('🔄 开始更新namespace相关资源:', namespace)
+  
+  try {
+    // 并行更新各种资源
+    const updatePromises = []
+    
+    // 1. 更新agents列表
+    console.log('📋 更新agents列表...')
+    updatePromises.push(
+      agentsStore.fetchAgents(namespace).catch(error => {
+        console.error('❌ 更新agents失败:', error)
+      })
+    )
+    
+    // 2. 重新连接聊天室
+    console.log('💬 重新连接聊天室...')
+    updatePromises.push(
+      chatStore.connect(namespace).catch(error => {
+        console.error('❌ 重新连接聊天室失败:', error)
+      })
+    )
+    
+    // 3. 刷新namespace数据（获取最新的agent计数等）
+    console.log('📊 刷新namespace数据...')
+    updatePromises.push(
+      namespacesStore.refreshNamespaces().catch(error => {
+        console.error('❌ 刷新namespace数据失败:', error)
+      })
+    )
+    
+    // 等待所有更新完成
+    await Promise.allSettled(updatePromises)
+    
+    console.log('✅ namespace资源更新完成')
+  } catch (error) {
+    console.error('❌ 更新namespace资源时发生错误:', error)
+    // 不抛出错误，避免影响namespace切换的主流程
+  }
+}
+
 const refreshNamespaces = async () => {
   loading.value = true
   try {
+    // 刷新namespace列表
     await namespacesStore.fetchNamespaces()
+    
+    // 同时更新当前namespace的资源
+    if (currentNamespace.value) {
+      await updateNamespaceResources(currentNamespace.value)
+    }
+    
     message.success('命名空间列表已刷新')
   } catch (error) {
     console.error('❌ 刷新命名空间失败:', error)
@@ -483,7 +542,7 @@ const handleConfirmCreate = async () => {
       description: ''
     }
 
-    // 刷新命名空间列表
+    // 刷新命名空间列表和相关资源
     await refreshNamespaces()
 
     console.log('✅ namespace创建完成')
@@ -531,8 +590,9 @@ const handleConfirmDelete = async () => {
     showDeleteModal.value = false
     deleteConfirmText.value = ''
     
-    // 切换到默认命名空间
+    // 切换到默认命名空间并更新相关资源
     await namespacesStore.switchNamespace('default')
+    await updateNamespaceResources('default')
     
     // 刷新命名空间列表
     await refreshNamespaces()
@@ -553,6 +613,9 @@ onMounted(async () => {
   // 初始化命名空间列表
   if (namespaces.value.length === 0) {
     await refreshNamespaces()
+  } else if (currentNamespace.value) {
+    // 如果已有namespace数据，确保当前namespace的资源是最新的
+    await updateNamespaceResources(currentNamespace.value)
   }
 })
 

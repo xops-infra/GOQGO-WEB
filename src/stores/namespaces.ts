@@ -191,11 +191,13 @@ export const useNamespacesStore = defineStore('namespaces', () => {
 
   // 刷新命名空间相关数据
   const refreshNamespaceData = async () => {
-    // 这里会被其他store监听，用于更新agents等数据
+    // 触发自定义事件，通知其他组件namespace已变化
     const event = new CustomEvent('namespace-changed', {
       detail: { namespace: currentNamespace.value }
     })
     window.dispatchEvent(event)
+    
+    console.log('🔄 已触发namespace-changed事件:', currentNamespace.value)
   }
 
   // 创建命名空间

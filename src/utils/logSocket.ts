@@ -310,6 +310,22 @@ export class LogSocket {
     }
   }
 
+  // 发送原始命令
+  sendCommand(command: string): void {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      const message = {
+        type: 'raw_command',
+        data: {
+          command
+        }
+      }
+      console.log('📤 发送原始命令:', message)
+      this.socket.send(JSON.stringify(message))
+    } else {
+      console.warn('⚠️ WebSocket 未连接，无法发送命令')
+    }
+  }
+
   get isConnected(): boolean {
     return this.socket?.readyState === WebSocket.OPEN
   }

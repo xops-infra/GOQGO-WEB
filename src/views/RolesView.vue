@@ -1,23 +1,67 @@
 <template>
   <div class="roles-view">
-    <!-- 页面头部信息 -->
+    <!-- 页面头部 -->
     <div class="page-header">
-      <div class="page-info">
-        <h1 class="page-title">{{ isTerminal ? 'ROLE_MANAGEMENT' : '角色管理' }}</h1>
-        <p class="page-description">{{ isTerminal ? 'MANAGE_AI_AGENT_ROLES' : '管理AI智能体角色' }}</p>
+      <div class="header-content">
+        <h1 class="page-title">角色管理</h1>
+        <p class="page-description">管理AI智能体角色</p>
+      </div>
+      <div class="header-actions">
+        <n-button 
+          type="primary" 
+          @click="handleRefresh"
+          :loading="loading"
+          size="small"
+        >
+          <template #icon>
+            <n-icon>
+              <RefreshOutline />
+            </n-icon>
+          </template>
+          刷新
+        </n-button>
       </div>
     </div>
 
     <!-- 页面内容 -->
     <div class="page-content">
-      <div class="roles-content" :class="{ 'terminal-mode': isTerminal }">
-        <!-- 角色列表 -->
+      <!-- 加载状态 -->
+      <div v-if="loading" class="loading-state">
+        <n-spin size="large" />
+        <p>加载角色列表中...</p>
+      </div>
+
+      <!-- 错误状态 -->
+      <div v-else-if="error" class="error-state">
+        <n-icon size="48" color="#d03050">
+          <AlertCircleOutline />
+        </n-icon>
+        <h3>加载失败</h3>
+        <p>{{ error }}</p>
+        <n-button @click="handleRefresh" type="primary">
+          重试
+        </n-button>
+      </div>
+
+      <!-- 空状态 -->
+      <div v-else-if="roles.length === 0" class="empty-state">
+        <n-icon size="48" color="#909399">
+          <PersonOutline />
+        </n-icon>
+        <h3>暂无角色</h3>
+        <p>还没有创建任何角色</p>
+      </div>
+
+      <!-- 角色列表 -->
+      <div v-else class="roles-container">
         <div class="roles-grid">
-          <n-grid :cols="3" :x-gap="16" :y-gap="16">
-            <n-grid-item v-for="role in roles" :key="role.id">
-              <RoleDetail :role="role" />
-            </n-grid-item>
-          </n-grid>
+          <div 
+            v-for="role in roles" 
+            :key="role.name"
+            class="role-card"
+          >
+            <RoleDetail :role="role" />
+          </div>
         </div>
       </div>
     </div>
@@ -25,51 +69,36 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useMessage } from 'naive-ui'
+import { ref, onMounted } from 'vue'
+import { useMessage, NButton, NIcon, NSpin } from 'naive-ui'
+import { RefreshOutline, AlertCircleOutline, PersonOutline } from '@vicons/ionicons5'
 import { rolesApi } from '@/api/roles'
 import RoleDetail from '@/components/RoleDetail.vue'
-import PageLayout from '@/components/PageLayout.vue'
 import type { Role } from '@/types/api'
 
 // 响应式数据
 const loading = ref(false)
+const error = ref<string | null>(null)
 const roles = ref<Role[]>([])
-const searchKeyword = ref('')
-const showRoleDetail = ref(false)
-const selectedRole = ref<Role | null>(null)
 
 const message = useMessage()
-
-// 计算属性
-const filteredRoles = computed(() => {
-  if (!searchKeyword.value) return roles.value
-  return roles.value.filter(role =>
-    role.name.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
-    role.description.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
-    role.type.toLowerCase().includes(searchKeyword.value.toLowerCase())
-  )
-})
-
-const totalRoles = computed(() => roles.value.length)
 
 // 方法
 const handleRefresh = async () => {
   loading.value = true
+  error.value = null
+  
   try {
-    const response = await rolesApi.list()
-    roles.value = response.data || []
-  } catch (error) {
-    console.error('获取角色列表失败:', error)
+    const response = await rolesApi.getList()
+    roles.value = response.roles || []
+    message.success('角色列表已刷新')
+  } catch (err: any) {
+    console.error('获取角色列表失败:', err)
+    error.value = err.message || '获取角色列表失败'
     message.error('获取角色列表失败')
   } finally {
     loading.value = false
   }
-}
-
-const handleEditRole = (role: Role) => {
-  selectedRole.value = role
-  showRoleDetail.value = true
 }
 
 // 生命周期
@@ -80,115 +109,213 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .roles-view {
+  min-height: 100vh;
+  background: var(--terminal-bg, #000000);
   display: flex;
   flex-direction: column;
-  height: 100%;
-  background-color: var(--background-color-1);
 }
 
 .page-header {
+  background: var(--terminal-header-bg, #1a1a1a);
+  border-bottom: 1px solid var(--terminal-border, #333333);
   padding: 24px 32px;
-  background-color: var(--background-color-2);
-  border-bottom: 1px solid var(--border-color-1);
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 20px;
+  flex-shrink: 0;
 }
 
-.page-info {
-  flex: 1;
+.header-content {
+  .page-title {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--terminal-text, #00ff41);
+    margin: 0 0 8px 0;
+    font-family: 'Courier New', monospace;
+  }
+
+  .page-description {
+    font-size: 16px;
+    color: var(--terminal-text-dim, #888888);
+    margin: 0;
+    font-family: 'Courier New', monospace;
+  }
 }
 
-.page-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--text-color-1);
-  margin-bottom: 8px;
-}
-
-.page-description {
-  font-size: 16px;
-  color: var(--text-color-2);
+.header-actions {
+  .n-button {
+    min-width: 80px;
+    background: var(--terminal-primary, #00ff41);
+    border-color: var(--terminal-primary, #00ff41);
+    color: #000000;
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    
+    &:hover {
+      background: var(--terminal-primary-hover, #00cc33);
+      border-color: var(--terminal-primary-hover, #00cc33);
+    }
+  }
 }
 
 .page-content {
   flex: 1;
   padding: 24px 32px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.loading-state {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+
+  p {
+    margin-top: 16px;
+    color: var(--terminal-text-dim, #888888);
+    font-size: 16px;
+    font-family: 'Courier New', monospace;
+  }
 }
 
-.roles-content {
+.error-state {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  height: 100%;
-  background-color: var(--background-color-1);
-  border-radius: 8px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
 
-  &.terminal-mode {
-    background-color: var(--background-color-3);
-    box-shadow: none;
+  h3 {
+    margin: 16px 0 8px 0;
+    color: var(--terminal-text, #00ff41);
+    font-size: 20px;
+    font-family: 'Courier New', monospace;
+  }
+
+  p {
+    margin: 0 0 24px 0;
+    color: var(--terminal-text-dim, #888888);
+    font-size: 16px;
+    font-family: 'Courier New', monospace;
   }
 }
 
-.roles-stats {
-  flex-shrink: 0;
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+
+  h3 {
+    margin: 16px 0 8px 0;
+    color: var(--terminal-text, #00ff41);
+    font-size: 20px;
+    font-family: 'Courier New', monospace;
+  }
+
+  p {
+    margin: 0;
+    color: var(--terminal-text-dim, #888888);
+    font-size: 16px;
+    font-family: 'Courier New', monospace;
+  }
 }
 
-.roles-grid {
-  flex: 1;
-  overflow: hidden;
-  
-  .roles-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 16px;
-    height: 100%;
-    overflow-y: auto;
+.roles-container {
+  .roles-grid {
+    column-count: auto;
+    column-width: 350px;
+    column-gap: 24px;
+    padding-bottom: 24px;
+    /* 添加浏览器前缀支持 */
+    -webkit-column-count: auto;
+    -webkit-column-width: 350px;
+    -webkit-column-gap: 24px;
+    -moz-column-count: auto;
+    -moz-column-width: 350px;
+    -moz-column-gap: 24px;
   }
-}
 
-.role-card {
-  height: fit-content;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-  
-  .role-name {
-    font-weight: 600;
-    color: var(--text-color-1);
-  }
-  
-  .role-type {
-    font-size: 12px;
-    color: var(--text-color-3);
-  }
-  
-  .role-description {
-    color: var(--text-color-2);
-    line-height: 1.5;
-    margin: 12px 0;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
+  .role-card {
+    background: var(--terminal-card-bg, #1a1a1a);
+    border: 1px solid var(--terminal-border, #333333);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 255, 65, 0.1);
+    transition: all 0.2s ease;
     overflow: hidden;
+    break-inside: avoid; /* 防止卡片被分割到不同列 */
+    -webkit-column-break-inside: avoid; /* Webkit浏览器支持 */
+    page-break-inside: avoid; /* 旧版浏览器支持 */
+    margin-bottom: 24px; /* 添加底部间距 */
+    display: inline-block; /* 确保列布局正常工作 */
+    width: 100%; /* 占满列宽 */
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0, 255, 65, 0.2);
+      border-color: var(--terminal-primary, #00ff41);
+    }
   }
 }
 
 // 响应式设计
 @media (max-width: 768px) {
-  .roles-content {
-    .roles-grid .roles-list {
-      grid-template-columns: 1fr;
-    }
+  .page-header {
+    padding: 16px 20px;
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .page-content {
+    padding: 16px 20px;
+  }
+
+  .roles-container .roles-grid {
+    column-width: 280px;
+    column-gap: 16px;
+  }
+
+  .roles-container .role-card {
+    margin-bottom: 16px;
+  }
+
+  .header-actions {
+    align-self: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header {
+    padding: 12px 16px;
+  }
+
+  .page-content {
+    padding: 12px 16px;
+  }
+
+  .page-title {
+    font-size: 24px;
+  }
+
+  .page-description {
+    font-size: 14px;
+  }
+
+  .roles-container .roles-grid {
+    column-count: 1;
+    column-width: auto;
+    column-gap: 0;
+  }
+
+  .roles-container .role-card {
+    margin-bottom: 16px;
   }
 }
 </style>

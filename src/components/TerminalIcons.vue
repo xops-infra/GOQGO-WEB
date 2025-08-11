@@ -8,17 +8,96 @@
   >
     <!-- Terminal图标 -->
     <g v-if="name === 'terminal'">
+      <!-- 扫描线背景效果 -->
+      <defs>
+        <pattern id="scanlines" x="0" y="0" width="2" height="2" patternUnits="userSpaceOnUse">
+          <line x1="0" y1="0" x2="32" y2="0" stroke="currentColor" stroke-width="0.4" opacity="0.15" />
+        </pattern>
+      </defs>
+      
+      <!-- 背景扫描线 -->
+      <rect width="32" height="32" fill="url(#scanlines)" />
+      
+      <!-- 终端窗口外框 - 发光效果 -->
       <rect
-        x="2"
-        y="2"
+        x="3"
+        y="3"
+        width="26"
+        height="26"
+        rx="4"
+        fill="none"
+        :stroke="color"
+        stroke-width="3"
+        opacity="0.9"
+        filter="drop-shadow(0 0 4px currentColor)"
+      />
+      
+      <!-- 终端窗口内框 -->
+      <rect
+        x="6"
+        y="6"
         width="20"
-        height="16"
-        rx="2"
+        height="20"
+        rx="3"
         fill="none"
         :stroke="color"
         stroke-width="2"
+        opacity="0.7"
       />
-      <path d="M6 7l3 3-3 3M11 13h4" :stroke="color" stroke-width="2" stroke-linecap="round" />
+      
+      <!-- 命令提示符光标 -->
+      <g opacity="0.95">
+        <!-- 右箭头 ">" -->
+        <path
+          d="M10 16 L14 13 L14 19 Z"
+          :fill="color"
+        />
+        <!-- 下划线 "_" -->
+        <rect
+          x="16"
+          y="17"
+          width="8"
+          height="2"
+          :fill="color"
+        />
+      </g>
+      
+      <!-- 装饰性扫描线 -->
+      <line
+        x1="7"
+        y1="10"
+        x2="25"
+        y2="10"
+        :stroke="color"
+        stroke-width="1"
+        opacity="0.4"
+      />
+      <line
+        x1="7"
+        y1="22"
+        x2="25"
+        y2="22"
+        :stroke="color"
+        stroke-width="1"
+        opacity="0.4"
+      />
+      
+      <!-- 闪烁光标动画 -->
+      <rect
+        x="16"
+        y="17"
+        width="8"
+        height="2"
+        :fill="color"
+        opacity="0.95"
+      >
+        <animate
+          attributeName="opacity"
+          values="0.95;0.4;0.95"
+          dur="1.5s"
+          repeatCount="indefinite"
+        />
+      </rect>
     </g>
 
     <!-- CPU/处理器图标 -->
@@ -171,7 +250,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { isTerminal } = useTheme()
 
-const viewBox = computed(() => '0 0 24 24')
+const viewBox = computed(() => '0 0 32 32')
 
 const iconStyle = computed(() => {
   const styles: Record<string, string> = {}

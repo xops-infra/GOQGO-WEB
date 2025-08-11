@@ -5,219 +5,172 @@
     preset="card"
     title="新建 Q CLI 实例"
     size="medium"
-    :bordered="false"
-    :segmented="true"
-    style="width: 600px"
+    :closable="true"
+    style="width: 650px"
+    @close="handleClose"
   >
-    <template #header-extra>
-      <n-button quaternary circle size="small" @click="handleClose">
-        <template #icon>
-          <n-icon>
-            <svg viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
-              />
-            </svg>
-          </n-icon>
-        </template>
-      </n-button>
-    </template>
-
     <div class="agent-create-form">
-      <!-- 当前Namespace -->
-      <div class="form-section">
-        <div class="section-title">当前 Namespace</div>
-        <div class="namespace-display">
-          <n-icon size="18" class="namespace-icon">
-            <svg viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M7.5,13A2.5,2.5 0 0,0 5,15.5A2.5,2.5 0 0,0 7.5,18A2.5,2.5 0 0,0 10,15.5A2.5,2.5 0 0,0 7.5,13M16.5,13A2.5,2.5 0 0,0 14,15.5A2.5,2.5 0 0,0 16.5,18A2.5,2.5 0 0,0 19,15.5A2.5,2.5 0 0,0 16.5,13Z"
-              />
-            </svg>
-          </n-icon>
-          <span class="namespace-name">{{ currentNamespace }}</span>
-        </div>
-        <div class="section-tip">
-          <n-icon size="16">
-            <svg viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"
-              />
-            </svg>
-          </n-icon>
-          <span>实例将在当前 namespace 中创建</span>
-        </div>
-      </div>
-
-      <!-- 实例名称 -->
-      <div class="form-section">
-        <div class="section-title">实例名称</div>
-        <n-input
-          v-model:value="formData.name"
-          placeholder="请输入实例名称（可选）"
-          clearable
-          :maxlength="50"
-          show-count
-        />
-        <div class="section-tip">
-          <n-icon size="16">
-            <svg viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"
-              />
-            </svg>
-          </n-icon>
-          <span>留空将自动生成名称</span>
-        </div>
-      </div>
-
-      <!-- 实例角色 -->
-      <div class="form-section">
-        <div class="section-title">实例角色</div>
-        <n-select
-          v-model:value="formData.role"
-          :options="roleOptions"
-          placeholder="请选择实例的专业角色（可选）"
-          clearable
-          filterable
-          :loading="rolesLoading"
-          :render-label="renderRoleLabel"
-          :render-option="renderRoleOption"
-        />
-        <div class="section-tip">
-          <n-icon size="16">
-            <svg viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
-              />
-            </svg>
-          </n-icon>
-          <span>选择角色将为实例配置专业的AI能力和行为模式</span>
-        </div>
+      <!-- 基本信息区域 -->
+      <div class="form-group">
+        <h3 class="group-title">基本信息</h3>
         
-        <!-- 选中角色的详细信息 -->
-        <div v-if="selectedRoleInfo" class="selected-role-info">
-          <div class="role-info-header">
-            <n-icon size="16" class="role-icon">
+        <!-- 当前Namespace -->
+        <div class="form-section">
+          <div class="section-title">当前 Namespace</div>
+          <div class="namespace-display">
+            <n-icon size="18" class="namespace-icon">
               <svg viewBox="0 0 24 24">
-                <path fill="currentColor" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                <path fill="currentColor" d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M7.5,13A2.5,2.5 0 0,0 5,15.5A2.5,2.5 0 0,0 7.5,18A2.5,2.5 0 0,0 10,15.5A2.5,2.5 0 0,0 7.5,13M16.5,13A2.5,2.5 0 0,0 14,15.5A2.5,2.5 0 0,0 16.5,18A2.5,2.5 0 0,0 19,15.5A2.5,2.5 0 0,0 16.5,13Z"/>
               </svg>
             </n-icon>
-            <span class="role-name">{{ selectedRoleInfo.displayName }}</span>
+            <span class="namespace-name">{{ currentNamespace }}</span>
           </div>
-          <div class="role-description">{{ selectedRoleInfo.description }}</div>
         </div>
-      </div>
 
-      <!-- 工作目录 -->
-      <div class="form-section">
-        <div class="section-title">工作目录</div>
-        <div class="directory-type-selector">
-          <n-radio-group v-model:value="formData.directoryType">
-            <n-radio value="local">
-              <div class="radio-option">
-                <n-icon size="18">
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      fill="currentColor"
-                      d="M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z"
-                    />
-                  </svg>
-                </n-icon>
-                <span>本地路径</span>
-              </div>
-            </n-radio>
-            <n-radio value="git">
-              <div class="radio-option">
-                <n-icon size="18">
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      fill="currentColor"
-                      d="M2.6,10.59L8.38,4.8L10.07,6.5C9.83,7.35 10.22,8.28 11,8.73V14.27C10.4,14.61 10,15.26 10,16A2,2 0 0,0 12,18A2,2 0 0,0 14,16C14,15.26 13.6,14.61 13,14.27V9.41L15.07,11.5C15,11.65 15,11.82 15,12A2,2 0 0,0 17,14A2,2 0 0,0 19,12A2,2 0 0,0 17,10C16.82,10 16.65,10 16.5,10.07L13.93,7.5C14.19,6.57 13.71,5.55 12.78,5.16C11.85,4.77 10.83,5.25 10.44,6.18C10.05,7.11 10.53,8.13 11.46,8.52C11.5,8.53 11.54,8.54 11.58,8.55L10.07,7.04L2.6,14.5L2.6,10.59Z"
-                    />
-                  </svg>
-                </n-icon>
-                <span>Git 地址</span>
-              </div>
-            </n-radio>
-          </n-radio-group>
-        </div>
-      </div>
-
-      <!-- 路径输入 -->
-      <div class="form-section">
-        <div class="section-title">路径</div>
-        <div class="path-input-container">
+        <!-- 实例名称 -->
+        <div class="form-section">
+          <div class="section-title">实例名称</div>
           <n-input
-            v-model:value="formData.path"
-            :placeholder="pathPlaceholder"
+            v-model:value="formData.name"
+            placeholder="请输入实例名称（可选）"
             clearable
-            :disabled="loading"
+            :maxlength="50"
+            show-count
           />
-          <n-button
-            v-if="formData.directoryType === 'local'"
-            secondary
-            @click="handleBrowseDirectory"
-            :loading="browsing"
-          >
-            <template #icon>
-              <n-icon>
+          <div class="section-tip">
+            <n-icon size="16">
+              <svg viewBox="0 0 24 24">
+                <path fill="currentColor" d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"/>
+              </svg>
+            </n-icon>
+            <span>留空将自动生成名称</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 角色配置区域 -->
+      <div class="form-group">
+        <h3 class="group-title">角色配置</h3>
+        
+        <div class="form-section">
+          <div class="section-title">实例角色</div>
+          <n-select
+            v-model:value="formData.role"
+            :options="roleOptions"
+            placeholder="请选择实例的专业角色（可选）"
+            clearable
+            filterable
+            :loading="rolesLoading"
+            :consistent-menu-width="false"
+          />
+          <div class="section-tip">
+            <n-icon size="16">
+              <svg viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"/>
+              </svg>
+            </n-icon>
+            <span>选择角色将为实例配置专业的AI能力和行为模式</span>
+          </div>
+          
+          <!-- 选中角色的详细信息 -->
+          <div v-if="selectedRoleInfo" class="selected-role-info">
+            <div class="role-info-header">
+              <n-icon size="16" class="role-icon">
                 <svg viewBox="0 0 24 24">
-                  <path
-                    fill="currentColor"
-                    d="M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z"
-                  />
+                  <path fill="currentColor" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                 </svg>
               </n-icon>
-            </template>
-            浏览
-          </n-button>
+              <span class="role-name">{{ selectedRoleInfo.displayName }}</span>
+            </div>
+            <div class="role-description">{{ selectedRoleInfo.description }}</div>
+          </div>
         </div>
-        <div class="section-tip">
-          <n-icon size="16">
-            <svg viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"
-              />
-            </svg>
-          </n-icon>
-          <span>{{ pathTipText }}</span>
+      </div>
+
+      <!-- 工作目录配置区域 -->
+      <div class="form-group">
+        <h3 class="group-title">工作目录配置</h3>
+        
+        <div class="form-section">
+          <div class="section-title">目录类型</div>
+          <div class="directory-type-selector">
+            <n-radio-group v-model:value="formData.directoryType">
+              <n-radio value="local">
+                <div class="radio-option">
+                  <n-icon size="18">
+                    <svg viewBox="0 0 24 24">
+                      <path fill="currentColor" d="M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z"/>
+                    </svg>
+                  </n-icon>
+                  <span>本地路径</span>
+                </div>
+              </n-radio>
+              <n-radio value="git">
+                <div class="radio-option">
+                  <n-icon size="18">
+                    <svg viewBox="0 0 24 24">
+                      <path fill="currentColor" d="M2.6,10.59L8.38,4.8L10.07,6.5C9.83,7.35 10.22,8.28 11,8.73V14.27C10.4,14.61 10,15.26 10,16A2,2 0 0,0 12,18A2,2 0 0,0 14,16C14,15.26 13.6,14.61 13,14.27V9.41L15.07,11.5C15,11.65 15,11.82 15,12A2,2 0 0,0 17,14A2,2 0 0,0 19,12A2,2 0 0,0 17,10C16.82,10 16.65,10 16.5,10.07L13.93,7.5C14.19,6.57 13.71,5.55 12.78,5.16C11.85,4.77 10.83,5.25 10.44,6.18C10.05,7.11 10.53,8.13 11.46,8.52C11.5,8.53 11.54,8.54 11.58,8.55L10.07,7.04L2.6,14.5L2.6,10.59Z"/>
+                    </svg>
+                  </n-icon>
+                  <span>Git 仓库</span>
+                </div>
+              </n-radio>
+            </n-radio-group>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="section-title">路径</div>
+          <div class="path-input-container">
+            <n-input
+              v-model:value="formData.path"
+              :placeholder="pathPlaceholder"
+              clearable
+              :disabled="loading"
+            />
+            <n-button
+              v-if="formData.directoryType === 'local'"
+              secondary
+              @click="handleBrowseDirectory"
+              :loading="browsing"
+            >
+              <template #icon>
+                <n-icon>
+                  <svg viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z"/>
+                  </svg>
+                </n-icon>
+              </template>
+              浏览
+            </n-button>
+          </div>
+          <div class="section-tip">
+            <n-icon size="16">
+              <svg viewBox="0 0 24 24">
+                <path fill="currentColor" d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"/>
+              </svg>
+            </n-icon>
+            <span>{{ pathTipText }}</span>
+          </div>
         </div>
       </div>
 
       <!-- 提示信息 -->
       <div class="info-banner">
         <n-alert type="info" :show-icon="true">
-          <template #icon>
-            <n-icon>
-              <svg viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"
-                />
-              </svg>
-            </n-icon>
-          </template>
-          提示：新建的实例将在指定的
-          <strong>{{ currentNamespace }}</strong> 中运行，使用选定的角色配置。
+          提示：新建的实例将在指定的 <strong>{{ currentNamespace }}</strong> 中运行，使用选定的角色配置。
         </n-alert>
       </div>
     </div>
 
     <template #action>
       <div class="modal-actions">
-        <n-button @click="handleClose" :disabled="loading"> 取消 </n-button>
+        <n-button @click="handleClose" :disabled="loading">取消</n-button>
         <n-button type="primary" @click="handleCreate" :loading="loading" :disabled="!canCreate">
           <template #icon>
             <n-icon>
               <svg viewBox="0 0 24 24">
-                <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+                <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
               </svg>
             </n-icon>
           </template>
@@ -229,14 +182,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, h } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useMessage } from 'naive-ui'
 import { rolesApi } from '@/api/roles'
-import { API_ENDPOINTS, apiConfig } from '@/config/api'
 import type { Role } from '@/types/api'
 import { useNamespacesStore } from '@/stores/namespaces'
 import { useAgentsStore } from '@/stores/agents'
-import { useTheme } from '@/utils/theme'
 import { storeToRefs } from 'pinia'
 
 // Props
@@ -256,7 +207,6 @@ const emit = defineEmits<{
 const namespacesStore = useNamespacesStore()
 const agentsStore = useAgentsStore()
 const { currentNamespace } = storeToRefs(namespacesStore)
-const { isTerminal } = useTheme()
 const message = useMessage()
 
 // 响应式数据
@@ -278,7 +228,7 @@ const formData = ref({
   path: ''
 })
 
-// 角色选项 - 从API动态获取
+// 角色选项
 const roleOptions = computed(() => {
   return roles.value.map(role => ({
     label: role.displayName,
@@ -311,38 +261,13 @@ const canCreate = computed(() => {
 })
 
 // 方法
-const renderRoleLabel = (option: any) => {
-  return option.label
-}
-
-const renderRoleOption = ({ node, option }: any) => {
-  return h('div', { class: 'role-option' }, [
-    h('div', { class: 'role-option-name' }, option.label),
-    h('div', { class: 'role-option-description' }, option.description)
-  ])
-}
-
 const loadRoles = async () => {
   rolesLoading.value = true
-  console.log('🎭 开始加载角色列表...')
-  console.log('API端点:', API_ENDPOINTS.ROLES.LIST)
-  console.log('完整URL:', `${apiConfig.baseURL}${API_ENDPOINTS.ROLES.LIST}`)
-  
   try {
     const response = await rolesApi.getList()
-    console.log('✅ API响应原始数据:', response)
-    
     roles.value = response.roles || []
     
-    console.log('✅ 角色列表加载成功:', {
-      total: response.total,
-      loaded: roles.value.length,
-      roles: roles.value.map(r => ({ name: r.name, displayName: r.displayName }))
-    })
-    
     if (roles.value.length === 0) {
-      console.warn('⚠️ API返回的角色列表为空')
-      message.warning('未获取到角色列表，使用默认选项')
       // 设置默认角色
       roles.value = [
         { name: 'general-assistant', displayName: '通用助手', description: '通用AI助手', prompt: '' },
@@ -350,20 +275,10 @@ const loadRoles = async () => {
         { name: 'backend-engineer', displayName: '后端开发工程师', description: '专业的后端开发工程师', prompt: '' },
         { name: 'architect', displayName: '架构师', description: '系统架构师', prompt: '' }
       ]
-    } else {
-      message.success(`成功加载 ${roles.value.length} 个角色`)
     }
   } catch (error: any) {
-    console.error('❌ 加载角色列表失败:', error)
-    console.error('错误详情:', {
-      message: error.message,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      config: error.config
-    })
-    
-    // 如果API失败，使用默认角色选项作为后备
+    console.error('加载角色列表失败:', error)
+    // 使用默认角色选项作为后备
     roles.value = [
       { name: 'general-assistant', displayName: '通用助手', description: '通用AI助手', prompt: '' },
       { name: 'frontend-engineer', displayName: '前端开发工程师', description: '专业的前端开发工程师', prompt: '' },
@@ -373,7 +288,6 @@ const loadRoles = async () => {
     message.error(`角色列表加载失败: ${error.message}`)
   } finally {
     rolesLoading.value = false
-    console.log('🏁 角色加载完成，当前角色数量:', roles.value.length)
   }
 }
 
@@ -388,15 +302,13 @@ const resetForm = () => {
     name: '',
     role: '',
     directoryType: 'local',
-    path: './' // 设置默认路径
+    path: './'
   }
 }
 
 const handleBrowseDirectory = async () => {
   browsing.value = true
   try {
-    // 这里可以调用系统的目录选择对话框
-    // 由于Web环境限制，这里只是模拟
     message.info('目录浏览功能需要桌面应用支持')
   } catch (error) {
     console.error('浏览目录失败:', error)
@@ -412,68 +324,19 @@ const handleCreate = async () => {
     return
   }
 
-  console.log('🔍 创建前验证:', {
-    directoryType: formData.value.directoryType,
-    path: formData.value.path,
-    canCreate: canCreate.value
-  })
-
-  // 验证Git地址格式
-  if (formData.value.directoryType === 'git') {
-    const path = formData.value.path.trim()
-    // 支持多种Git URL格式，更宽松的验证
-    const gitUrlPatterns = [
-      /^https?:\/\/[^\s]+(\.git)?$/,                    // HTTPS (更宽松)
-      /^git@[^\s]+:[^\s]+(\.git)?$/,                    // SSH (更宽松)
-      /^ssh:\/\/git@[^\s]+:[^\s]+(\.git)?$/,            // SSH with protocol (更宽松)
-      /^git:\/\/[^\s]+(\.git)?$/,                       // Git protocol (更宽松)
-      /^[^\s]+@[^\s]+:[^\s]+(\.git)?$/                  // 通用SSH格式
-    ]
-    
-    const isValidGitUrl = gitUrlPatterns.some(pattern => pattern.test(path))
-    console.log('🔍 Git URL验证:', {
-      path,
-      patterns: gitUrlPatterns.map(p => p.toString()),
-      isValid: isValidGitUrl
-    })
-    
-    if (!isValidGitUrl) {
-      message.error('Git地址格式不正确，支持HTTPS、SSH等格式，例如：https://github.com/user/repo.git')
-      return
-    }
-  }
-
-  // 验证本地路径格式（放宽限制，支持相对路径）
-  if (formData.value.directoryType === 'local') {
-    const path = formData.value.path.trim()
-    if (!path) {
-      message.error('请输入有效的本地路径')
-      return
-    }
-  }
-
   loading.value = true
   try {
-    // 根据后端API格式构建请求数据
     const createData = {
       name: formData.value.name.trim() || undefined,
       role: formData.value.role || 'general-assistant',
-      workDir: formData.value.path.trim(), // 后端使用 workDir 字段
+      workDir: formData.value.path.trim(),
       namespace: currentNamespace.value,
       context: formData.value.directoryType === 'git' 
         ? `工作在Git仓库: ${formData.value.path.trim()}` 
         : `工作在本地目录: ${formData.value.path.trim()}`
     }
 
-    console.log('📤 创建实例数据:', createData)
-    console.log('📤 发送到agentsStore:', {
-      namespace: currentNamespace.value,
-      data: createData
-    })
-
-    // 调用API创建实例
     const newAgent = await agentsStore.createAgent(currentNamespace.value, createData)
-
     message.success('实例创建成功！')
     emit('created', newAgent)
     handleClose()
@@ -495,15 +358,13 @@ watch(
   () => props.show,
   (newShow) => {
     if (newShow) {
-      console.log('🎭 模态框显示，重置表单并加载角色')
       resetForm()
-      // 每次显示都重新加载角色，确保数据是最新的
       loadRoles()
     }
   }
 )
 
-// 监听目录类型变化，自动设置默认路径
+// 监听目录类型变化
 watch(
   () => formData.value.directoryType,
   (newType) => {
@@ -518,17 +379,29 @@ watch(
 
 <style scoped lang="scss">
 .agent-create-form {
+  color: #ffffff;
+
+  .form-group {
+    margin-bottom: 32px;
+    
+    .group-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+    }
+  }
+
   .form-section {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 
     .section-title {
       font-size: 14px;
       font-weight: 600;
       color: #ffffff;
       margin-bottom: 8px;
-      font-family: 'Courier New', monospace;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
     }
 
     .section-tip {
@@ -537,11 +410,10 @@ watch(
       gap: 6px;
       margin-top: 6px;
       font-size: 12px;
-      color: #cccccc;
-      font-family: 'Courier New', monospace;
+      color: rgba(255, 255, 255, 0.7);
 
       .n-icon {
-        color: #00ff41;
+        color: rgba(255, 255, 255, 0.6);
       }
     }
   }
@@ -550,21 +422,19 @@ watch(
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 12px;
-    background: rgba(0, 255, 65, 0.1);
-    border-radius: 6px;
-    border: 1px solid rgba(0, 255, 65, 0.3);
+    padding: 12px 16px;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(59, 130, 246, 0.3);
 
     .namespace-icon {
-      color: #00ff41;
+      color: #3b82f6;
     }
 
     .namespace-name {
       font-size: 14px;
-      font-weight: 500;
+      font-weight: 600;
       color: #ffffff;
-      font-family: 'Courier New', monospace;
-      text-transform: uppercase;
     }
   }
 
@@ -579,58 +449,19 @@ watch(
       align-items: center;
       gap: 8px;
       font-size: 14px;
-      padding: 8px 12px;
-      border-radius: 6px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
       transition: all 0.2s ease;
-      color: #cccccc;
-      font-family: 'Courier New', monospace;
+      color: #ffffff;
       
       &:hover {
-        background: rgba(0, 255, 65, 0.1);
+        border-color: #3b82f6;
+        background: rgba(59, 130, 246, 0.1);
       }
-    }
 
-    // 选中状态的样式
-    :deep(.n-radio--checked) {
-      .radio-option {
-        background: rgba(0, 255, 65, 0.2);
-        color: #00ff41;
-        
-        .n-icon {
-          color: #00ff41;
-        }
-      }
-    }
-
-    // Git选项的特殊样式
-    :deep(.n-radio[value="git"]) {
-      .radio-option {
-        border: 1px solid #d9d9d9;
-        
-        .n-icon {
-          color: #52c41a;
-        }
-      }
-      
-      &.n-radio--checked .radio-option {
-        border-color: #1890ff;
-        background: #e6f7ff;
-      }
-    }
-
-    // 本地路径选项样式
-    :deep(.n-radio[value="local"]) {
-      .radio-option {
-        border: 1px solid #d9d9d9;
-        
-        .n-icon {
-          color: #faad14;
-        }
-      }
-      
-      &.n-radio--checked .radio-option {
-        border-color: #1890ff;
-        background: #e6f7ff;
+      .n-icon {
+        color: rgba(255, 255, 255, 0.8);
       }
     }
   }
@@ -645,30 +476,12 @@ watch(
     }
   }
 
-  .info-banner {
-    margin-top: 20px;
-
-    :deep(.n-alert) {
-      .n-alert__content {
-        font-size: 13px;
-        line-height: 1.5;
-      }
-    }
-  }
-  
-  // 选中角色信息展示
   .selected-role-info {
     margin-top: 12px;
     padding: 12px;
-    background: var(--bg-secondary, #f8f9fa);
-    border-radius: 6px;
-    border: 1px solid var(--border-color, #e9ecef);
-    
-    // Terminal 主题适配
-    [data-theme='terminal'] & {
-      background: rgba(0, 255, 65, 0.1);
-      border: 1px solid rgba(0, 255, 65, 0.3);
-    }
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(16, 185, 129, 0.3);
     
     .role-info-header {
       display: flex;
@@ -677,39 +490,25 @@ watch(
       margin-bottom: 6px;
       
       .role-icon {
-        color: var(--color-primary, #1890ff);
-        
-        // Terminal 主题适配
-        [data-theme='terminal'] & {
-          color: #00ff41;
-        }
+        color: #10b981;
       }
       
       .role-name {
         font-size: 14px;
         font-weight: 600;
-        color: var(--text-primary, #333);
-        
-        // Terminal 主题适配
-        [data-theme='terminal'] & {
-          color: #00ff41;
-          font-family: 'Courier New', monospace;
-          text-transform: uppercase;
-        }
+        color: #ffffff;
       }
     }
     
     .role-description {
       font-size: 13px;
-      color: var(--text-secondary, #666);
+      color: rgba(255, 255, 255, 0.8);
       line-height: 1.4;
-      
-      // Terminal 主题适配
-      [data-theme='terminal'] & {
-        color: #cccccc;
-        font-family: 'Courier New', monospace;
-      }
     }
+  }
+
+  .info-banner {
+    margin-top: 24px;
   }
 }
 
@@ -719,137 +518,129 @@ watch(
   justify-content: flex-end;
 }
 
-// 深度样式优化 - 添加 Terminal 主题支持
-:deep(.n-card-header) {
-  // Terminal 主题适配
-  [data-theme='terminal'] & {
-    background: #0a0a0a;
-    border-bottom: 1px solid rgba(0, 255, 65, 0.3);
-  }
-  
-  .n-card-header__main {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-primary, #333);
-    
-    // Terminal 主题适配
-    [data-theme='terminal'] & {
-      color: #00ff41;
-      font-family: 'Courier New', monospace;
-      text-transform: uppercase;
+// 选中状态样式
+:deep(.n-radio--checked) {
+  .radio-option {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: #3b82f6;
+    color: #ffffff;
+
+    .n-icon {
+      color: #3b82f6;
     }
   }
 }
 
+// 深度样式优化 - 确保输入框和选择框的文字为白色
 :deep(.n-input) {
-  // Terminal 主题适配
-  [data-theme='terminal'] & {
-    .n-input__border,
-    .n-input__state-border {
-      border-color: rgba(0, 255, 65, 0.3);
-    }
-    
-    .n-input-wrapper {
-      background: rgba(0, 255, 65, 0.05);
-    }
-    
-    .n-input__input-el {
-      color: #ffffff;
-      font-family: 'Courier New', monospace;
-      
-      &::placeholder {
-        color: #666666;
-      }
-    }
+  .n-input-wrapper {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
   }
   
   .n-input__input-el {
-    font-size: 14px;
+    color: #ffffff;
+    
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+  }
+
+  .n-input__border,
+  .n-input__state-border {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  &:hover {
+    .n-input__border,
+    .n-input__state-border {
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+  }
+
+  &.n-input--focus {
+    .n-input__border,
+    .n-input__state-border {
+      border-color: #3b82f6;
+    }
   }
 }
 
 :deep(.n-select) {
-  // Terminal 主题适配
-  [data-theme='terminal'] & {
-    .n-base-selection {
-      background: rgba(0, 255, 65, 0.05);
-      border-color: rgba(0, 255, 65, 0.3);
-    }
-    
-    .n-base-selection-label {
-      color: #ffffff;
-      font-family: 'Courier New', monospace;
-    }
-    
-    .n-base-selection-placeholder {
-      color: #666666;
-      font-family: 'Courier New', monospace;
-    }
+  .n-base-selection {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
   }
   
   .n-base-selection-label {
-    font-size: 14px;
+    color: #ffffff;
+  }
+  
+  .n-base-selection-placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  &:hover {
+    .n-base-selection {
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+  }
+
+  &.n-select--focused {
+    .n-base-selection {
+      border-color: #3b82f6;
+    }
   }
 }
 
 :deep(.n-radio) {
-  // Terminal 主题适配
-  [data-theme='terminal'] & {
-    .n-radio__label {
-      color: #cccccc;
-      font-family: 'Courier New', monospace;
-    }
-  }
-  
   .n-radio__label {
-    font-size: 14px;
+    color: #ffffff;
+  }
+
+  .n-radio__dot {
+    border-color: rgba(255, 255, 255, 0.4);
+  }
+
+  &.n-radio--checked {
+    .n-radio__dot {
+      border-color: #3b82f6;
+      background-color: #3b82f6;
+    }
   }
 }
 
-// 角色选项的下拉样式
-:deep(.n-base-select-menu) {
-  // Terminal 主题适配
-  [data-theme='terminal'] & {
-    background: #0a0a0a;
-    border: 1px solid rgba(0, 255, 65, 0.3);
+// 模态框标题样式
+:deep(.n-card-header) {
+  .n-card-header__main {
+    color: #ffffff;
+    font-weight: 600;
   }
-  
-  .role-option {
-    padding: 8px 0;
-    
-    .role-option-name {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-primary, #333);
-      margin-bottom: 2px;
-      
-      // Terminal 主题适配
-      [data-theme='terminal'] & {
-        color: #ffffff;
-        font-family: 'Courier New', monospace;
-        text-transform: uppercase;
-      }
-    }
-    
-    .role-option-description {
-      font-size: 12px;
-      color: var(--text-secondary, #666);
-      line-height: 1.3;
-      
-      // Terminal 主题适配
-      [data-theme='terminal'] & {
-        color: #cccccc;
-        font-family: 'Courier New', monospace;
-      }
-    }
-    
-    // Terminal 主题下的悬停效果
-    [data-theme='terminal'] &:hover {
-      background: rgba(0, 255, 65, 0.1);
-      
-      .role-option-name {
-        color: #00ff41;
-      }
+}
+
+// Alert 组件样式
+:deep(.n-alert) {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+
+  .n-alert__content {
+    color: #ffffff;
+  }
+
+  .n-alert__icon {
+    color: #3b82f6;
+  }
+}
+
+// 按钮样式优化
+:deep(.n-button) {
+  &:not(.n-button--primary) {
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.3);
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.05);
     }
   }
 }

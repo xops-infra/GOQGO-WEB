@@ -823,6 +823,110 @@ export const useChatStore = defineStore('chat', () => {
     return status
   }
 
+  // 事件监听器引用
+  let namespaceChangeHandler: ((event: CustomEvent) => void) | null = null
+  let websocketReconnectHandler: ((event: CustomEvent) => void) | null = null
+
+  // 设置事件监听器
+  const setupEventListeners = () => {
+    // 监听namespace变化事件
+    namespaceChangeHandler = async (event: CustomEvent) => {
+      const { namespace } = event.detail
+      console.log('🔄 Chat store收到namespace变化事件:', namespace)
+
+      try {
+        // 重新连接到新的namespace聊天室
+        await connect(namespace)
+        console.log('✅ 已重新连接到新namespace的聊天室')
+      } catch (error) {
+        console.error('❌ 重新连接聊天室失败:', error)
+      }
+    }
+
+    // 监听WebSocket重连事件
+    websocketReconnectHandler = async (event: CustomEvent) => {
+      const { timestamp, namespace: reconnectedNamespace } = event.detail
+      console.log('🔄 Chat store收到WebSocket重连事件:', { timestamp, namespace: reconnectedNamespace })
+
+      try {
+        // 重连成功后，清理过期的思考消息状态
+        await cleanupExpiredThinkingMessages()
+        console.log('✅ 重连后状态清理完成')
+      } catch (error) {
+        console.error('❌ 重连后状态清理失败:', error)
+      }
+    }
+
+    // 添加事件监听器
+    window.addEventListener('namespace-changed', namespaceChangeHandler as EventListener)
+    window.addEventListener('websocket-reconnected', websocketReconnectHandler as EventListener)
+    console.log('✅ Chat store事件监听器已设置')
+  }
+
+  // 清理事件监听器
+  const cleanupEventListeners = () => {
+    if (namespaceChangeHandler) {
+      window.removeEventListener('namespace-changed', namespaceChangeHandler as EventListener)
+      namespaceChangeHandler = null
+    }
+    if (websocketReconnectHandler) {
+      window.removeEventListener('websocket-reconnected', websocketReconnectHandler as EventListener)
+      websocketReconnectHandler = null
+    }
+    console.log('🧹 Chat store事件监听器已清理')
+  }
+
+  /**
+   * 清理过期的思考消息
+   * 在WebSocket重连成功后调用，确保UI状态与服务器同步
+   */
+  const cleanupExpiredThinkingMessages = async () => {
+    try {
+      console.log('🧹 开始清理过期的思考消息...')
+      
+      const now = Date.now()
+      const maxThinkingAge = 5 * 60 * 1000 // 5分钟
+      let cleanedCount = 0
+      
+      // 查找并清理过期的思考消息
+      const expiredThinkingMessages = messages.value.filter(msg => {
+        if (msg.isThinking) {
+          const messageTime = new Date(msg.timestamp).getTime()
+          const age = now - messageTime
+          return age > maxThinkingAge
+        }
+        return false
+      })
+      
+      if (expiredThinkingMessages.length > 0) {
+        console.log(`🔍 发现 ${expiredThinkingMessages.length} 条过期的思考消息:`, 
+          expiredThinkingMessages.map(msg => ({
+            id: msg.id,
+            senderName: msg.senderName,
+            age: Math.round((now - new Date(msg.timestamp).getTime()) / 1000) + 's'
+          }))
+        )
+        
+        // 从消息列表中移除过期的思考消息
+        messages.value = messages.value.filter(msg => !expiredThinkingMessages.some(expired => expired.id === msg.id))
+        cleanedCount = expiredThinkingMessages.length
+        
+        console.log(`✅ 已清理 ${cleanedCount} 条过期的思考消息，当前消息总数: ${messages.value.length}`)
+      } else {
+        console.log('✅ 没有发现过期的思考消息')
+      }
+      
+      return cleanedCount
+      
+    } catch (error) {
+      console.error('❌ 清理过期思考消息失败:', error)
+      throw error
+    }
+  }
+
+  // 初始化事件监听器
+  setupEventListeners()
+
   return {
     // 状态
     messages,
@@ -850,6 +954,8 @@ export const useChatStore = defineStore('chat', () => {
     forceReconnect,
     getDetailedConnectionStatus,
     clearPendingMessages,
-    checkConnectionHealth
+    checkConnectionHealth,
+    setupEventListeners,
+    cleanupEventListeners
   }
 })

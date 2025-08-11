@@ -72,6 +72,102 @@
         <p>释放文件以上传</p>
       </div>
 
+      <!-- 附件预览区域 -->
+      <div v-if="attachments.length > 0" class="attachments-preview">
+        <div class="attachments-header">
+          <span class="attachments-title">附件预览</span>
+          <n-button
+            text
+            size="small"
+            @click="clearAllAttachments"
+            class="clear-all-btn"
+          >
+            <template #icon>
+              <n-icon>
+                <svg viewBox="0 0 24 24">
+                  <path
+                    fill="currentColor"
+                    d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                  />
+                </svg>
+              </n-icon>
+            </template>
+            清空
+          </n-button>
+        </div>
+        <div class="attachments-grid">
+          <div
+            v-for="(attachment, index) in attachments"
+            :key="attachment.id"
+            class="attachment-item"
+          >
+            <!-- 图片预览 -->
+            <div v-if="attachment.type.startsWith('image/')" class="image-preview">
+              <img
+                :src="attachment.previewUrl"
+                :alt="attachment.name"
+                @click="previewImage(attachment)"
+                class="preview-image"
+              />
+              <div class="image-overlay">
+                <n-button
+                  text
+                  size="small"
+                  @click="removeAttachment(index)"
+                  class="remove-btn"
+                >
+                  <template #icon>
+                    <n-icon>
+                      <svg viewBox="0 0 24 24">
+                        <path
+                          fill="currentColor"
+                          d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                        />
+                      </svg>
+                    </n-icon>
+                  </template>
+                </n-button>
+              </div>
+            </div>
+            
+            <!-- 其他文件类型 -->
+            <div v-else class="file-preview">
+              <div class="file-icon">
+                <n-icon size="32">
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      fill="currentColor"
+                      d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"
+                    />
+                  </svg>
+                </n-icon>
+              </div>
+              <div class="file-info">
+                <div class="file-name">{{ attachment.name }}</div>
+                <div class="file-size">{{ formatFileSize(attachment.size) }}</div>
+              </div>
+              <n-button
+                text
+                size="small"
+                @click="removeAttachment(index)"
+                class="remove-btn"
+              >
+                <template #icon>
+                  <n-icon>
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        fill="currentColor"
+                        d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                      />
+                    </svg>
+                  </n-icon>
+                </template>
+              </n-button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 输入区域 -->
       <div class="input-area">
         <!-- 工具栏 -->
@@ -88,7 +184,7 @@
                 <svg viewBox="0 0 24 24">
                   <path
                     fill="currentColor"
-                    d="M16.5,6V17.5A4,4 0 0,1 12.5,21.5A4,4 0 0,1 8.5,17.5V5A2.5,2.5 0 0,1 11,2.5A2.5,2.5 0 0,1 13.5,5V15.5A1,1 0 0,1 12.5,16.5A1,1 0 0,1 11.5,15.5V6H10V15.5A2.5,2.5 0 0,0 12.5,18A2.5,2.5 0 0,0 15,15.5V5A4,4 0 0,0 11,1A4,4 0 0,0 7,5V17.5A5.5,5.5 0 0,0 12.5,23A5.5,5.5 0 0,0 18,17.5V6H16.5Z"
+                    d="M16.5,6V17.5A4,4 0 0,1 12.5,21.5A4,4 0 0,1 8.5,17.5V5A2.5,2.5 0 0,1 11,2.5A2.5,2.5 0 0,1 13.5,5V15.5A1,1 0 0,1 12.5,16.5A1,1 0 0,1 11.5,15.5V6H10V15.5A2.5,2.5 0 0,0 12.5,18A2.5,2.5 0 0,0 15,15.5V5A4,4 0 0,0 11,1A4,4 0 0,0 7,5V17.5A5.5,5.5 0 0,0 12.5,23A5.5,2.5 0 0,0 18,17.5V6H16.5Z"
                   />
                 </svg>
               </n-icon>
@@ -127,7 +223,10 @@
             <span v-if="messageSizeInfo.byteSize > 1024" class="size-text">
               ({{ Math.round(messageSizeInfo.byteSize / 1024) }}KB)
             </span>
-            <span v-if="!messageSizeInfo.isValid" class="error-text">
+            <span v-if="messageSizeInfo.byteSize > 2048" class="auto-upload-hint">
+              ⚠️ 超过2K，将自动转为文件
+            </span>
+            <span v-if="!messageSizeInfo.isValid && messageSizeInfo.byteSize <= 2048" class="error-text">
               过大
             </span>
           </div>
@@ -197,6 +296,18 @@ const inputMessage = ref('')
 const inputRef = ref()
 const isDragOver = ref(false)
 
+// 附件管理
+interface Attachment {
+  id: string
+  name: string
+  type: string
+  size: number
+  file: File
+  previewUrl?: string
+}
+
+const attachments = ref<Attachment[]>([])
+
 // @ 功能相关状态
 const showMentionSelector = ref(false)
 const mentionQuery = ref('')
@@ -249,7 +360,7 @@ const filteredAgents = computed(() => {
 
 // 获取状态文本
 const getStatusText = (status: string) => {
-  const statusMap = {
+  const statusMap: Record<string, string> = {
     running: '运行中',
     idle: '空闲',
     error: '错误',
@@ -444,36 +555,105 @@ const handleSendMessage = async () => {
   if (!text) return
 
   try {
-    // 检查是否已经包含@提及
-    const hasMentions = AgentMentionParser.hasAgentMentions(text)
-    
-    let finalText = text
-    let mentionedAgentNames: string[] = []
-    
-    if (hasMentions) {
-      // 如果已经有@提及，直接解析
-      const agentMentions = AgentMentionParser.extractUniqueAgents(text)
-      mentionedAgentNames = agentMentions.map(mention => `${mention.agentName}.${mention.namespace}`)
-    } else {
-      // 如果没有@提及，在消息前面自动添加@{namespace}-sys
-      const defaultNamespace = props.namespace || 'default'
-      finalText = `@${defaultNamespace}-sys ${text}`
-      mentionedAgentNames = [`${defaultNamespace}-sys.${defaultNamespace}`]
+    // 检查消息大小，如果超过2K则自动转换为文件上传
+    const messageSize = new Blob([text]).size
+    if (messageSize > 2048) {
+      console.log('📁 消息超过2K，自动转换为文件上传:', messageSize, 'bytes')
       
-      console.log(' 自动添加默认系统agent:', `@${defaultNamespace}-sys`)
+      // 创建文本文件
+      const textFile = new File([text], `message_${Date.now()}.txt`, {
+        type: 'text/plain',
+        lastModified: Date.now()
+      })
+      
+      // 添加到附件列表
+      addAttachment(textFile)
+      
+      // 显示上传进度提示
+      const loadingMessage = message.loading(`正在上传长消息文件...`, { duration: 0 })
+      
+      try {
+        // 上传文件
+        const result = await filesApi.uploadFile(userStore.currentUser?.username || 'unknown', textFile)
+        console.log('✅ 长消息文件上传成功:', result)
+        
+        // 关闭加载提示
+        loadingMessage.destroy()
+        
+        // 生成文件链接，格式类似 [图片] xxxx
+        const fileLink = `[长消息文件]${result.url}`
+        
+        // 发送文件链接而不是原始文本
+        const hasMentions = AgentMentionParser.hasAgentMentions(fileLink)
+        let finalText = fileLink
+        let mentionedAgentNames: string[] = []
+        
+        if (hasMentions) {
+          const agentMentions = AgentMentionParser.extractUniqueAgents(fileLink)
+          mentionedAgentNames = agentMentions.map(mention => `${mention.agentName}.${mention.namespace}`)
+        } else {
+          const defaultNamespace = props.namespace || 'default'
+          finalText = `@${defaultNamespace}-sys ${fileLink}`
+          mentionedAgentNames = [`${defaultNamespace}-sys.${defaultNamespace}`]
+        }
+        
+        console.log('📤 发送文件链接消息:', {
+          originalText: text,
+          finalText: finalText,
+          mentionedAgents: mentionedAgentNames,
+          fileUrl: result.url
+        })
+        
+        emit('send', finalText, mentionedAgentNames)
+        message.success('长消息已自动转换为文件上传')
+        
+      } catch (uploadError) {
+        loadingMessage.destroy()
+        console.error('❌ 长消息文件上传失败:', uploadError)
+        message.error('长消息文件上传失败，请重试')
+        
+        // 上传失败时从附件列表中移除
+        const index = attachments.value.findIndex(att => att.file === textFile)
+        if (index > -1) {
+          removeAttachment(index)
+        }
+        return
+      }
+    } else {
+      // 正常发送短消息
+      const hasMentions = AgentMentionParser.hasAgentMentions(text)
+      
+      let finalText = text
+      let mentionedAgentNames: string[] = []
+      
+      if (hasMentions) {
+        // 如果已经有@提及，直接解析
+        const agentMentions = AgentMentionParser.extractUniqueAgents(text)
+        mentionedAgentNames = agentMentions.map(mention => `${mention.agentName}.${mention.namespace}`)
+      } else {
+        // 如果没有@提及，在消息前面自动添加@{namespace}-sys
+        const defaultNamespace = props.namespace || 'default'
+        finalText = `@${defaultNamespace}-sys ${text}`
+        mentionedAgentNames = [`${defaultNamespace}-sys.${defaultNamespace}`]
+        
+        console.log(' 自动添加默认系统agent:', `@${defaultNamespace}-sys`)
+      }
+
+      console.log('📤 发送消息:', {
+        originalText: text,
+        finalText: finalText,
+        mentionedAgents: mentionedAgentNames
+      })
+
+      // 发送修改后的消息文本，包含Agent提及信息
+      emit('send', finalText, mentionedAgentNames)
     }
-
-    console.log('📤 发送消息:', {
-      originalText: text,
-      finalText: finalText,
-      mentionedAgents: mentionedAgentNames
-    })
-
-    // 发送修改后的消息文本，包含Agent提及信息
-    emit('send', finalText, mentionedAgentNames)
+    
+    // 清空输入框和状态
     inputMessage.value = ''
     hideMentionSelector()
     hideAgentAutocomplete()
+    
   } catch (error) {
     console.error('❌ 发送过程中出错:', error)
   }
@@ -607,11 +787,14 @@ const uploadAndInsertFile = async (file: File) => {
   try {
     console.log('📤 开始上传文件:', file.name, file.type, formatFileSize(file.size))
 
+    // 先添加到附件预览
+    addAttachment(file)
+
     // 显示上传进度提示
     const loadingMessage = message.loading(`正在上传 ${file.name}...`, { duration: 0 })
 
     // 上传文件
-    const result = await filesApi.uploadFile(userStore.currentUser.username, file)
+    const result = await filesApi.uploadFile(userStore.currentUser?.username || 'unknown', file)
     console.log('✅ 文件上传成功:', result)
 
     // 关闭加载提示
@@ -626,7 +809,13 @@ const uploadAndInsertFile = async (file: File) => {
     message.success(`文件 ${file.name} 上传成功`)
   } catch (error) {
     console.error('❌ 上传文件失败:', error)
-    message.error(`上传文件 ${file.name} 失败: ${error.message}`)
+    message.error(`上传文件 ${file.name} 失败: ${(error as Error).message}`)
+    
+    // 上传失败时从附件列表中移除
+    const index = attachments.value.findIndex(att => att.file === file)
+    if (index > -1) {
+      removeAttachment(index)
+    }
   }
 }
 
@@ -798,6 +987,97 @@ const handlePaste = async (e: ClipboardEvent) => {
   }
 }
 
+// 附件管理方法
+const addAttachment = (file: File) => {
+  const attachment: Attachment = {
+    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+    name: file.name,
+    type: file.type,
+    size: file.size,
+    file: file,
+    previewUrl: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined
+  }
+  attachments.value.push(attachment)
+}
+
+const removeAttachment = (index: number) => {
+  const attachment = attachments.value[index]
+  if (attachment.previewUrl) {
+    URL.revokeObjectURL(attachment.previewUrl)
+  }
+  attachments.value.splice(index, 1)
+}
+
+const clearAllAttachments = () => {
+  attachments.value.forEach(attachment => {
+    if (attachment.previewUrl) {
+      URL.revokeObjectURL(attachment.previewUrl)
+    }
+  })
+  attachments.value = []
+}
+
+const previewImage = (attachment: Attachment) => {
+  if (attachment.previewUrl) {
+    // 可以在这里实现图片预览功能，比如打开模态框
+    console.log('预览图片:', attachment.name)
+  }
+}
+
+// 将长消息转换为文件
+const convertMessageToFile = async () => {
+  const text = inputMessage.value.trim()
+  if (!text) return
+  
+  try {
+    console.log('📁 用户选择将长消息转换为文件:', text.length, 'characters')
+    
+    // 创建文本文件
+    const textFile = new File([text], `message_${Date.now()}.txt`, {
+      type: 'text/plain',
+      lastModified: Date.now()
+    })
+    
+    // 添加到附件列表
+    addAttachment(textFile)
+    
+    // 显示上传进度提示
+    const loadingMessage = message.loading(`正在上传长消息文件...`, { duration: 0 })
+    
+    try {
+      // 上传文件
+      const result = await filesApi.uploadFile(userStore.currentUser?.username || 'unknown', textFile)
+      console.log('✅ 长消息文件上传成功:', result)
+      
+      // 关闭加载提示
+      loadingMessage.destroy()
+      
+      // 生成文件链接，格式类似 [图片] xxxx
+      const fileLink = `[长消息文件]${result.url}`
+      
+      // 将输入框内容替换为文件链接
+      inputMessage.value = fileLink
+      
+      message.success('长消息已转换为文件，聊天内容变为文件链接')
+      
+    } catch (uploadError) {
+      loadingMessage.destroy()
+      console.error('❌ 长消息文件上传失败:', uploadError)
+      message.error('长消息文件上传失败，请重试')
+      
+      // 上传失败时从附件列表中移除
+      const index = attachments.value.findIndex(att => att.file === textFile)
+      if (index > -1) {
+        removeAttachment(index)
+      }
+    }
+    
+  } catch (error) {
+    console.error('❌ 转换长消息为文件时出错:', error)
+    message.error('转换失败，请重试')
+  }
+}
+
 // 处理拖拽事件
 const handleDragOver = (e: DragEvent) => {
   e.preventDefault()
@@ -820,6 +1100,29 @@ const handleDrop = async (e: DragEvent) => {
 
   for (const file of droppedFiles) {
     await uploadAndInsertFile(file)
+  }
+}
+
+// 版本信息
+const versionInfo = computed(() => ({
+  version: versionData.version || 'v0.2.0',
+  buildTime: versionData.buildTime || new Date().toISOString(),
+  commit: versionData.commit || 'unknown'
+}))
+
+// 格式化构建时间
+const formatBuildTime = (buildTime: string) => {
+  try {
+    const date = new Date(buildTime)
+    return date.toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch (error) {
+    return buildTime
   }
 }
 </script>
@@ -980,18 +1283,14 @@ const handleDrop = async (e: DragEvent) => {
 }
 
 .chat-input {
-  background-color: var(--bg-primary);
-  border-top: 1px solid var(--border-primary);
-  color: var(--text-primary);
-  position: sticky; // 固定在底部
-  bottom: 0; // 固定在底部
-  z-index: 10; // 确保在统计面板之上
-  transition: all 0.3s ease;
-
-  &.drag-over {
-    background-color: rgba(16, 185, 129, 0.05);
-    border-color: var(--color-success);
-  }
+  position: relative;
+  background: var(--bg-primary, #fff);
+  border-top: 1px solid var(--border-primary, #e0e0e0);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10;
 }
 
 .drag-overlay {
@@ -1025,6 +1324,134 @@ const handleDrop = async (e: DragEvent) => {
   gap: 12px;
   padding: 8px 16px; // 减少上下padding，让输入框更紧凑
   background-color: var(--bg-primary);
+}
+
+// 附件预览样式
+.attachments-preview {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  margin: 8px 0;
+  padding: 12px;
+  
+  .attachments-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    
+    .attachments-title {
+      color: var(--text-primary);
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    .clear-all-btn {
+      color: var(--text-secondary);
+      font-size: 12px;
+      padding: 4px 8px;
+      
+      &:hover {
+        color: var(--text-primary);
+        background: var(--bg-hover);
+      }
+    }
+  }
+  
+  .attachments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+    
+    .attachment-item {
+      .image-preview {
+        position: relative;
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1px solid var(--border-primary);
+        
+        .preview-image {
+          width: 100%;
+          height: 80px;
+          object-fit: cover;
+          cursor: pointer;
+          transition: transform 0.2s ease;
+          
+          &:hover {
+            transform: scale(1.05);
+          }
+        }
+        
+        .image-overlay {
+          position: absolute;
+          top: 4px;
+          right: 4px;
+          
+          .remove-btn {
+            color: var(--text-primary);
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            
+            &:hover {
+              background: rgba(220, 53, 69, 0.8);
+            }
+          }
+        }
+      }
+      
+      .file-preview {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 12px 8px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-primary);
+        border-radius: 6px;
+        position: relative;
+        
+        .file-icon {
+          color: var(--text-secondary);
+          margin-bottom: 8px;
+        }
+        
+        .file-info {
+          text-align: center;
+          
+          .file-name {
+            color: var(--text-primary);
+            font-size: 11px;
+            margin-bottom: 4px;
+            word-break: break-all;
+            line-height: 1.2;
+          }
+          
+          .file-size {
+            color: var(--text-tertiary);
+            font-size: 10px;
+          }
+        }
+        
+        .remove-btn {
+          position: absolute;
+          top: 4px;
+          right: 4px;
+          color: var(--text-primary);
+          background: rgba(0, 0, 0, 0.7);
+          border-radius: 50%;
+          width: 20px;
+          height: 20px;
+          padding: 0;
+          
+          &:hover {
+            background: rgba(220, 53, 69, 0.8);
+          }
+        }
+      }
+    }
+  }
 }
 
 .toolbar {
@@ -1164,6 +1591,43 @@ const handleDrop = async (e: DragEvent) => {
       font-size: 10px;
       text-transform: uppercase;
     }
+    
+    .auto-upload-hint {
+      color: var(--color-warning);
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      animation: pulse 2s infinite;
+    }
+    
+    .convert-to-file-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      padding: 8px;
+      background: rgba(250, 173, 20, 0.1);
+      border: 1px solid rgba(250, 173, 20, 0.3);
+      border-radius: 6px;
+      
+      .convert-to-file-btn {
+        flex-shrink: 0;
+        font-size: 11px;
+        padding: 4px 8px;
+        height: 24px;
+        
+        &:hover {
+          background: rgba(250, 173, 20, 0.2);
+          border-color: rgba(250, 173, 20, 0.5);
+        }
+      }
+      
+      .convert-hint {
+        color: var(--text-secondary);
+        font-size: 10px;
+        line-height: 1.3;
+      }
+    }
   }
 }
 
@@ -1258,6 +1722,138 @@ const handleDrop = async (e: DragEvent) => {
       &:hover {
         background-color: var(--terminal-surface);
         color: var(--pixel-green);
+      }
+    }
+  }
+
+  // 附件预览样式
+  .attachments-preview {
+    background: var(--terminal-card-bg, #0a0a0a);
+    border: 1px solid var(--terminal-border-subtle, rgba(0, 255, 65, 0.15));
+    border-radius: 8px;
+    margin: 8px 0;
+    padding: 12px;
+    
+    .attachments-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      
+      .attachments-title {
+        color: var(--terminal-text-primary, #ffffff);
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        text-transform: uppercase;
+        font-weight: 600;
+      }
+      
+      .clear-all-btn {
+        color: var(--terminal-text-secondary, #cccccc);
+        font-size: 10px;
+        padding: 2px 6px;
+        
+        &:hover {
+          color: var(--terminal-text-primary, #ffffff);
+          background: rgba(255, 255, 255, 0.1);
+        }
+      }
+    }
+    
+    .attachments-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 8px;
+      
+      .attachment-item {
+        .image-preview {
+          position: relative;
+          border-radius: 6px;
+          overflow: hidden;
+          border: 1px solid var(--terminal-border, rgba(0, 255, 65, 0.3));
+          
+          .preview-image {
+            width: 100%;
+            height: 80px;
+            object-fit: cover;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            
+            &:hover {
+              transform: scale(1.05);
+            }
+          }
+          
+          .image-overlay {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            
+            .remove-btn {
+              color: var(--terminal-text-primary, #ffffff);
+              background: rgba(0, 0, 0, 0.7);
+              border-radius: 50%;
+              width: 20px;
+              height: 20px;
+              padding: 0;
+              
+              &:hover {
+                background: rgba(220, 53, 69, 0.8);
+              }
+            }
+          }
+        }
+        
+        .file-preview {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 12px 8px;
+          background: var(--terminal-panel-bg, #111111);
+          border: 1px solid var(--terminal-border, rgba(0, 255, 65, 0.3));
+          border-radius: 6px;
+          position: relative;
+          
+          .file-icon {
+            color: var(--terminal-text-secondary, #cccccc);
+            margin-bottom: 8px;
+          }
+          
+          .file-info {
+            text-align: center;
+            
+            .file-name {
+              color: var(--terminal-text-primary, #ffffff);
+              font-size: 10px;
+              font-family: 'Courier New', monospace;
+              margin-bottom: 4px;
+              word-break: break-all;
+              line-height: 1.2;
+            }
+            
+            .file-size {
+              color: var(--terminal-text-tertiary, #999999);
+              font-size: 9px;
+              font-family: 'Courier New', monospace;
+            }
+          }
+          
+          .remove-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            color: var(--terminal-text-primary, #ffffff);
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            
+            &:hover {
+              background: rgba(220, 53, 69, 0.8);
+            }
+          }
+        }
       }
     }
   }

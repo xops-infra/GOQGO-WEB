@@ -4,9 +4,9 @@
 
 // 消息大小限制常量
 export const MESSAGE_LIMITS = {
-  MAX_CHARS: 50000,      // 最大字符数
+  MAX_CHARS: 2000,       // 最大字符数 (从50000改为2000)
   MAX_BYTES: 64 * 1024,  // 最大字节数 (64KB)
-  CHUNK_CHARS: 40000,    // 分块字符数
+  CHUNK_CHARS: 1500,     // 分块字符数 (从40000改为1500)
   CHUNK_BYTES: 50 * 1024 // 分块字节数 (50KB)
 }
 

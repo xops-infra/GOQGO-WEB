@@ -6,7 +6,7 @@
         <div class="brand-logo">
           <TerminalIcons 
             name="terminal" 
-            :size="24" 
+            :size="32" 
             color="#00ff41" 
             :glow="true" 
             :animated="false"
@@ -43,13 +43,15 @@
 
           <router-link 
             to="/dashboard" 
-            class="nav-item" 
+            class="nav-item"
             :class="{ 'active': currentRoute === '/dashboard' }"
+            title="Dashboard 功能开发中"
           >
             <n-icon size="18" class="nav-icon">
               <GridOutline />
             </n-icon>
             <span class="nav-text">DASHBOARD</span>
+            <span class="dev-badge">DEV</span>
           </router-link>
 
           <router-link 
@@ -151,46 +153,31 @@ let cursorInterval: NodeJS.Timeout | null = null
 let typingInterval: NodeJS.Timeout | null = null
 let currentTypingIndex = 0
 
-// 用户菜单选项
-const userMenuOptions = computed(() => [
-  {
-    label: '个人设置',
-    key: 'settings',
-    icon: () => h(NIcon, null, { default: () => h(SettingsOutline) })
-  },
-  {
-    label: '刷新页面',
-    key: 'refresh',
-    icon: () => h(NIcon, null, { default: () => h(RefreshOutline) })
-  },
-  {
-    type: 'divider'
-  },
-  {
-    label: '退出登录',
-    key: 'logout',
-    icon: () => h(NIcon, null, { default: () => h(LogOutOutline) })
-  }
-])
+// 计算最大命令长度（考虑容器宽度和prompt宽度）
+const calculateMaxCommandLength = () => {
+  const containerWidth = 200 // 容器总宽度
+  const promptWidth = 120 // prompt部分宽度
+  const charWidth = 8 // 等宽字体每个字符大约8px
+  const padding = 24 // 左右padding (12px * 2)
+  const gap = 6 // gap间距
+  
+  const availableWidth = containerWidth - promptWidth - padding - gap
+  return Math.floor(availableWidth / charWidth)
+}
 
-// 处理用户菜单选择
-const handleUserMenuSelect = (key: string) => {
-  switch (key) {
-    case 'settings':
-      message.info('个人设置功能开发中...')
-      break
-    case 'refresh':
-      window.location.reload()
-      break
-    case 'logout':
-      authManager.clearAuth()
-      router.push('/login')
-      break
+// 截断命令文本，保持最新内容可见
+const truncateCommand = (command: string, maxLength: number) => {
+  if (command.length <= maxLength) {
+    return command
   }
+  // 保留最后maxLength个字符
+  return command.slice(-maxLength)
 }
 
 // 启动命令轮播
 const startCommandRotation = () => {
+  const maxCommandLength = calculateMaxCommandLength()
+  
   // 开始光标闪烁
   cursorInterval = setInterval(() => {
     showCursor.value = !showCursor.value
@@ -212,7 +199,10 @@ const startCommandRotation = () => {
     
     typingInterval = setInterval(() => {
       if (currentTypingIndex < newCommand.length) {
-        currentCommand.value += newCommand[currentTypingIndex]
+        // 添加新字符
+        const newText = currentCommand.value + newCommand[currentTypingIndex]
+        // 检查长度并截断
+        currentCommand.value = truncateCommand(newText, maxCommandLength)
         currentTypingIndex++
       } else {
         // 打字完成，清除定时器
@@ -229,7 +219,10 @@ const startCommandRotation = () => {
     const firstCommand = commands[0]
     typingInterval = setInterval(() => {
       if (currentTypingIndex < firstCommand.length) {
-        currentCommand.value += firstCommand[currentTypingIndex]
+        // 添加新字符
+        const newText = currentCommand.value + firstCommand[currentTypingIndex]
+        // 检查长度并截断
+        currentCommand.value = truncateCommand(newText, maxCommandLength)
         currentTypingIndex++
       } else {
         if (typingInterval) {
@@ -254,6 +247,54 @@ const stopCommandRotation = () => {
   if (typingInterval) {
     clearInterval(typingInterval)
     typingInterval = null
+  }
+}
+
+// 用户菜单选项
+const userMenuOptions = computed(() => [
+  {
+    label: '个人设置 (开发中)',
+    key: 'settings',
+    icon: () => h(NIcon, null, { default: () => h(SettingsOutline) }),
+    disabled: true
+  },
+  {
+    label: '刷新状态',
+    key: 'refresh',
+    icon: () => h(NIcon, null, { default: () => h(RefreshOutline) })
+  },
+  {
+    type: 'divider',
+    key: 'divider1'
+  },
+  {
+    label: '退出登录',
+    key: 'logout',
+    icon: () => h(NIcon, null, { default: () => h(LogOutOutline) })
+  }
+])
+
+// 处理用户菜单选择
+const handleUserMenuSelect = async (key: string) => {
+  switch (key) {
+    case 'settings':
+      await router.push('/settings')
+      break
+    case 'refresh':
+      message.info('正在刷新用户状态...')
+      // 这里可以添加刷新用户状态的逻辑
+      break
+    case 'logout':
+      try {
+        message.loading('正在退出登录...', { duration: 0, key: 'logout' })
+        await authManager.logout()
+        message.success('已退出登录', { key: 'logout' })
+        await router.push('/login')
+      } catch (error) {
+        console.error('退出登录失败:', error)
+        message.error('退出登录失败', { key: 'logout' })
+      }
+      break
   }
 }
 
@@ -319,27 +360,32 @@ onUnmounted(() => {
   min-width: 0;
   max-width: 450px;
 
-  .brand-logo {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    min-width: 0;
+      .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      min-width: 0;
 
     .terminal-icon {
       flex-shrink: 0;
-      filter: drop-shadow(0 0 4px #00ff41);
+      filter: drop-shadow(0 0 4px rgba(0, 255, 65, 0.5));
     }
 
     .logo-text {
       font-family: 'Courier New', monospace;
       font-size: 22px;
       font-weight: 700;
-      color: #00ff41;
+      color: white;
       letter-spacing: 1.5px;
-      text-shadow: 0 0 4px #00ff41;
+      text-shadow: 0 0 4px #00ff41, 0 0 8px #00ff41, 0 0 12px #00ff41;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      background: rgba(0, 255, 65, 0.1);
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(0, 255, 65, 0.3);
+      box-shadow: 0 0 8px rgba(0, 255, 65, 0.3);
     }
   }
 
@@ -351,7 +397,7 @@ onUnmounted(() => {
     opacity: 0.8;
 
     .subtitle-prefix {
-      color: #00ff41;
+      color: white;
       font-family: 'Courier New', monospace;
       font-weight: 600;
       font-size: 12px;
@@ -360,7 +406,7 @@ onUnmounted(() => {
     .subtitle-text {
       font-family: 'Courier New', monospace;
       font-size: 11px;
-      color: #aaaaaa;
+      color: white;
       letter-spacing: 0.3px;
       text-transform: uppercase;
     }
@@ -376,13 +422,25 @@ onUnmounted(() => {
     opacity: 0.7;
 
     .prompt {
-      color: #00ff41;
+      color: white;
       font-weight: 500;
+      background: rgba(0, 255, 65, 0.1);
+      padding: 2px 6px;
+      border-radius: 3px;
+      border: 1px solid rgba(0, 255, 65, 0.3);
+      box-shadow: 0 0 6px rgba(0, 255, 65, 0.3);
+      text-shadow: 0 0 4px #00ff41, 0 0 6px #00ff41;
     }
 
     .command {
-      color: #00ffff;
+      color: white;
       font-weight: 400;
+      background: rgba(0, 255, 65, 0.1);
+      padding: 2px 6px;
+      border-radius: 3px;
+      border: 1px solid rgba(0, 255, 65, 0.3);
+      box-shadow: 0 0 6px rgba(0, 255, 65, 0.3);
+      text-shadow: 0 0 4px #00ffff, 0 0 6px #00ffff;
     }
   }
 }
@@ -432,17 +490,17 @@ onUnmounted(() => {
   min-width: 0;
 }
 
-.main-nav {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  background: rgba(0, 255, 65, 0.1);
-  border: 1px solid rgba(0, 255, 65, 0.3);
-  flex-wrap: wrap;
-  justify-content: center;
-}
+  .main-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: rgba(0, 255, 65, 0.05);
+    border: 1px solid rgba(0, 255, 65, 0.2);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 
 .nav-item {
   display: flex;
@@ -461,12 +519,12 @@ onUnmounted(() => {
 
   &:hover {
     background: rgba(0, 255, 65, 0.2);
-    color: #00ff41;
+    color: white;
   }
 
   &.active {
     background: rgba(0, 255, 65, 0.3);
-    color: #00ff41;
+    color: white;
     border: 1px solid rgba(0, 255, 65, 0.5);
   }
 
@@ -477,6 +535,22 @@ onUnmounted(() => {
   .nav-text {
     font-size: 11px;
     font-weight: 600;
+    color: white;
+  }
+
+  .dev-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #f0a020;
+    color: #ffffff;
+    font-size: 8px;
+    font-weight: bold;
+    padding: 2px 4px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 }
 
@@ -497,28 +571,28 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   
-  .command-line {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-family: 'Courier New', monospace;
-    font-size: 13px;
-    padding: 8px 12px;
-    background: rgba(0, 255, 65, 0.05);
-    border: 1px solid rgba(0, 255, 65, 0.2);
-    border-radius: 4px;
-    width: 400px; // 固定宽度
-    overflow: hidden; // 隐藏溢出内容
+      .command-line {
+      display: flex;
+      align-items: center;
+      gap: 4px; // 从6px减少到4px
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      padding: 6px 8px; // 从8px 12px减少到6px 8px
+      background: rgba(0, 255, 65, 0.03);
+      border: 1px solid rgba(0, 255, 65, 0.15);
+      border-radius: 4px;
+      width: 200px; // 固定宽度
+      overflow: hidden; // 隐藏溢出内容
     
     .prompt {
-      color: #00ff41;
+      color: white;
       font-weight: 600;
       flex-shrink: 0; // 不收缩
-      min-width: 120px; // 最小宽度
+      min-width: 90px; // 从120px减少到90px
     }
     
     .command {
-      color: #00ffff;
+      color: white;
       font-weight: 400;
       flex: 1; // 占据剩余空间
       overflow: hidden; // 隐藏溢出
@@ -527,7 +601,7 @@ onUnmounted(() => {
     }
     
     .cursor {
-      color: #00ff41;
+      color: white;
       font-weight: bold;
       animation: cursor-blink 1s infinite;
       flex-shrink: 0; // 不收缩
@@ -559,12 +633,12 @@ onUnmounted(() => {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 1px solid rgba(0, 255, 65, 0.3);
-  background: rgba(0, 255, 65, 0.1);
+  border: 1px solid rgba(0, 255, 65, 0.2);
+  background: rgba(0, 255, 65, 0.05);
 
   &:hover {
-    background: rgba(0, 255, 65, 0.2);
-    border-color: rgba(0, 255, 65, 0.5);
+    background: rgba(0, 255, 65, 0.1);
+    border-color: rgba(0, 255, 65, 0.4);
   }
 }
 
@@ -575,7 +649,7 @@ onUnmounted(() => {
 .username {
   font-size: 12px;
   font-weight: 600;
-  color: #00ff41;
+  color: white;
   font-family: 'Courier New', monospace;
   text-transform: uppercase;
   letter-spacing: 0.5px;

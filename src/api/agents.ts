@@ -41,6 +41,10 @@ export interface LogMessage {
   hasMore?: boolean
 }
 
+export interface RawCommandRequest {
+  command: string
+}
+
 export const agentApi = {
   // 获取Agent列表
   getList: (namespace: string = 'default', signal?: AbortSignal) =>
@@ -65,6 +69,10 @@ export const agentApi = {
   // 发送消息
   send: (namespace: string, name: string, message: string) =>
     post(API_ENDPOINTS.AGENTS.SEND(namespace, name), { message }),
+
+  // 发送原始命令
+  sendRawCommand: (namespace: string, name: string, data: RawCommandRequest) =>
+    post(API_ENDPOINTS.AGENTS.RAW_COMMAND(namespace, name), data),
 
   // 获取Agent日志 - 支持实时流式传输
   getLogs: (

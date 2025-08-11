@@ -29,14 +29,9 @@
             </n-icon>
             系统提示词
           </h4>
-          <n-scrollbar style="max-height: 200px">
-            <n-code 
-              :code="role.prompt" 
-              language="text"
-              :show-line-numbers="false"
-              word-wrap
-            />
-          </n-scrollbar>
+          <div class="prompt-content">
+            <pre class="prompt-text">{{ role.prompt }}</pre>
+          </div>
         </div>
 
         <!-- 操作按钮 -->
@@ -87,7 +82,17 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { useMessage } from 'naive-ui'
+import { 
+  useMessage, 
+  NCard, 
+  NSpace, 
+  NTag, 
+  NText, 
+  NButton, 
+  NSpin, 
+  NEmpty,
+  NIcon
+} from 'naive-ui'
 import { rolesApi } from '@/api/roles'
 import type { Role } from '@/types/api'
 
@@ -211,6 +216,25 @@ defineExpose({
     .role-description {
       line-height: 1.6;
       color: var(--text-color-2);
+    }
+    
+    .prompt-content {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 12px;
+      background: var(--background-color-2);
+      
+      .prompt-text {
+        margin: 0;
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--text-color-2);
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
     }
   }
   

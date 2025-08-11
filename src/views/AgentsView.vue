@@ -1,307 +1,273 @@
 <template>
   <div class="agents-view">
-    <!-- 页面头部信息 -->
+    <!-- 页面头部 -->
     <div class="page-header">
       <div class="page-info">
-        <h1 class="page-title">{{ isTerminal ? 'AGENT_MANAGEMENT' : '智能体管理' }}</h1>
-        <p class="page-description">{{ isTerminal ? 'MANAGE_AI_AGENTS_AND_INSTANCES' : '管理AI智能体和实例' }}</p>
+        <h1 class="page-title">智能体管理</h1>
+        <p class="page-description">管理所有命名空间的AI智能体实例</p>
       </div>
       <div class="page-actions">
-        <n-button 
-          type="primary" 
-          @click="showCreateModal = true"
-          :class="{ 'btn-8bit': isTerminal }"
-        >
+        <n-button type="primary" @click="showCreateModal = true">
           <template #icon>
-            <n-icon><AddIcon /></n-icon>
+            <n-icon><AddOutline /></n-icon>
           </template>
-          {{ isTerminal ? 'CREATE_AGENT' : '创建智能体' }}
+          创建实例
         </n-button>
       </div>
     </div>
 
-    <!-- 页面内容 -->
-    <div class="page-content">
-      <div class="agents-content" :class="{ 'terminal-mode': isTerminal }">
-        <!-- 统计卡片 -->
-        <div class="stats-section">
-          <n-grid :cols="4" :x-gap="16" :y-gap="16" class="stats-grid">
-            <n-grid-item>
-              <TerminalStatsCard
-                title="总数量"
-                :value="filteredAgents.length"
-                type="primary"
-                icon="total"
-                :progress="75"
-                subtitle="TOTAL_AGENTS"
-                trend="+12%"
-                trend-direction="up"
-              />
-            </n-grid-item>
-            <n-grid-item>
-              <TerminalStatsCard
-                title="运行中"
-                :value="runningCount"
-                type="success"
-                icon="running"
-                :progress="runningProgress"
-                subtitle="ACTIVE_INSTANCES"
-                :trend="runningTrend"
-                trend-direction="up"
-              />
-            </n-grid-item>
-            <n-grid-item>
-              <TerminalStatsCard
-                title="已停止"
-                :value="stoppedCount"
-                type="warning"
-                icon="stopped"
-                :progress="stoppedProgress"
-                subtitle="STOPPED_INSTANCES"
-                :trend="stoppedTrend"
-                trend-direction="down"
-              />
-            </n-grid-item>
-            <n-grid-item>
-              <TerminalStatsCard
-                title="错误状态"
-                :value="errorCount"
-                type="error"
-                icon="error"
-                :progress="errorProgress"
-                subtitle="ERROR_INSTANCES"
-                :trend="errorTrend"
-                trend-direction="up"
-              />
-            </n-grid-item>
-          </n-grid>
-        </div>
-
-        <!-- 主要内容区域 -->
-        <n-card class="agents-table-card" :class="{ 'terminal-window': isTerminal }" :bordered="false">
-          <template #header>
-            <div class="table-header" :class="{ 'terminal-header': isTerminal }">
-              <div class="header-left">
-                <span class="header-title" :class="{ 'terminal-text': isTerminal }">
-                  {{ isTerminal ? 'AGENT_INSTANCES' : '智能体实例' }}
-                </span>
+    <!-- 筛选和搜索区域 -->
+    <div class="filter-section">
+      <n-card>
+        <div class="filter-controls">
+          <div class="filter-left">
+            <n-space :size="16">
+              <!-- 命名空间筛选 -->
+              <div class="filter-item">
+                <label class="filter-label">命名空间:</label>
+                <n-select
+                  v-model:value="selectedNamespace"
+                  :options="namespaceOptions"
+                  placeholder="选择命名空间"
+                  clearable
+                  style="width: 200px"
+                  @update:value="handleNamespaceChange"
+                />
               </div>
-              <div class="header-controls">
-                <n-space :size="12">
-                  <n-input
-                    v-model:value="searchKeyword"
-                    :placeholder="isTerminal ? 'SEARCH_AGENTS...' : '搜索智能体...'"
-                    clearable
-                    style="width: 200px"
-                    :class="{ 'terminal-input': isTerminal }"
-                  >
-                    <template #prefix>
-                      <n-icon><PersonOutline /></n-icon>
-                    </template>
-                  </n-input>
-                  <n-button
-                    @click="handleRefresh"
-                    :loading="loading"
-                    :class="{ 'btn-8bit': isTerminal }"
-                  >
-                    <template #icon>
-                      <n-icon><RefreshOutline /></n-icon>
-                    </template>
-                    {{ isTerminal ? 'REFRESH' : '刷新' }}
-                  </n-button>
-                  <n-button
-                    type="primary"
-                    @click="showCreateModal = true"
-                    :class="{ 'btn-8bit': isTerminal }"
-                  >
-                    <template #icon>
-                      <n-icon><AddOutline /></n-icon>
-                    </template>
-                    {{ isTerminal ? 'CREATE_AGENT' : '创建智能体' }}
-                  </n-button>
-                </n-space>
+              
+              <!-- 状态筛选 -->
+              <div class="filter-item">
+                <label class="filter-label">状态:</label>
+                <n-select
+                  v-model:value="selectedStatus"
+                  :options="statusOptions"
+                  placeholder="选择状态"
+                  clearable
+                  style="width: 150px"
+                  @update:value="handleStatusChange"
+                />
               </div>
-            </div>
-          </template>
-
-          <n-data-table
-            :columns="columns"
-            :data="filteredAgents"
-            :loading="loading"
-            :pagination="pagination"
-            :row-key="(row: any) => row.name"
-            :class="{ 'terminal-table': isTerminal }"
-          />
-        </n-card>
-
-        <!-- 创建智能体模态框 -->
-        <n-modal
-          v-model:show="showCreateModal"
-          preset="card"
-          :title="isTerminal ? 'CREATE_NEW_AGENT' : '创建新智能体'"
-          style="width: 600px"
-          :class="{ 'terminal-modal': isTerminal }"
-        >
-          <n-form
-            ref="createFormRef"
-            :model="createForm"
-            :rules="createRules"
-            label-placement="left"
-            label-width="auto"
-            :class="{ 'terminal-form': isTerminal }"
-          >
-            <n-form-item :label="isTerminal ? 'AGENT_NAME' : '智能体名称'" path="name">
-              <n-input
-                v-model:value="createForm.name"
-                :placeholder="isTerminal ? 'ENTER_AGENT_NAME' : '请输入智能体名称'"
-                :class="{ 'terminal-input': isTerminal }"
-              />
-            </n-form-item>
-            <n-form-item :label="isTerminal ? 'NAMESPACE' : '命名空间'" path="namespace">
-              <n-input
-                v-model:value="createForm.namespace"
-                :placeholder="isTerminal ? 'ENTER_NAMESPACE' : '请输入命名空间'"
-                :class="{ 'terminal-input': isTerminal }"
-              />
-            </n-form-item>
-            <n-form-item :label="isTerminal ? 'ROLE' : '角色'" path="role">
-              <n-input
-                v-model:value="createForm.role"
-                :placeholder="isTerminal ? 'ENTER_ROLE' : '请输入角色'"
-                :class="{ 'terminal-input': isTerminal }"
-              />
-            </n-form-item>
-          </n-form>
+            </n-space>
+          </div>
           
-          <template #footer>
-            <n-space justify="end">
-              <n-button @click="showCreateModal = false" :class="{ 'btn-8bit': isTerminal }">
-                {{ isTerminal ? 'CANCEL' : '取消' }}
-              </n-button>
-              <n-button
-                type="primary"
-                @click="handleCreate"
-                :loading="creating"
-                :class="{ 'btn-8bit': isTerminal }"
+          <div class="filter-right">
+            <n-space :size="12">
+              <!-- 搜索框 -->
+              <n-input
+                v-model:value="searchKeyword"
+                placeholder="搜索实例名称..."
+                clearable
+                style="width: 250px"
               >
-                {{ isTerminal ? 'CREATE' : '创建' }}
+                <template #prefix>
+                  <n-icon><SearchOutline /></n-icon>
+                </template>
+              </n-input>
+              
+              <!-- 刷新按钮 -->
+              <n-button @click="handleRefresh" :loading="loading">
+                <template #icon>
+                  <n-icon><RefreshOutline /></n-icon>
+                </template>
+                刷新
               </n-button>
             </n-space>
-          </template>
-        </n-modal>
-      </div>
+          </div>
+        </div>
+      </n-card>
     </div>
+
+    <!-- 统计信息 -->
+    <div class="stats-section">
+      <n-grid :cols="4" :x-gap="16">
+        <n-grid-item>
+          <n-card class="stat-card">
+            <n-statistic label="总实例数" :value="allAgents.length" />
+          </n-card>
+        </n-grid-item>
+        <n-grid-item>
+          <n-card class="stat-card">
+            <n-statistic label="运行中" :value="runningCount" />
+          </n-card>
+        </n-grid-item>
+        <n-grid-item>
+          <n-card class="stat-card">
+            <n-statistic label="空闲" :value="idleCount" />
+          </n-card>
+        </n-grid-item>
+        <n-grid-item>
+          <n-card class="stat-card">
+            <n-statistic label="创建/终止中" :value="creatingCount" />
+          </n-card>
+        </n-grid-item>
+      </n-grid>
+    </div>
+
+    <!-- 实例列表 -->
+    <div class="agents-section">
+      <n-card>
+        <template #header>
+          <div class="table-header">
+            <span class="header-title">实例列表</span>
+            <span class="header-count">({{ filteredAgents.length }} 个实例)</span>
+          </div>
+        </template>
+
+        <n-data-table
+          :columns="columns"
+          :data="filteredAgents"
+          :loading="loading"
+          :pagination="pagination"
+          :row-key="(row: any) => `${row.namespace}-${row.name}`"
+        />
+      </n-card>
+    </div>
+
+    <!-- 创建实例模态框 -->
+    <AgentCreateModal
+      :show="showCreateModal"
+      @update:show="showCreateModal = $event"
+      @created="handleAgentCreated"
+    />
+
+    <!-- 实例详情模态框 -->
+    <n-modal
+      v-model:show="showDetailModal"
+      preset="card"
+      title="实例详情"
+      style="width: 800px"
+    >
+      <div v-if="selectedAgent" class="agent-detail">
+        <n-descriptions :column="2" bordered>
+          <n-descriptions-item label="实例名称">{{ selectedAgent.name }}</n-descriptions-item>
+          <n-descriptions-item label="命名空间">{{ selectedAgent.namespace }}</n-descriptions-item>
+          <n-descriptions-item label="角色">{{ selectedAgent.role }}</n-descriptions-item>
+          <n-descriptions-item label="状态">
+            <n-tag :type="getStatusType(selectedAgent.status)">
+              {{ getStatusText(selectedAgent.status) }}
+            </n-tag>
+          </n-descriptions-item>
+          <n-descriptions-item label="创建时间">{{ formatTime(selectedAgent.createdAt) }}</n-descriptions-item>
+          <n-descriptions-item label="最后更新">{{ formatTime(selectedAgent.updatedAt) }}</n-descriptions-item>
+          <n-descriptions-item label="工作目录">{{ selectedAgent.workDir || '-' }}</n-descriptions-item>
+          <n-descriptions-item label="重启次数">{{ selectedAgent.restartCount || 0 }}</n-descriptions-item>
+        </n-descriptions>
+      </div>
+    </n-modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, h } from 'vue'
+import { ref, computed, onMounted, h } from 'vue'
 import {
-  NGrid,
-  NGridItem,
   NCard,
-  NDataTable,
   NButton,
   NIcon,
   NSpace,
   NSelect,
-  NModal,
-  NForm,
-  NFormItem,
   NInput,
+  NGrid,
+  NGridItem,
+  NStatistic,
+  NDataTable,
   NTag,
+  NModal,
+  NDescriptions,
+  NDescriptionsItem,
   useMessage,
   type DataTableColumns
 } from 'naive-ui'
 import {
   AddOutline,
   RefreshOutline,
+  SearchOutline,
   PlayOutline,
-  PauseOutline,
-  TrashOutline,
-  SendOutline,
-  PersonOutline
+  StopOutline,
+  InformationCircleOutline,
+  TrashOutline
 } from '@vicons/ionicons5'
-import { useTheme } from '@/utils/theme'
-import { formatRelativeTime, useTimeManager, formatAgentUptime } from '@/utils/timeManager'
-import { agentApi } from '@/api/agents'
-import { useUserStore } from '@/stores/user'
-import TerminalStatsCard from '@/components/TerminalStatsCard.vue'
-import PageLayout from '@/components/PageLayout.vue'
-import { AddIcon } from '@/components/icons'
+import { useAgentsStore } from '@/stores/agents'
+import { useNamespacesStore } from '@/stores/namespaces'
+import { storeToRefs } from 'pinia'
+import AgentCreateModal from '@/components/AgentCreateModal.vue'
 
-const { isTerminal } = useTheme()
 const message = useMessage()
-const userStore = useUserStore()
+const agentsStore = useAgentsStore()
+const namespacesStore = useNamespacesStore()
 
-// 使用时间管理器
-const { currentTime, cleanup } = useTimeManager()
+const { agents: allAgents } = storeToRefs(agentsStore)
+const { namespaces } = storeToRefs(namespacesStore)
 
 // 响应式数据
-const agents = ref<any[]>([])
 const loading = ref(false)
-const creating = ref(false)
-const searchKeyword = ref('')
 const showCreateModal = ref(false)
-const createFormRef = ref()
+const showDetailModal = ref(false)
+const selectedAgent = ref<any>(null)
+const searchKeyword = ref('')
+const selectedNamespace = ref<string | null>(null)
+const selectedStatus = ref<string | null>(null)
 
-// 创建表单
-const createForm = ref({
-  name: '',
-  namespace: 'default',
-  role: 'assistant'
+// 命名空间选项
+const namespaceOptions = computed(() => {
+  const options = namespaces.value.map(ns => ({
+    label: ns.metadata?.name || ns.name,
+    value: ns.metadata?.name || ns.name
+  }))
+  return [{ label: '所有命名空间', value: null }, ...options]
 })
 
-// 表单验证规则
-const createRules = {
-  name: [
-    { required: true, message: '请输入智能体名称', trigger: 'blur' }
-  ],
-  namespace: [
-    { required: true, message: '请输入命名空间', trigger: 'blur' }
-  ],
-  role: [
-    { required: true, message: '请输入角色', trigger: 'blur' }
-  ]
-}
+// 状态选项
+const statusOptions = [
+  { label: '所有状态', value: null },
+  { label: '运行中', value: 'running' },
+  { label: '空闲', value: 'idle' },
+  { label: '创建中', value: 'Creating' },
+  { label: '终止中', value: 'Terminating' },
+  { label: '错误', value: 'error' }
+]
 
 // 计算属性
 const filteredAgents = computed(() => {
-  if (!searchKeyword.value) return agents.value
-  return agents.value.filter(agent => 
-    agent.name.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
-    agent.namespace.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
-    agent.role.toLowerCase().includes(searchKeyword.value.toLowerCase())
-  )
+  let filtered = allAgents.value
+
+  // 命名空间筛选
+  if (selectedNamespace.value) {
+    filtered = filtered.filter(agent => agent.namespace === selectedNamespace.value)
+  }
+
+  // 状态筛选
+  if (selectedStatus.value) {
+    filtered = filtered.filter(agent => agent.status === selectedStatus.value)
+  }
+
+  // 搜索筛选
+  if (searchKeyword.value) {
+    const keyword = searchKeyword.value.toLowerCase()
+    filtered = filtered.filter(agent =>
+      agent.name.toLowerCase().includes(keyword) ||
+      agent.namespace.toLowerCase().includes(keyword) ||
+      agent.role.toLowerCase().includes(keyword)
+    )
+  }
+
+  return filtered
 })
 
-const runningCount = computed(() => 
-  agents.value.filter(agent => agent.status === 'Running').length
+const runningCount = computed(() =>
+  allAgents.value.filter(agent => agent.status === 'running').length
 )
 
-const stoppedCount = computed(() => 
-  agents.value.filter(agent => agent.status === 'Stopped').length
+const idleCount = computed(() =>
+  allAgents.value.filter(agent => agent.status === 'idle').length
 )
 
-const errorCount = computed(() => 
-  agents.value.filter(agent => agent.status === 'Error').length
+const errorCount = computed(() =>
+  allAgents.value.filter(agent => agent.status === 'error').length
 )
 
-const runningProgress = computed(() => 
-  agents.value.length > 0 ? Math.round((runningCount.value / agents.value.length) * 100) : 0
+const creatingCount = computed(() =>
+  allAgents.value.filter(agent => agent.status === 'Creating' || agent.status === 'Terminating').length
 )
-
-const stoppedProgress = computed(() => 
-  agents.value.length > 0 ? Math.round((stoppedCount.value / agents.value.length) * 100) : 0
-)
-
-const errorProgress = computed(() => 
-  agents.value.length > 0 ? Math.round((errorCount.value / agents.value.length) * 100) : 0
-)
-
-const runningTrend = computed(() => '+5%')
-const stoppedTrend = computed(() => '-2%')
-const errorTrend = computed(() => '+1%')
 
 // 分页配置
 const pagination = {
@@ -314,49 +280,38 @@ const pagination = {
 // 表格列配置
 const columns: DataTableColumns = [
   {
-    title: '名称',
+    title: '实例名称',
     key: 'name',
     width: 200,
-    render: (row: any) => h('span', { class: isTerminal.value ? 'terminal-text' : '' }, row.name)
+    render: (row: any) => h('span', { style: 'font-weight: 600; color: #ffffff;' }, row.name)
   },
   {
     title: '命名空间',
     key: 'namespace',
     width: 120,
-    render: (row: any) => h('span', { class: isTerminal.value ? 'terminal-text' : '' }, row.namespace)
+    render: (row: any) => h('span', { style: 'color: #ffffff;' }, row.namespace)
   },
   {
     title: '角色',
     key: 'role',
-    width: 120,
-    render: (row: any) => h('span', { class: isTerminal.value ? 'terminal-text' : '' }, row.role)
+    width: 150,
+    render: (row: any) => h('span', { style: 'color: #ffffff;' }, row.role)
   },
   {
     title: '状态',
     key: 'status',
     width: 100,
     render: (row: any) => {
-      const statusMap: Record<string, { type: any, text: string }> = {
-        'Running': { type: 'success', text: '运行中' },
-        'Stopped': { type: 'warning', text: '已停止' },
-        'Error': { type: 'error', text: '错误' }
-      }
-      const status = statusMap[row.status] || { type: 'default', text: row.status }
-      return h(NTag, { 
-        type: status.type,
-        class: isTerminal.value ? 'terminal-tag' : ''
-      }, () => isTerminal.value ? row.status.toUpperCase() : status.text)
+      return h(NTag, {
+        type: getStatusType(row.status)
+      }, () => getStatusText(row.status))
     }
   },
   {
-    title: '运行时间',
-    key: 'uptime',
-    width: 150,
-    render: (row: any) => {
-      if (row.status !== 'Running') return '-'
-      const uptime = formatAgentUptime(row.startTime, currentTime.value)
-      return h('span', { class: isTerminal.value ? 'terminal-text' : '' }, uptime)
-    }
+    title: '创建时间',
+    key: 'createdAt',
+    width: 180,
+    render: (row: any) => h('span', { style: 'color: #ffffff;' }, formatTime(row.createdAt))
   },
   {
     title: '操作',
@@ -366,15 +321,18 @@ const columns: DataTableColumns = [
       return h(NSpace, { size: 8 }, () => [
         h(NButton, {
           size: 'small',
-          type: row.status === 'Running' ? 'warning' : 'primary',
-          onClick: () => handleToggleAgent(row),
-          class: isTerminal.value ? 'btn-8bit' : ''
-        }, () => row.status === 'Running' ? '停止' : '启动'),
+          type: 'info',
+          onClick: () => handleShowDetail(row)
+        }, () => '详情'),
+        h(NButton, {
+          size: 'small',
+          type: 'success',
+          onClick: () => handleRestartAgent(row)
+        }, () => '重启'),
         h(NButton, {
           size: 'small',
           type: 'error',
-          onClick: () => handleDeleteAgent(row),
-          class: isTerminal.value ? 'btn-8bit' : ''
+          onClick: () => handleDeleteAgent(row)
         }, () => '删除')
       ])
     }
@@ -383,64 +341,115 @@ const columns: DataTableColumns = [
 
 // 方法
 const handleRefresh = async () => {
+  console.log('🔄 开始刷新数据...')
   loading.value = true
+  
   try {
-    const response = await agentApi.list()
-    agents.value = response.data || []
+    // 先清空现有agents数据，确保能正确累积
+    agentsStore.clearAllAgents()
+    
+    // 先获取命名空间列表
+    console.log('📋 获取命名空间列表...')
+    await namespacesStore.fetchNamespaces()
+    
+    // 再获取agents数据
+    console.log('👥 获取agents数据...')
+    await loadAllAgents()
+    
+    console.log('✅ 数据刷新完成')
   } catch (error) {
-    console.error('刷新智能体列表失败:', error)
-    message.error('刷新失败')
+    console.error('❌ 刷新失败:', error)
+    message.error('刷新失败，请重试')
   } finally {
     loading.value = false
+    console.log('🏁 loading状态已重置')
   }
 }
 
-const handleCreate = async () => {
-  try {
-    await createFormRef.value?.validate()
-    creating.value = true
-    
-    await agentApi.create(createForm.value)
-    message.success('智能体创建成功')
-    showCreateModal.value = false
-    
-    // 重置表单
-    createForm.value = {
-      name: '',
-      namespace: 'default',
-      role: 'assistant'
+const loadAllAgents = async () => {
+  console.log('🔄 开始加载所有agents...')
+  
+  // 如果没有命名空间数据，使用默认命名空间
+  if (namespaces.value.length === 0) {
+    console.log('📋 没有命名空间数据，使用默认命名空间')
+    try {
+      await agentsStore.fetchAgents('default')
+      console.log('✅ 默认命名空间agents获取成功')
+    } catch (error) {
+      console.warn('⚠️ 获取默认命名空间agents失败:', error)
     }
+    return
+  }
+
+  console.log('📋 可用命名空间:', namespaces.value.map(ns => ns.metadata?.name || ns.name))
+
+  // 使用 Promise.all 并发获取所有命名空间的agents，提高效率
+  const fetchPromises = namespaces.value.map(async (ns) => {
+    const namespaceName = ns.metadata?.name || ns.name
+    console.log(`🔍 开始获取 ${namespaceName} 的agents...`)
     
-    // 刷新列表
-    await handleRefresh()
-  } catch (error) {
-    console.error('创建智能体失败:', error)
-    message.error('创建失败')
-  } finally {
-    creating.value = false
+    try {
+      await agentsStore.fetchAgents(namespaceName)
+      console.log(`✅ ${namespaceName} agents获取成功`)
+      return { namespace: namespaceName, success: true }
+    } catch (error) {
+      console.warn(`⚠️ 获取 ${namespaceName} 的agents失败:`, error)
+      return { namespace: namespaceName, success: false, error }
+    }
+  })
+
+  // 等待所有请求完成
+  const results = await Promise.all(fetchPromises)
+  
+  // 统计结果
+  const successCount = results.filter(r => r.success).length
+  const totalCount = results.length
+  
+  console.log(`✅ 所有agents加载完成: ${successCount}/${totalCount} 个命名空间成功`)
+  
+  // 调试：输出所有agent的状态值
+  if (allAgents.value.length > 0) {
+    const statusCounts = allAgents.value.reduce((acc, agent) => {
+      acc[agent.status] = (acc[agent.status] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+    console.log('📊 Agent状态统计:', statusCounts)
+    console.log('🔍 Agent状态详情:', allAgents.value.map(agent => ({
+      name: agent.name,
+      namespace: agent.namespace,
+      status: agent.status
+    })))
   }
 }
 
-const handleToggleAgent = async (agent: any) => {
+const handleNamespaceChange = () => {
+  // 命名空间变化时的处理逻辑
+}
+
+const handleStatusChange = () => {
+  // 状态变化时的处理逻辑
+}
+
+const handleShowDetail = (agent: any) => {
+  selectedAgent.value = agent
+  showDetailModal.value = true
+}
+
+const handleRestartAgent = async (agent: any) => {
   try {
-    if (agent.status === 'Running') {
-      await agentApi.stop(agent.name, agent.namespace)
-      message.success('智能体已停止')
-    } else {
-      await agentApi.start(agent.name, agent.namespace)
-      message.success('智能体已启动')
-    }
+    await agentsStore.restartAgent(agent.namespace, agent.name)
+    message.success(`实例 ${agent.name} 已重启`)
     await handleRefresh()
   } catch (error) {
-    console.error('操作失败:', error)
-    message.error('操作失败')
+    console.error('重启失败:', error)
+    message.error('重启失败')
   }
 }
 
 const handleDeleteAgent = async (agent: any) => {
   try {
-    await agentApi.delete(agent.name, agent.namespace)
-    message.success('智能体已删除')
+    await agentsStore.deleteAgent(agent.namespace, agent.name)
+    message.success(`实例 ${agent.name} 已删除`)
     await handleRefresh()
   } catch (error) {
     console.error('删除失败:', error)
@@ -448,13 +457,68 @@ const handleDeleteAgent = async (agent: any) => {
   }
 }
 
-// 生命周期
-onMounted(() => {
+const handleAgentCreated = () => {
   handleRefresh()
+}
+
+// 工具函数
+const getStatusType = (status: string) => {
+  const statusMap: Record<string, any> = {
+    'running': 'success',
+    'idle': 'warning', 
+    'error': 'error',
+    'Creating': 'info',
+    'Terminating': 'warning'
+  }
+  return statusMap[status] || 'default'
+}
+
+const getStatusText = (status: string) => {
+  const statusMap: Record<string, string> = {
+    'running': '运行中',
+    'idle': '空闲',
+    'error': '错误',
+    'Creating': '创建中',
+    'Terminating': '终止中'
+  }
+  return statusMap[status] || status
+}
+
+const formatTime = (time: string) => {
+  if (!time) return '-'
+  return new Date(time).toLocaleString('zh-CN')
+}
+
+// 生命周期
+onMounted(async () => {
+  console.log('🚀 AgentsView 组件已挂载')
+  
+  // 设置事件监听器
+  agentsStore.setupEventListeners()
+  
+  // 设置一个超时，确保页面不会一直loading
+  const timeoutId = setTimeout(() => {
+    if (loading.value) {
+      console.warn('⏰ 数据加载超时，强制结束loading状态')
+      loading.value = false
+      message.warning('数据加载超时，请手动刷新')
+    }
+  }, 10000) // 10秒超时
+  
+  try {
+    await handleRefresh()
+    clearTimeout(timeoutId)
+  } catch (error) {
+    console.error('❌ 初始化失败:', error)
+    clearTimeout(timeoutId)
+    loading.value = false
+  }
 })
 
 onUnmounted(() => {
-  cleanup()
+  console.log('🧹 AgentsView 组件已卸载')
+  // 清理事件监听器
+  agentsStore.cleanupEventListeners()
 })
 </script>
 
@@ -463,204 +527,199 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--page-bg);
+  gap: 20px;
+  padding: 20px;
+  background: #1a1a1a;
+  color: #ffffff;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px;
-  background: var(--header-bg);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.page-info {
-  flex: 1;
+  padding: 20px;
+  background: #2a2a2a;
+  border-radius: 8px;
 }
 
 .page-title {
   font-size: 24px;
-  font-weight: 700;
-  color: var(--text-color-1);
-  margin-bottom: 8px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 8px 0;
 }
 
 .page-description {
-  font-size: 16px;
-  color: var(--text-color-2);
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
 }
 
-.page-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.page-content {
-  flex: 1;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.agents-content {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  height: 100%;
-
-  &.terminal-mode {
-    background: var(--terminal-bg);
+.filter-section {
+  :deep(.n-card) {
+    background: #2a2a2a;
+    border: 1px solid #404040;
   }
 }
 
+.filter-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.filter-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-label {
+  font-size: 14px;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
 .stats-section {
-  .stats-grid {
-    :deep(.n-grid) {
-      gap: 16px;
+  .stat-card {
+    :deep(.n-card) {
+      background: #2a2a2a;
+      border: 1px solid #404040;
+    }
+    
+    :deep(.n-statistic) {
+      .n-statistic-label {
+        color: rgba(255, 255, 255, 0.7);
+      }
+      
+      .n-statistic-value {
+        color: #ffffff;
+      }
     }
   }
 }
 
-.agents-table-card {
+.agents-section {
   flex: 1;
-  display: flex;
-  flex-direction: column;
   
-  &.terminal-window {
-    background: var(--terminal-card-bg);
-    border: 1px solid var(--terminal-border);
+  :deep(.n-card) {
+    background: #2a2a2a;
+    border: 1px solid #404040;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
   }
   
   :deep(.n-card__content) {
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding: 0;
   }
 }
 
 .table-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--border-color);
-  
-  &.terminal-header {
-    background: var(--terminal-header-bg);
-    border-bottom-color: var(--terminal-border);
-  }
-  
-  .header-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-color-1);
+  gap: 8px;
+}
+
+.header-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.header-count {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.agent-detail {
+  :deep(.n-descriptions) {
+    .n-descriptions-table-wrapper {
+      background: #2a2a2a;
+    }
     
-    &.terminal-text {
-      color: var(--terminal-text);
-      font-family: 'Courier New', monospace;
+    .n-descriptions-table-content {
+      color: #ffffff;
+    }
+    
+    .n-descriptions-table-header {
+      background: #404040;
+      color: #ffffff;
     }
   }
+}
+
+// 深度样式优化
+:deep(.n-select) {
+  .n-base-selection {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
   
-  .header-controls {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  .n-base-selection-label {
+    color: #ffffff;
+  }
+  
+  .n-base-selection-placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+}
+
+:deep(.n-input) {
+  .n-input-wrapper {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  
+  .n-input__input-el {
+    color: #ffffff;
+    
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
   }
 }
 
 :deep(.n-data-table) {
-  flex: 1;
+  background: transparent;
   
-  &.terminal-table {
-    background: var(--terminal-table-bg);
+  .n-data-table-th {
+    background: #404040;
+    color: #ffffff;
+    border-color: #555555;
+  }
+  
+  .n-data-table-td {
+    background: #2a2a2a;
+    border-color: #404040;
+  }
+  
+  .n-data-table-tr:hover .n-data-table-td {
+    background: #333333;
+  }
+}
+
+:deep(.n-modal) {
+  .n-card {
+    background: #2a2a2a;
+    border: 1px solid #404040;
+  }
+  
+  .n-card-header {
+    background: #404040;
+    border-bottom: 1px solid #555555;
     
-    .n-data-table-th {
-      background: var(--terminal-header-bg);
-      color: var(--terminal-text);
-      font-family: 'Courier New', monospace;
-    }
-    
-    .n-data-table-td {
-      background: var(--terminal-cell-bg);
-      border-color: var(--terminal-border);
-    }
-  }
-}
-
-// Terminal模式样式
-.terminal-mode {
-  .terminal-input {
-    :deep(.n-input) {
-      background: var(--terminal-input-bg);
-      border-color: var(--terminal-border);
-      color: var(--terminal-text);
-      font-family: 'Courier New', monospace;
-    }
-  }
-  
-  .btn-8bit {
-    background: var(--terminal-button-bg);
-    border-color: var(--terminal-border);
-    color: var(--terminal-text);
-    font-family: 'Courier New', monospace;
-    
-    &:hover {
-      background: var(--terminal-button-hover-bg);
-    }
-  }
-  
-  .terminal-tag {
-    font-family: 'Courier New', monospace;
-    text-transform: uppercase;
-  }
-  
-  .terminal-text {
-    color: var(--terminal-text);
-    font-family: 'Courier New', monospace;
-  }
-}
-
-// 响应式设计
-@media (max-width: 1200px) {
-  .stats-grid {
-    :deep(.n-grid) {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-}
-
-@media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-  }
-
-  .page-actions {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .table-header {
-    flex-direction: column;
-    gap: 16px;
-    align-items: stretch;
-
-    .header-controls {
-      .n-space {
-        justify-content: center;
-      }
-    }
-  }
-}
-
-@media (max-width: 480px) {
-  .stats-grid {
-    :deep(.n-grid) {
-      grid-template-columns: 1fr;
+    .n-card-header__main {
+      color: #ffffff;
     }
   }
 }

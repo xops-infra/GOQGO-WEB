@@ -41,7 +41,7 @@ export class PageRefreshHandler {
         chatMessages: chatStore.messages.slice(-50), // 只保存最近50条消息
         userInfo: {
           username: userStore.username,
-          isLoggedIn: userStore.isLoggedIn
+          isAuthenticated: userStore.isAuthenticated
         },
         connectionInfo: chatStore.getConnectionInfo()
       }
@@ -91,7 +91,7 @@ export class PageRefreshHandler {
         return false
       }
 
-      if (state.userInfo && !userStore.isLoggedIn) {
+      if (state.userInfo && !userStore.isAuthenticated) {
         // 这里可能需要重新验证用户身份
         console.log('👤 需要重新验证用户身份')
       }
@@ -103,6 +103,9 @@ export class PageRefreshHandler {
         
         // 等待连接建立
         await this.waitForConnection(chatStore, 5000)
+        
+        // 连接成功后，清理过期的思考状态
+        await this.cleanupExpiredThinkingStates()
         
         console.log('✅ 页面状态恢复完成')
         return true
@@ -209,6 +212,98 @@ export class PageRefreshHandler {
       return `${minutes}分钟前`
     } else {
       return `${seconds}秒前`
+    }
+  }
+
+  /**
+   * 清理过期的思考状态
+   * 在页面恢复成功后调用，确保UI状态与服务器同步
+   */
+  private async cleanupExpiredThinkingStates(): Promise<void> {
+    try {
+      console.log('🧹 页面恢复后开始清理过期的思考状态...')
+      
+      const now = Date.now()
+      const maxThinkingAge = 5 * 60 * 1000 // 5分钟
+      
+      // 从localStorage获取聊天消息状态
+      const chatStateKey = 'goqgo_chat_state'
+      const savedChatState = localStorage.getItem(chatStateKey)
+      
+      if (savedChatState) {
+        const chatState = JSON.parse(savedChatState)
+        
+        if (chatState.messages && Array.isArray(chatState.messages)) {
+          let cleanedCount = 0
+          
+          // 清理过期的思考消息
+          chatState.messages = chatState.messages.filter((msg: any) => {
+            if (msg.isThinking) {
+              const messageTime = new Date(msg.timestamp).getTime()
+              const age = now - messageTime
+              
+              if (age > maxThinkingAge) {
+                console.log('🗑️ 清理过期思考消息:', {
+                  id: msg.id,
+                  senderName: msg.senderName,
+                  age: Math.round(age / 1000) + 's',
+                  timestamp: msg.timestamp
+                })
+                cleanedCount++
+                return false // 移除过期消息
+              }
+            }
+            return true
+          })
+          
+          if (cleanedCount > 0) {
+            console.log(`✅ 页面恢复后清理了 ${cleanedCount} 条过期的思考消息`)
+            // 更新localStorage
+            localStorage.setItem(chatStateKey, JSON.stringify(chatState))
+          }
+        }
+      }
+      
+      // 清理对话状态
+      const conversationStateKey = 'goqgo_conversation_state'
+      const savedConversationState = localStorage.getItem(conversationStateKey)
+      
+      if (savedConversationState) {
+        const conversationState = JSON.parse(savedConversationState)
+        
+        if (conversationState.conversations) {
+          let cleanedConversations = 0
+          
+          // 清理过期的对话状态
+          for (const [convId, conv] of Object.entries(conversationState.conversations)) {
+            if (conv && typeof conv === 'object' && 'status' in conv && conv.status === 'thinking') {
+              const convData = conv as { status: string; createdAt: string; agentName: string }
+              const convTime = new Date(convData.createdAt).getTime()
+              const age = now - convTime
+              
+              if (age > maxThinkingAge) {
+                console.log('🗑️ 清理过期对话状态:', {
+                  conversationId: convId,
+                  agentName: convData.agentName,
+                  age: Math.round(age / 1000) + 's'
+                })
+                delete conversationState.conversations[convId]
+                cleanedConversations++
+              }
+            }
+          }
+          
+          if (cleanedConversations > 0) {
+            console.log(`✅ 页面恢复后清理了 ${cleanedConversations} 个过期的对话状态`)
+            localStorage.setItem(conversationStateKey, JSON.stringify(conversationState))
+          }
+        }
+      }
+      
+      console.log('🧹 页面恢复后过期思考状态清理完成')
+      
+    } catch (error) {
+      console.warn('⚠️ 页面恢复后清理过期思考状态时出错:', error)
     }
   }
 

@@ -9,11 +9,6 @@
     <main class="layout-main">
       <router-view />
     </main>
-
-    <!-- 页脚 -->
-    <footer class="layout-footer">
-      <AppFooter />
-    </footer>
   </div>
 </template>
 
@@ -21,7 +16,6 @@
 import { computed } from 'vue'
 import { useTheme } from '@/utils/theme'
 import AppHeader from './AppHeader.vue'
-import AppFooter from './AppFooter.vue'
 
 const { isTerminal } = useTheme()
 </script>
@@ -54,12 +48,6 @@ const { isTerminal } = useTheme()
   flex-direction: column;
   min-height: 0; /* 关键：允许flex子元素收缩 */
   overflow: hidden;
-}
-
-.layout-footer {
-  flex-shrink: 0;
-  /* 页脚高度 */
-  height: 36px;
 }
 
 // Terminal模式下的特殊样式

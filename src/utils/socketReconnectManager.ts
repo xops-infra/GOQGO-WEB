@@ -97,6 +97,8 @@ export class SocketReconnectManager {
           this.state.reconnectAttempts = 0
           this.startHeartbeat()
           this.resendPendingMessages()
+          // 重连成功后，清理过期的思考状态
+          this.cleanupExpiredThinkingStates()
         } else {
           console.log('❌ Socket连接断开')
           this.stopHeartbeat()
@@ -128,6 +130,121 @@ export class SocketReconnectManager {
     }
 
     this.socket.connect(this.state.namespace, wrappedCallbacks)
+  }
+
+  /**
+   * 清理过期的思考状态
+   * 重连成功后调用，确保UI状态与服务器同步
+   */
+  private cleanupExpiredThinkingStates() {
+    try {
+      console.log('🧹 开始清理过期的思考状态...')
+      
+      // 获取当前时间
+      const now = Date.now()
+      const maxThinkingAge = 5 * 60 * 1000 // 5分钟，超过这个时间的思考状态视为过期
+      
+      // 从localStorage获取聊天消息状态
+      const chatStateKey = 'goqgo_chat_state'
+      const savedChatState = localStorage.getItem(chatStateKey)
+      
+      if (savedChatState) {
+        const chatState = JSON.parse(savedChatState)
+        
+        if (chatState.messages && Array.isArray(chatState.messages)) {
+          let cleanedCount = 0
+          
+          // 清理过期的思考消息
+          chatState.messages = chatState.messages.filter((msg: any) => {
+            if (msg.isThinking) {
+              const messageTime = new Date(msg.timestamp).getTime()
+              const age = now - messageTime
+              
+              if (age > maxThinkingAge) {
+                console.log('🗑️ 清理过期思考消息:', {
+                  id: msg.id,
+                  senderName: msg.senderName,
+                  age: Math.round(age / 1000) + 's',
+                  timestamp: msg.timestamp
+                })
+                cleanedCount++
+                return false // 移除过期消息
+              }
+            }
+            return true
+          })
+          
+          if (cleanedCount > 0) {
+            console.log(`✅ 清理了 ${cleanedCount} 条过期的思考消息`)
+            // 更新localStorage
+            localStorage.setItem(chatStateKey, JSON.stringify(chatState))
+            
+            // 触发页面刷新以更新UI状态
+            this.triggerUIUpdate()
+          }
+        }
+      }
+      
+      // 清理对话状态
+      const conversationStateKey = 'goqgo_conversation_state'
+      const savedConversationState = localStorage.getItem(conversationStateKey)
+      
+      if (savedConversationState) {
+        const conversationState = JSON.parse(savedConversationState)
+        
+        if (conversationState.conversations) {
+          let cleanedConversations = 0
+          
+          // 清理过期的对话状态
+          for (const [convId, conv] of Object.entries(conversationState.conversations)) {
+            if (conv.status === 'thinking') {
+              const convTime = new Date(conv.createdAt).getTime()
+              const age = now - convTime
+              
+              if (age > maxThinkingAge) {
+                console.log('🗑️ 清理过期对话状态:', {
+                  conversationId: convId,
+                  agentName: conv.agentName,
+                  age: Math.round(age / 1000) + 's'
+                })
+                delete conversationState.conversations[convId]
+                cleanedConversations++
+              }
+            }
+          }
+          
+          if (cleanedConversations > 0) {
+            console.log(`✅ 清理了 ${cleanedConversations} 个过期的对话状态`)
+            localStorage.setItem(conversationStateKey, JSON.stringify(conversationState))
+          }
+        }
+      }
+      
+      console.log('🧹 过期思考状态清理完成')
+      
+    } catch (error) {
+      console.warn('⚠️ 清理过期思考状态时出错:', error)
+    }
+  }
+
+  /**
+   * 触发UI更新
+   * 通过自定义事件通知相关组件更新状态
+   */
+  private triggerUIUpdate() {
+    try {
+      // 触发一个自定义事件，通知聊天组件更新状态
+      const event = new CustomEvent('websocket-reconnected', {
+        detail: {
+          timestamp: Date.now(),
+          namespace: this.state.namespace
+        }
+      })
+      window.dispatchEvent(event)
+      console.log('🔄 已触发UI更新事件')
+    } catch (error) {
+      console.warn('⚠️ 触发UI更新事件失败:', error)
+    }
   }
 
   /**

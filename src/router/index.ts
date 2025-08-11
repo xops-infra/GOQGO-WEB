@@ -22,6 +22,8 @@ import MarkdownTest from '@/views/MarkdownTest.vue'
 import MentionTest from '@/views/MentionTest.vue'
 import ThinkingTest from '@/views/ThinkingTest.vue'
 import LogsTest from '@/views/LogsTest.vue'
+import ShortcutTest from '@/views/ShortcutTest.vue'
+import IconTest from '@/views/IconTest.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -242,6 +244,24 @@ const router = createRouter({
       component: MarkdownTest,
       meta: {
         title: 'Markdown 渲染测试',
+        requiresAuth: false
+      }
+    },
+    {
+      path: '/shortcut-test',
+      name: 'shortcut-test',
+      component: ShortcutTest,
+      meta: {
+        title: '快捷键测试',
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/icon-test',
+      name: 'icon-test',
+      component: IconTest,
+      meta: {
+        title: '图标测试',
         requiresAuth: false
       }
     },

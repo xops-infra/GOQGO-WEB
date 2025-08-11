@@ -54,6 +54,12 @@ export const useAgentsStore = defineStore('agents', () => {
     const targetNamespace = namespace || namespacesStore.currentNamespace
     console.log('🔍 开始获取agents:', { targetNamespace, loading: loading.value })
 
+    // 如果正在加载中，直接返回，避免重复请求
+    if (loading.value) {
+      console.log('⏳ 已有请求正在进行中，跳过重复请求')
+      return Promise.resolve()
+    }
+
     // 取消之前的请求
     if (fetchController) {
       fetchController.abort()
@@ -108,8 +114,10 @@ export const useAgentsStore = defineStore('agents', () => {
         console.log(`🔍 非管理员用户，过滤后剩余 ${filteredAgents.length} 个agents`)
       }
       
+      // 替换agents数据，确保只显示当前namespace的agents
       agents.value = filteredAgents
-      console.log(`📊 获取到 ${targetNamespace} 命名空间下的 ${agents.value.length} 个agents`)
+      
+      console.log(`📊 获取到 ${targetNamespace} 命名空间下的 ${filteredAgents.length} 个agents`)
 
       // 自动选择第一个agent
       if (agents.value.length > 0) {
@@ -318,6 +326,12 @@ export const useAgentsStore = defineStore('agents', () => {
     await fetchAgents()
   }
 
+  const clearAllAgents = () => {
+    agents.value = []
+    selectedAgent.value = null
+    console.log('🧹 已清空所有agents数据')
+  }
+
   // 清理函数，用于组件卸载时调用
   const cleanup = () => {
     if (fetchController) {
@@ -329,6 +343,9 @@ export const useAgentsStore = defineStore('agents', () => {
       fetchTimeout = null
     }
   }
+
+  // 初始化事件监听器 - 只在 store 创建时执行一次
+  // setupEventListeners() // 注释掉，让组件手动调用
 
   return {
     // 状态

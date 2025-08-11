@@ -847,13 +847,26 @@ onUnmounted(() => {
   max-width: 100%; /* 确保消息项不会超出容器宽度 */
   word-wrap: break-word; /* 确保长单词换行 */
   overflow-wrap: break-word; /* 现代浏览器的换行属性 */
+  display: flex; /* 使用flexbox布局 */
   
   &.message-self {
-    align-self: flex-end;
+    justify-content: flex-end; /* 自己的消息靠右 */
+    
+    .message-card {
+      width: 83.333%; /* 5/6宽度 */
+      max-width: 600px; /* 最大宽度限制 */
+      min-width: 400px; /* 最小宽度确保可读性 */
+    }
   }
 
   &.message-other {
-    align-self: flex-start;
+    justify-content: flex-start; /* 其他人的消息靠左 */
+    
+    .message-card {
+      width: 83.333%; /* 5/6宽度 */
+      max-width: 600px; /* 最大宽度限制 */
+      min-width: 400px; /* 最小宽度确保可读性 */
+    }
   }
 }
 
@@ -880,5 +893,94 @@ onUnmounted(() => {
   z-index: 10; // 确保在统计面板之上
   width: 100%; /* 确保输入框占满容器宽度 */
   box-sizing: border-box; /* 确保padding不会增加总宽度 */
+}
+
+// 终端模式适配
+.terminal-mode {
+  .chat-room {
+    background: var(--terminal-bg, #000000);
+    color: var(--terminal-text-primary, #ffffff);
+  }
+
+  .messages-toolbar {
+    background: var(--terminal-panel-bg, #111111);
+    border-bottom: 1px solid var(--terminal-border-subtle, rgba(0, 255, 65, 0.15));
+    
+    .message-count {
+      color: var(--terminal-text-primary, #ffffff);
+      font-family: 'Courier New', monospace;
+      text-transform: uppercase;
+    }
+  }
+
+  .message-item {
+    &.message-self {
+      justify-content: flex-end; /* 自己的消息靠右 */
+      
+      .message-card {
+        width: 83.333%; /* 5/6宽度 */
+        max-width: 600px; /* 最大宽度限制 */
+        min-width: 400px; /* 最小宽度确保可读性 */
+      }
+    }
+
+    &.message-other {
+      justify-content: flex-start; /* 其他人的消息靠左 */
+      
+      .message-card {
+        width: 83.333%; /* 5/6宽度 */
+        max-width: 600px; /* 最大宽度限制 */
+        min-width: 400px; /* 最小宽度确保可读性 */
+      }
+    }
+    
+    .message-bubble {
+      background: var(--terminal-card-bg, #0a0a0a);
+      border: 1px solid var(--terminal-border-subtle, rgba(0, 255, 65, 0.15));
+      color: var(--terminal-text-primary, #ffffff);
+      
+      &:hover {
+        border-color: var(--terminal-border-hover, rgba(0, 255, 65, 0.5));
+        box-shadow: 0 0 8px rgba(0, 255, 65, 0.2);
+      }
+    }
+  }
+
+  .connection-status {
+    background: var(--terminal-card-bg, #0a0a0a);
+    border-top: 1px solid var(--terminal-border-subtle, rgba(0, 255, 65, 0.15));
+    color: var(--terminal-text-primary, #ffffff);
+  }
+
+  .stats-panel {
+    background: var(--terminal-panel-bg, #111111);
+    border-top: 1px solid var(--terminal-border-subtle, rgba(0, 255, 65, 0.15));
+    color: var(--terminal-text-primary, #ffffff);
+  }
+
+  .drag-overlay {
+    background: rgba(0, 0, 0, 0.8);
+    color: var(--terminal-text-primary, #ffffff);
+    
+    .drag-content {
+      h3, p {
+        color: var(--terminal-text-primary, #ffffff);
+      }
+    }
+  }
+
+  .loading-history {
+    color: var(--terminal-text-primary, #ffffff);
+  }
+
+  .history-divider {
+    .divider-content {
+      .divider-text {
+        color: var(--terminal-text-primary, #ffffff);
+        font-family: 'Courier New', monospace;
+        text-transform: uppercase;
+      }
+    }
+  }
 }
 </style>

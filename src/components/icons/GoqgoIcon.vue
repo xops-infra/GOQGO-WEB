@@ -7,46 +7,117 @@
     xmlns="http://www.w3.org/2000/svg"
     :class="className"
   >
-    <!-- 外圆环 -->
-    <circle
-      cx="100"
-      cy="100"
-      r="90"
+    <!-- 扫描线背景效果 -->
+    <defs>
+      <pattern id="scanlines" x="0" y="0" width="2" height="2" patternUnits="userSpaceOnUse">
+        <line x1="0" y1="0" x2="200" y2="0" stroke="currentColor" stroke-width="0.5" opacity="0.1" />
+      </pattern>
+    </defs>
+    
+    <!-- 背景扫描线 -->
+    <rect width="200" height="200" fill="url(#scanlines)" />
+    
+    <!-- 终端窗口外框 - 发光效果 -->
+    <rect
+      x="20"
+      y="20"
+      width="160"
+      height="160"
+      rx="8"
       stroke="currentColor"
-      stroke-width="8"
+      stroke-width="3"
       fill="none"
-      opacity="0.3"
+      opacity="0.8"
+      filter="drop-shadow(0 0 8px currentColor)"
     />
-
-    <!-- 内圆 -->
-    <circle cx="100" cy="100" r="60" :fill="color" opacity="0.8" />
-
-    <!-- 字母 G -->
-    <path
-      d="M70 100 C70 85, 85 70, 100 70 C115 70, 130 85, 130 100 L115 100 L115 115 L100 115 C85 115, 70 100, 70 100 Z"
-      fill="white"
-      opacity="0.9"
-    />
-
-    <!-- 装饰点 -->
-    <circle cx="100" cy="50" r="4" :fill="color" opacity="0.6" />
-    <circle cx="150" cy="100" r="4" :fill="color" opacity="0.6" />
-    <circle cx="100" cy="150" r="4" :fill="color" opacity="0.6" />
-    <circle cx="50" cy="100" r="4" :fill="color" opacity="0.6" />
-
-    <!-- 动画效果 -->
-    <circle
-      cx="100"
-      cy="100"
-      r="75"
+    
+    <!-- 终端窗口内框 -->
+    <rect
+      x="30"
+      y="30"
+      width="140"
+      height="140"
+      rx="4"
       stroke="currentColor"
       stroke-width="2"
       fill="none"
-      opacity="0.2"
+      opacity="0.6"
+    />
+    
+    <!-- 命令提示符光标 -->
+    <g opacity="0.9">
+      <!-- 右箭头 ">" -->
+      <path
+        d="M60 100 L80 90 L80 110 Z"
+        fill="currentColor"
+      />
+      <!-- 下划线 "_" -->
+      <rect
+        x="85"
+        y="105"
+        width="20"
+        height="3"
+        fill="currentColor"
+      />
+    </g>
+    
+    <!-- 装饰性扫描线 -->
+    <line
+      x1="40"
+      y1="50"
+      x2="160"
+      y2="50"
+      stroke="currentColor"
+      stroke-width="1"
+      opacity="0.3"
+    />
+    <line
+      x1="40"
+      y1="150"
+      x2="160"
+      y2="150"
+      stroke="currentColor"
+      stroke-width="1"
+      opacity="0.3"
+    />
+    
+    <!-- 闪烁光标动画 -->
+    <rect
+      x="85"
+      y="105"
+      width="20"
+      height="3"
+      fill="currentColor"
+      opacity="0.9"
     >
-      <animate attributeName="r" values="75;85;75" dur="3s" repeatCount="indefinite" />
-      <animate attributeName="opacity" values="0.2;0.1;0.2" dur="3s" repeatCount="indefinite" />
-    </circle>
+      <animate
+        attributeName="opacity"
+        values="0.9;0.3;0.9"
+        dur="1.5s"
+        repeatCount="indefinite"
+      />
+    </rect>
+    
+    <!-- 外框发光动画 -->
+    <rect
+      x="20"
+      y="20"
+      width="160"
+      height="160"
+      rx="8"
+      stroke="currentColor"
+      stroke-width="3"
+      fill="none"
+      opacity="0.8"
+      filter="drop-shadow(0 0 8px currentColor)"
+    >
+      <animate
+        attributeName="opacity"
+        values="0.8;1;0.8"
+        dur="2s"
+        repeatCount="indefinite"
+      />
+    </rect>
   </svg>
 </template>
 
@@ -59,7 +130,7 @@ interface Props {
 
 withDefaults(defineProps<Props>(), {
   size: 120,
-  color: '#3b82f6',
+  color: '#00ff00',
   className: ''
 })
 </script>
@@ -67,9 +138,16 @@ withDefaults(defineProps<Props>(), {
 <style scoped>
 svg {
   transition: all 0.3s ease;
+  filter: drop-shadow(0 0 10px currentColor);
 }
 
 svg:hover {
   transform: scale(1.05);
+  filter: drop-shadow(0 0 15px currentColor);
+}
+
+/* 确保图标颜色继承父元素的颜色 */
+svg {
+  color: var(--icon-color, #00ff00);
 }
 </style>
