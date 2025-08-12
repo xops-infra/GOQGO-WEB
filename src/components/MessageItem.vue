@@ -198,19 +198,45 @@ const handleCancelThinking = async () => {
     const namespace = namespacesStore.currentNamespace || 'default'
     const agentName = props.message.senderName
     
-    // 发送取消命令
-    await agentApi.sendRawCommand(namespace, agentName, {
-      command: 'cancel' // 或者使用其他取消命令，根据后端API的具体要求
+    console.log('🚫 用户手动取消思考:', {
+      agentName,
+      namespace,
+      messageId: props.message.id,
+      conversationId: props.message.conversationId
     })
     
-    console.log('已发送取消思考命令给agent:', agentName)
+    // 方式1: 发送取消命令给Agent
+    try {
+      await agentApi.sendRawCommand(namespace, agentName, {
+        command: 'cancel' // 或者使用其他取消命令，根据后端API的具体要求
+      })
+      console.log('✅ 已发送取消思考命令给agent:', agentName)
+    } catch (apiError) {
+      console.warn('⚠️ 发送取消命令失败，将直接清理思考消息:', apiError)
+    }
     
-    // 可以在这里添加成功提示或其他UI反馈
-    // 注意：实际的思考状态变化需要通过WebSocket或其他机制来更新
+    // 方式2: 直接从前端清理思考消息（兜底方案）
+    setTimeout(() => {
+      // 使用chatStore的清理方法
+      const cleanedCount = chatStore.cleanupThinkingMessages(agentName.split('.')[0], 0)
+      
+      if (cleanedCount > 0) {
+        console.log('🧹 已强制清理思考消息:', cleanedCount)
+        // 可以在这里添加用户提示
+      }
+    }, 1000) // 1秒后执行清理，给API调用一些时间
     
   } catch (error) {
     console.error('取消思考失败:', error)
-    // 可以在这里添加错误提示
+    
+    // 即使API调用失败，也尝试清理前端的思考消息
+    try {
+      const agentName = props.message.senderName?.split('.')[0] || ''
+      const cleanedCount = chatStore.cleanupThinkingMessages(agentName, 0)
+      console.log('🧹 API失败后的兜底清理，清理了', cleanedCount, '条消息')
+    } catch (cleanupError) {
+      console.error('兜底清理也失败了:', cleanupError)
+    }
   } finally {
     isCancelling.value = false
   }
@@ -409,6 +435,8 @@ const handleStatusClick = () => {
   margin-bottom: 8px;
   width: 100%; /* 确保消息项占满容器宽度 */
   box-sizing: border-box; /* 确保padding不会增加总宽度 */
+  display: flex; /* 使用flex布局 */
+  flex-direction: column; /* 垂直排列 */
 
 
   // 用户消息样式
@@ -517,7 +545,7 @@ const handleStatusClick = () => {
   color: var(--text-primary);
   transition: all 0.3s ease;
   overflow: hidden;
-  max-width: 100%; /* 确保卡片不会超出容器宽度 */
+  width: 100%; /* 占满父容器宽度 */
   word-wrap: break-word; /* 确保长单词换行 */
   overflow-wrap: break-word; /* 现代浏览器的换行属性 */
 

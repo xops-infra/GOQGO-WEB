@@ -122,7 +122,7 @@ import { type Agent, type LogEntry } from '@/api/agents'
 import { agentApi } from '@/api/agents'
 import { logsApi } from '@/api/logs'
 import { LogManager, type LogEntry as LogManagerEntry } from '@/utils/logManager'
-import { usePageWebSocket, type WebSocketMessage } from '@/utils/pageWebSocketManager'
+
 import { buildApiUrl, apiConfig } from '@/config/api'
 import LogsControlButtons from './logs/LogsControlButtons.vue'
 import LogsIcon from './icons/LogsIcon.vue'
@@ -173,8 +173,7 @@ const lastUpdateTime = ref<string>()
 const logManager = ref<LogManager | null>(null)
 const isConnectionPending = ref(false) // 连接状态标记
 
-// 页面级 WebSocket 管理
-const wsHook = usePageWebSocket('AgentLogsModal')
+
 
 // 模态框位置和大小
 const modalPosition = ref({ x: 0, y: 0 })
@@ -311,48 +310,8 @@ const connectLogStream = async () => {
     // 模拟连接成功
     console.log('✅ 日志管理器创建成功')
     
-    // 连接到页面级 WebSocket
-    try {
-      const connection = await wsHook.connect(props.agent.namespace)
-      console.log('✅ 页面级 WebSocket 连接建立:', wsHook.componentId)
-      
-      // 监听原始命令执行结果
-      wsHook.on('raw_command_result', (result: any) => {
-        console.log('📨 原始命令执行结果:', result)
-        if (result.success) {
-          message.success(`命令执行成功: ${result.message || ''}`)
-        } else {
-          message.error(`命令执行失败: ${result.error || '未知错误'}`)
-        }
-      })
-      
-      // 监听日志相关消息（如果后续需要实时日志）
-      wsHook.on('log_initial', (logs: any) => {
-        console.log('📋 收到初始日志:', logs)
-      })
-      
-      wsHook.on('log_append', (log: any) => {
-        console.log('📋 收到新日志:', log)
-      })
-      
-      // 监听连接状态
-      wsHook.on('connect', () => {
-        console.log('✅ 页面级 WebSocket 重新连接成功')
-      })
-      
-      wsHook.on('disconnect', () => {
-        console.log('🔌 页面级 WebSocket 连接断开')
-      })
-      
-      wsHook.on('error', (error: any) => {
-        console.error('❌ 页面级 WebSocket 错误:', error)
-        message.error('WebSocket 连接错误')
-      })
-      
-    } catch (error) {
-      console.error('❌ 页面级 WebSocket 连接失败:', error)
-      message.warning('快捷键功能可能不可用')
-    }
+    // WebSocket功能已禁用，使用API轮询方式
+    console.log('ℹ️ WebSocket功能已禁用，使用API轮询方式获取日志')
     
     isConnected.value = true
     isConnecting.value = false
@@ -397,9 +356,7 @@ const disconnectLogStream = () => {
     logManager.value = null
   }
   
-  // 断开页面级 WebSocket 连接（只是取消组件订阅）
-  wsHook.disconnect()
-  console.log('🔌 页面级 WebSocket 组件订阅已取消')
+
   
   isConnected.value = false
   isConnecting.value = false
@@ -552,41 +509,7 @@ const handleSendCommand = async (command: string) => {
     return
   }
 
-  if (!wsHook.isConnected) {
-    message.error('WebSocket 未连接，无法发送命令')
-    return
-  }
-
-  try {
-    console.log('📤 通过页面级 WebSocket 发送原始命令:', {
-      agent: props.agent.name,
-      namespace: props.agent.namespace,
-      command
-    })
-
-    const commandId = `cmd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    
-    const success = wsHook.send({
-      type: "raw_command",
-      data: {
-        agentName: props.agent.name,
-        command,
-        commandId
-      },
-      timestamp: new Date().toISOString(),
-      from: "frontend-client"
-    })
-
-    if (success) {
-      console.log('✅ 命令已发送，ID:', commandId)
-    } else {
-      throw new Error('发送失败')
-    }
-    
-  } catch (error) {
-    console.error('❌ 发送原始命令失败:', error)
-    message.error(`发送命令失败: ${(error as Error).message}`)
-  }
+  message.info('WebSocket功能已禁用，无法发送命令')
 }
 
 // 开始拖拽

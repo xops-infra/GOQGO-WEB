@@ -16,7 +16,7 @@ export const useNamespacesStore = defineStore('namespaces', () => {
     const urlParams = new URLSearchParams(window.location.search)
     if (urlParams.get('test') === 'default') {
       localStorage.removeItem('currentNamespace')
-      console.log('🧪 测试模式：已清理localStorage中的namespace缓存')
+      // 清理localStorage中的namespace缓存
     }
 
     const saved = localStorage.getItem('currentNamespace')

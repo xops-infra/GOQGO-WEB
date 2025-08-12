@@ -11,6 +11,14 @@ import naive from 'naive-ui'
 import '@/styles/index.scss'
 import '@/assets/styles/highlight.scss'
 
+// 导入主题系统
+import { themeManager } from '@/utils/theme'
+
+// 引入聊天调试工具（开发环境）
+if (import.meta.env.DEV) {
+  import('./utils/chatDebug')
+}
+
 // 创建应用实例
 const app = createApp(App)
 
@@ -22,9 +30,11 @@ app.use(pinia)
 app.use(router)
 app.use(naive)
 
+// 初始化主题系统
+themeManager.setTheme('terminal')
+
 // 初始化用户store（在路由守卫之前）
 const userStore = useUserStore()
-console.log('🚀 初始化用户store')
 
 // 挂载应用
 app.mount('#app')

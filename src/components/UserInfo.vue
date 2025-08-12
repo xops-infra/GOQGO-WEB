@@ -82,6 +82,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useAgentsStore } from '@/stores/agents'
 import { useMessage, useDialog } from 'naive-ui'
+import { logoutManager } from '@/utils/logoutManager'
 
 // 状态管理
 const router = useRouter()
@@ -214,21 +215,18 @@ const refreshUserInfo = async () => {
   }
 }
 
-const handleLogout = () => {
+const handleLogout = async () => {
   // 使用确认对话框
   const d = dialog.warning({
     title: '确认退出',
     content: '您确定要退出登录吗？',
     positiveText: '确定',
     negativeText: '取消',
-    onPositiveClick: () => {
+    onPositiveClick: async () => {
       try {
-        // 调用用户store的登出方法
-        userStore.logout()
+        // 使用统一的退出登录管理器
+        await logoutManager.logout()
         message.success('已退出登录')
-
-        // 跳转到登录页
-        router.push('/login')
       } catch (error) {
         console.error('登出失败:', error)
         message.error('登出失败')

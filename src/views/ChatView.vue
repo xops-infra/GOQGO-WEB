@@ -272,13 +272,38 @@
       :agent="selectedAgentForLogs"
       @close="handleLogsModalClose"
     />
+
+    <!-- Agent详情模态框 -->
+    <n-modal
+      v-model:show="showDetailModal"
+      preset="card"
+      title="实例详情"
+      style="width: 800px"
+    >
+      <div v-if="selectedAgentForDetails" class="agent-detail">
+        <n-descriptions :column="2" bordered>
+          <n-descriptions-item label="实例名称">{{ selectedAgentForDetails.name }}</n-descriptions-item>
+          <n-descriptions-item label="命名空间">{{ selectedAgentForDetails.namespace }}</n-descriptions-item>
+          <n-descriptions-item label="角色">{{ selectedAgentForDetails.role }}</n-descriptions-item>
+          <n-descriptions-item label="状态">
+            <n-tag :type="getStatusType(selectedAgentForDetails.status)">
+              {{ getStatusText(selectedAgentForDetails.status) }}
+            </n-tag>
+          </n-descriptions-item>
+          <n-descriptions-item label="运行时间">{{ formatUptime(selectedAgentForDetails.age) }}</n-descriptions-item>
+          <n-descriptions-item label="重启次数">{{ selectedAgentForDetails.restartCount || 0 }}</n-descriptions-item>
+          <n-descriptions-item label="工作目录">{{ selectedAgentForDetails.workDir || '-' }}</n-descriptions-item>
+          <n-descriptions-item label="创建时间">{{ formatTime(selectedAgentForDetails.createdAt) }}</n-descriptions-item>
+        </n-descriptions>
+      </div>
+    </n-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { storeToRefs } from 'pinia'
-import { NButton, NIcon, NTooltip, NPopconfirm, NTag, NSpin } from 'naive-ui'
+import { NButton, NIcon, NTooltip, NPopconfirm, NTag, NSpin, NModal, NDescriptions, NDescriptionsItem } from 'naive-ui'
 import { useAgentsStore } from '@/stores/agents'
 import { useNamespacesStore } from '@/stores/namespaces'
 import { useTheme } from '@/utils/theme'
@@ -306,8 +331,10 @@ const { currentNamespace } = storeToRefs(namespacesStore)
 // 响应式数据
 const showCreateModal = ref(false)
 const showLogsModal = ref(false)
-const selectedAgentForLogs = ref(null)
+const selectedAgentForLogs = ref<any>(null)
 const showStatsPanel = ref(false)
+const showDetailModal = ref(false)
+const selectedAgentForDetails = ref<any>(null)
 
 // 版本信息
 const versionInfo = computed(() => ({
@@ -332,6 +359,22 @@ const formatBuildTime = (buildTime: string) => {
   }
 }
 
+// 格式化时间
+const formatTime = (timestamp: string) => {
+  try {
+    const date = new Date(timestamp)
+    return date.toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch (error) {
+    return timestamp
+  }
+}
+
 // 计算属性
 const safeCurrentNamespace = computed(() => currentNamespace.value || 'default')
 
@@ -350,8 +393,8 @@ const showAgentLogs = (agent: any) => {
 }
 
 const showAgentDetails = (agent: any) => {
-  // 实现查看详情的逻辑
-  console.log('查看Agent详情:', agent)
+  selectedAgentForDetails.value = agent
+  showDetailModal.value = true
 }
 
 const restartAgent = async (agent: any) => {
@@ -408,6 +451,17 @@ const getStatusType = (status: string): 'success' | 'warning' | 'error' | 'info'
     Terminating: 'warning'
   }
   return statusMap[status] || 'default'
+}
+
+const getStatusText = (status: string) => {
+  const statusMap: Record<string, string> = {
+    running: '运行中',
+    idle: '空闲',
+    error: '错误',
+    Creating: '创建中',
+    Terminating: '终止中'
+  }
+  return statusMap[status] || status
 }
 
 // 生命周期

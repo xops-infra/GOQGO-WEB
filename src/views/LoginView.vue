@@ -5,9 +5,6 @@
       <div class="brand-content">
         <!-- Logo和标题 -->
         <div class="brand-header">
-          <div class="logo-container">
-            <img src="@/assets/Goqgo.svg" alt="GoQGo" class="brand-logo" />
-          </div>
           <h1 class="brand-title">GoQGo</h1>
           <p class="brand-subtitle">AI智能体协助开发平台</p>
         </div>
@@ -385,123 +382,104 @@ onMounted(async () => {
 </script>
 
 <style scoped lang="scss">
+// 重置和基础样式
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
 .login-container {
   display: flex;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  width: 100vw;
+  height: 100vh;
+  background: var(--terminal-bg, #000000);
+  font-family: 'Arial', 'Helvetica', sans-serif;
+  overflow: hidden;
 }
 
 // 左侧品牌区域
 .brand-section {
-  flex: 2;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--terminal-bg-secondary, #0a0a0a);
+  border-right: 2px solid var(--terminal-border-active, #00ff41);
   padding: 40px;
   position: relative;
   overflow: hidden;
-
-  // 背景装饰
-  &::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-    animation: float 20s ease-in-out infinite;
-  }
-
-  @keyframes float {
-    0%,
-    100% {
-      transform: translate(0, 0) rotate(0deg);
-    }
-    33% {
-      transform: translate(30px, -30px) rotate(120deg);
-    }
-    66% {
-      transform: translate(-20px, 20px) rotate(240deg);
-    }
-  }
 }
 
 .brand-content {
-  max-width: 600px;
-  color: white;
+  max-width: 500px;
+  color: var(--terminal-text, #ffffff);
   text-align: center;
-  position: relative;
-  z-index: 1;
 }
 
 .brand-header {
-  margin-bottom: 60px;
+  margin-bottom: 50px;
 
   .logo-container {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 
-    .brand-logo {
-      width: 120px;
-      height: 120px;
-      filter: brightness(0) invert(1);
-      animation: pulse 2s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-      0%,
-      100% {
-        transform: scale(1);
-      }
-      50% {
-        transform: scale(1.05);
-      }
+    .brand-logo-text {
+      font-size: 4rem;
+      font-weight: 700;
+      color: var(--terminal-prompt, #00ff41);
+      text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41, 0 0 30px #00ff41;
+      font-family: 'Orbitron', 'Arial', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 2px;
     }
   }
 
   .brand-title {
-    font-size: 4rem;
+    font-size: 3.5rem;
     font-weight: 700;
     margin: 0 0 16px 0;
-    background: linear-gradient(45deg, #fff, #f0f0f0);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    color: var(--terminal-prompt, #00ff41);
+    text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41, 0 0 30px #00ff41;
+    font-family: 'Orbitron', 'Arial', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 2px;
   }
 
   .brand-subtitle {
-    font-size: 1.25rem;
-    opacity: 0.9;
+    font-size: 1.1rem;
+    color: var(--terminal-text-secondary, #cccccc);
     margin: 0;
-    font-weight: 300;
+    font-weight: 400;
+    line-height: 1.4;
   }
 }
 
 .features-list {
   display: grid;
-  gap: 24px;
+  gap: 20px;
   margin-bottom: 40px;
 
   .feature-item {
     display: flex;
     align-items: flex-start;
-    gap: 16px;
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    gap: 15px;
+    padding: 18px;
+    background: var(--terminal-bg-tertiary, #1a1a1a);
+    border: 2px solid var(--terminal-border, #333333);
     transition: all 0.3s ease;
 
     &:hover {
+      border-color: var(--terminal-border-active, #00ff41);
       transform: translateY(-2px);
-      background: rgba(255, 255, 255, 0.15);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     }
 
     .feature-icon {
-      font-size: 2rem;
+      font-size: 1.8rem;
       flex-shrink: 0;
     }
 
@@ -510,29 +488,31 @@ onMounted(async () => {
 
       h3 {
         margin: 0 0 8px 0;
-        font-size: 1.1rem;
+        font-size: 1rem;
         font-weight: 600;
+        color: var(--terminal-text, #ffffff);
+        font-family: 'Arial', sans-serif;
       }
 
       p {
         margin: 0;
-        opacity: 0.8;
+        color: var(--terminal-text-secondary, #cccccc);
         font-size: 0.9rem;
-        line-height: 1.5;
+        line-height: 1.4;
+        font-family: 'Arial', sans-serif;
       }
     }
   }
 }
 
 .version-info {
-  opacity: 0.7;
-  font-size: 0.9rem;
-
   .version-text {
     padding: 8px 16px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--terminal-bg-tertiary, #1a1a1a);
+    border: 1px solid var(--terminal-border, #333333);
+    color: var(--terminal-text-secondary, #cccccc);
+    font-size: 0.85rem;
+    font-family: 'Arial', sans-serif;
   }
 }
 
@@ -542,77 +522,91 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-primary);
+  background: var(--terminal-bg, #000000);
   padding: 40px;
-  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
 .login-content {
   width: 100%;
-  max-width: 400px;
+  max-width: 380px;
 }
 
 .login-form-container {
-  background: var(--bg-secondary);
-  border-radius: 16px;
-  padding: 40px;
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--border-primary);
+  background: var(--terminal-bg-secondary, #0a0a0a);
+  border: 2px solid var(--terminal-border-active, #00ff41);
+  padding: 35px;
+  position: relative;
+  box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    right: -4px;
+    bottom: -4px;
+    background: var(--terminal-surface, #2a2a2a);
+    z-index: -1;
+    border: 1px solid var(--terminal-border, #333333);
+  }
 }
 
 .login-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 30px;
 
   .login-title {
-    font-size: 1.75rem;
+    font-size: 1.6rem;
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--terminal-text, #ffffff);
     margin: 0 0 8px 0;
+    font-family: 'Arial', sans-serif;
   }
 
   .login-subtitle {
-    color: var(--text-secondary);
+    color: var(--terminal-text-secondary, #cccccc);
     margin: 0;
     font-size: 0.9rem;
+    font-family: 'Arial', sans-serif;
   }
 }
 
 .login-tabs {
   display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
-  padding: 4px;
-  background: var(--bg-tertiary);
-  border-radius: 8px;
+  gap: 6px;
+  margin-bottom: 25px;
+  padding: 3px;
+  background: var(--terminal-bg-tertiary, #1a1a1a);
+  border: 1px solid var(--terminal-border, #333333);
 
   .tab-button {
     flex: 1;
-    padding: 12px 16px;
+    padding: 10px 14px;
     border: none;
     background: transparent;
-    color: var(--text-secondary);
-    border-radius: 6px;
+    color: var(--terminal-text-secondary, #cccccc);
     cursor: pointer;
     transition: all 0.3s ease;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 500;
-    position: relative;
+    font-family: 'Arial', sans-serif;
 
     &:hover:not(:disabled) {
-      background: var(--bg-hover);
-      color: var(--text-primary);
+      background: var(--terminal-surface, #2a2a2a);
+      color: var(--terminal-text, #ffffff);
     }
 
     &.active {
-      background: var(--color-primary);
-      color: white;
-      box-shadow: var(--shadow-sm);
+      background: var(--terminal-prompt, #00ff41);
+      color: var(--terminal-bg, #000000);
+      font-weight: 600;
     }
 
     &:disabled {
       opacity: 0.5;
       cursor: not-allowed;
+      color: var(--terminal-text-muted, #666666);
     }
 
     .coming-soon {
@@ -626,7 +620,7 @@ onMounted(async () => {
 
 .login-form {
   .token-help {
-    margin-top: 24px;
+    margin-top: 20px;
 
     .help-list {
       margin: 8px 0 0 0;
@@ -634,8 +628,10 @@ onMounted(async () => {
 
       li {
         margin-bottom: 4px;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         line-height: 1.4;
+        color: var(--terminal-text-secondary, #cccccc);
+        font-family: 'Arial', sans-serif;
 
         &:last-child {
           margin-bottom: 0;
@@ -643,13 +639,12 @@ onMounted(async () => {
       }
 
       code {
-        background: var(--bg-tertiary);
+        background: var(--terminal-bg-tertiary, #1a1a1a);
         padding: 2px 6px;
-        border-radius: 4px;
-        font-family: 'JetBrains Mono', 'Consolas', monospace;
-        font-size: 0.8rem;
-        color: var(--color-primary);
-        border: 1px solid var(--border-primary);
+        border: 1px solid var(--terminal-border, #333333);
+        color: var(--terminal-prompt, #00ff41);
+        font-family: 'Courier New', monospace;
+        font-size: 0.75rem;
       }
     }
   }
@@ -657,76 +652,128 @@ onMounted(async () => {
 
 .coming-soon-content {
   text-align: center;
-  padding: 40px 20px;
-  color: var(--text-tertiary);
+  padding: 30px 20px;
+  color: var(--terminal-text-tertiary, #999999);
 
   h3 {
     margin: 16px 0 8px 0;
-    color: var(--text-secondary);
+    color: var(--terminal-text-secondary, #cccccc);
+    font-family: 'Arial', sans-serif;
   }
 
   p {
     margin: 0;
     font-size: 0.9rem;
     line-height: 1.5;
+    font-family: 'Arial', sans-serif;
   }
 }
 
-// 响应式设计
+// Terminal主题模式适配
+:deep(.n-form-item-label) {
+  color: var(--terminal-text, #ffffff);
+  font-weight: 500;
+  font-family: 'Arial', sans-serif;
+}
+
+:deep(.n-input) {
+  --n-border: 1px solid var(--terminal-border, #333333);
+  --n-border-hover: 1px solid var(--terminal-border-active, #00ff41);
+  --n-border-focus: 1px solid var(--terminal-border-active, #00ff41);
+  --n-color: var(--terminal-text, #ffffff);
+  --n-color-focus: var(--terminal-text, #ffffff);
+  --n-placeholder-color: var(--terminal-text-muted, #666666);
+  --n-bg-color: var(--terminal-bg-tertiary, #1a1a1a);
+  --n-bg-color-hover: var(--terminal-surface, #2a2a2a);
+  --n-bg-color-focus: var(--terminal-surface, #2a2a2a);
+}
+
+:deep(.n-button--primary-type) {
+  --n-color: var(--terminal-prompt, #00ff41);
+  --n-color-hover: var(--terminal-command, #00ffff);
+  --n-color-pressed: var(--pixel-blue, #0066ff);
+  --n-border: 1px solid var(--terminal-border-active, #00ff41);
+  --n-font-weight: 600;
+  --n-text-color: var(--terminal-bg, #000000);
+  --n-text-color-hover: var(--terminal-bg, #000000);
+  --n-text-color-pressed: var(--terminal-bg, #000000);
+  font-family: 'Arial', sans-serif;
+}
+
+:deep(.n-alert) {
+  --n-border: 1px solid var(--terminal-border, #333333);
+  --n-bg-color: var(--terminal-bg-tertiary, #1a1a1a);
+  --n-text-color: var(--terminal-text-secondary, #cccccc);
+  --n-title-text-color: var(--terminal-text, #ffffff);
+  font-family: 'Arial', sans-serif;
+}
+
+// 响应式设计 - 确保在不同屏幕尺寸下都能正常显示
+@media (max-width: 1200px) {
+  .brand-header .brand-title {
+    font-size: 3rem;
+  }
+  
+  .features-list {
+    gap: 15px;
+    
+    .feature-item {
+      padding: 15px;
+      
+      .feature-icon {
+        font-size: 1.5rem;
+      }
+    }
+  }
+}
+
 @media (max-width: 1024px) {
   .login-container {
     flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
   }
 
   .brand-section {
     flex: none;
-    min-height: 40vh;
-    padding: 20px;
+    height: 45vh;
+    border-right: none;
+    border-bottom: 2px solid var(--terminal-border-active, #00ff41);
+    padding: 25px;
 
     .brand-header .brand-title {
-      font-size: 3rem;
+      font-size: 2.5rem;
     }
 
     .features-list {
-      display: none; // 在小屏幕上隐藏特性列表
+      display: none;
     }
   }
 
   .login-section {
     flex: none;
-    padding: 20px;
+    height: 55vh;
+    padding: 25px;
+    overflow: hidden;
   }
 
   .login-form-container {
-    padding: 24px;
+    padding: 25px;
   }
 }
 
 @media (max-width: 640px) {
   .brand-header .brand-title {
-    font-size: 2.5rem;
+    font-size: 2rem;
   }
 
   .login-form-container {
     padding: 20px;
   }
-}
-
-// 深色模式适配
-:deep(.n-form-item-label) {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-:deep(.n-input) {
-  --n-border: 1px solid var(--border-primary);
-  --n-border-hover: 1px solid var(--color-primary);
-  --n-border-focus: 1px solid var(--color-primary);
-}
-
-:deep(.n-button--primary-type) {
-  --n-color: var(--color-primary);
-  --n-color-hover: var(--color-primary-hover);
-  --n-color-pressed: var(--color-primary-pressed);
+  
+  .login-tabs .tab-button {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+  }
 }
 </style>

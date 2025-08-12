@@ -35,10 +35,14 @@ export class ChatSocket {
   private callbacks: SocketCallbacks = {}
   private reconnectTimer: number | null = null
   private pingTimer: number | null = null
+  private pingTimeoutTimer: number | null = null
   private reconnectAttempts = 0
   private maxReconnectAttempts = 5
   // 消息确认超时管理
   private pendingMessages = new Map<string, NodeJS.Timeout>()
+  // ping超时配置
+  private readonly PING_TIMEOUT = 10000 // 10秒ping超时
+  private readonly PING_INTERVAL = 30000 // 30秒ping间隔
 
   constructor() {
     this.namespace = 'default'
@@ -53,14 +57,22 @@ export class ChatSocket {
   }
 
   private doConnect() {
+    // 防止重复连接
+    if (this.ws && (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)) {
+      console.log('[WebSocket] ⚠️ WebSocket连接已存在或正在连接中，跳过重复连接')
+      return
+    }
+
+    // 清理之前的连接
     if (this.ws) {
       this.ws.close()
+      this.ws = null
     }
 
     // 使用认证管理器获取token
     const token = authManager.getToken()
     if (!token) {
-      console.error('❌ 未找到认证token，无法连接WebSocket')
+      console.error('[WebSocket] ❌ 未找到认证token，无法连接WebSocket')
       this.callbacks.onError?.({ message: '未找到认证token，请先登录' })
       // 跳转到登录页
       authManager.redirectToLogin('WebSocket连接需要认证')
@@ -69,7 +81,7 @@ export class ChatSocket {
 
     // 验证token格式
     if (!authManager.validateTokenFormat(token)) {
-      console.error('❌ Token格式无效，无法连接WebSocket')
+      console.error('[WebSocket] ❌ Token格式无效，无法连接WebSocket')
       this.callbacks.onError?.({ message: 'Token格式无效，请重新登录' })
       authManager.redirectToLogin('Token格式无效')
       return
@@ -79,12 +91,12 @@ export class ChatSocket {
     // 使用CHAT_ROOM端点，token作为查询参数传递
     const endpoint = API_ENDPOINTS.WEBSOCKET.CHAT_ROOM(this.namespace)
     const wsUrl = buildWsUrl(`${endpoint}?token=${token}`)
-    console.log('🔌 连接WebSocket:', wsUrl.replace(token, '***TOKEN***'))
+    console.log('[WebSocket] 🔌 连接WebSocket:', wsUrl.replace(token, '***TOKEN***'))
 
     this.ws = new WebSocket(wsUrl)
 
     this.ws.onopen = () => {
-      console.log('✅ WebSocket连接成功, 命名空间:', this.namespace)
+      console.log('[WebSocket] ✅ WebSocket连接成功, 命名空间:', this.namespace)
       this.reconnectAttempts = 0
       this.callbacks.onStatus?.(true)
       this.startPing()
@@ -94,7 +106,7 @@ export class ChatSocket {
     }
 
     this.ws.onclose = (event) => {
-      console.log('❌ WebSocket连接关闭:', event.code, event.reason)
+      console.log('[WebSocket] ❌ WebSocket连接关闭:', event.code, event.reason)
       
       // 根据错误码提供更详细的错误信息
       let errorMessage = ''
@@ -117,7 +129,7 @@ export class ChatSocket {
         case 1009:
           errorMessage = '消息过大'
           // 特别处理消息过大的情况
-          console.error('💥 WebSocket因消息过大而关闭，请检查发送的消息大小')
+          console.error('[WebSocket] 💥 WebSocket因消息过大而关闭，请检查发送的消息大小')
           this.callbacks.onError?.({ 
             code: event.code, 
             message: '发送的消息过大，请减少消息内容后重试',
@@ -143,7 +155,7 @@ export class ChatSocket {
           errorMessage = `未知错误 (${event.code})`
       }
       
-      console.log('📋 关闭原因:', errorMessage)
+      console.log('[WebSocket] 📋 关闭原因:', errorMessage)
       this.callbacks.onStatus?.(false)
       this.stopPing()
 
@@ -152,12 +164,12 @@ export class ChatSocket {
         this.reconnect()
       } else if (event.code === 1009) {
         // 消息过大时不重连，等待用户处理
-        console.log('🚫 因消息过大导致连接关闭，不进行自动重连')
+        console.log('[WebSocket] 🚫 因消息过大导致连接关闭，不进行自动重连')
       }
     }
 
     this.ws.onerror = (error) => {
-      console.error('❌ WebSocket错误:', error)
+      console.error('[WebSocket] ❌ WebSocket错误:', error)
       this.callbacks.onError?.(error)
     }
 
@@ -166,18 +178,18 @@ export class ChatSocket {
         const data = JSON.parse(event.data)
         this.handleMessage(data)
       } catch (error) {
-        console.error('解析消息失败:', error, 'Raw data:', event.data)
+        console.error('[WebSocket] 解析消息失败:', error, 'Raw data:', event.data)
       }
     }
   }
 
   private handleMessage(data: any) {
-    console.log('📨 收到WebSocket消息:', data.type, data)
+    console.log('[WebSocket] 📨 收到WebSocket消息:', data.type, data)
 
     switch (data.type) {
       case 'chat': {
         // 处理聊天消息，转换字段格式
-        console.log('📨 收到chat消息原始数据:', JSON.stringify(data.data, null, 2))
+        console.log('[WebSocket] 📨 收到chat消息原始数据:', JSON.stringify(data.data, null, 2))
         
         // 检查是否是agent回复消息，如果是则跳过处理（避免与agent_reply重复）
         const isAgentReply = data.data?.messageType === 'agent_reply' || 
@@ -185,8 +197,8 @@ export class ChatSocket {
                            (data.data?.type === 'agent' && data.data?.conversationId)
         
         if (isAgentReply) {
-          console.log('⚠️ 检测到Agent回复类型的chat消息，跳过处理以避免与agent_reply重复')
-          console.log('🔍 跳过原因:', {
+          console.log('[WebSocket] ⚠️ 检测到Agent回复类型的chat消息，跳过处理以避免与agent_reply重复')
+          console.log('[WebSocket] 🔍 跳过原因:', {
             messageType: data.data?.messageType,
             type: data.data?.type,
             hasConversationId: !!data.data?.conversationId,
@@ -199,49 +211,58 @@ export class ChatSocket {
         if (chatMessage) {
           this.callbacks.onMessage?.(chatMessage)
         } else {
-          console.warn('⚠️ 消息格式化失败，跳过处理:', data.data)
+          console.warn('[WebSocket] ⚠️ 消息格式化失败，跳过处理:', data.data)
         }
         break
       }
       case 'message_confirm': {
         // 消息发送成功确认 - 后台返回tempId
-        console.log('✅ 收到消息发送确认:', data)
+        console.log('[WebSocket] ✅ 收到消息发送确认:', data)
 
         const tempId = data.data?.tempId
         const messageId = data.data?.messageId
 
         if (tempId && messageId) {
-          console.log('✅ 找到tempId和messageId，调用回调:', { tempId, messageId })
+          console.log('[WebSocket] ✅ 找到tempId和messageId，调用回调:', { tempId, messageId })
 
           // 清除超时定时器
           if (this.pendingMessages.has(tempId)) {
             clearTimeout(this.pendingMessages.get(tempId)!)
             this.pendingMessages.delete(tempId)
-            console.log('✅ 清除消息超时定时器:', tempId)
+            console.log('[WebSocket] ✅ 清除消息超时定时器:', tempId)
           }
 
           this.callbacks.onMessageSent?.(tempId, messageId, 'success')
         } else {
-          console.warn('⚠️ 消息确认数据格式不正确:', data)
+          console.warn('[WebSocket] ⚠️ 消息确认数据格式不正确:', data)
         }
         break
       }
 
       case 'message_sent': {
         // 兼容旧格式的消息发送确认
-        console.log('✅ 收到消息发送确认(旧格式):', data.data)
+        console.log('[WebSocket] ✅ 收到消息发送确认(旧格式):', data.data)
         this.callbacks.onMessageSent?.(data.data.tempId, data.data.messageId)
         break
       }
       case 'message_delivered': {
         // 消息处理完成确认
-        console.log('📬  收到消息处理确认:', data.data)
+        console.log('[WebSocket] 📬  收到消息处理确认:', data.data)
         this.callbacks.onMessageDelivered?.(data.data.messageId)
+        break
+      }
+      case 'pong': {
+        // 收到ping响应，清除超时定时器
+        console.log('[WebSocket] 💓 收到ping响应')
+        if (this.pingTimeoutTimer) {
+          clearTimeout(this.pingTimeoutTimer)
+          this.pingTimeoutTimer = null
+        }
         break
       }
       case 'error': {
         // 错误消息处理
-        console.error('❌ 收到服务器错误:', data.data)
+        console.error('[WebSocket] ❌ 收到服务器错误:', data.data)
         this.callbacks.onError?.(data.data)
 
         // 如果错误包含tempId，可以标记对应消息为失败
@@ -251,7 +272,7 @@ export class ChatSocket {
         break
       }
       case 'history': {
-        console.log('📜 收到历史消息原始数据:', data.data)
+        console.log('[WebSocket] 📜 收到历史消息原始数据:', data.data)
         // 服务器返回格式: {"data": {"messages": [...], "hasMore": false}}
         const historyData = data.data
         const rawMessages = historyData?.messages || []
@@ -262,7 +283,7 @@ export class ChatSocket {
           .map((msg) => this.normalizeMessage(msg))
           .filter((msg) => msg !== null) as ChatMessage[]
 
-        console.log('📜 解析历史消息:', {
+        console.log('[WebSocket] 📜 解析历史消息:', {
           messagesCount: normalizedMessages.length,
           hasMore: hasMore,
           firstMessage: normalizedMessages[0] || null
@@ -278,12 +299,12 @@ export class ChatSocket {
         break
       }
       case 'user_join': {
-        console.log('👤 用户加入:', data.data?.username || data.data)
+        console.log('[WebSocket] 👤 用户加入:', data.data?.username || data.data)
         this.callbacks.onUserJoin?.(data.data?.username || data.data)
         break
       }
       case 'user_leave': {
-        console.log('👤 用户离开:', data.data?.username || data.data)
+        console.log('[WebSocket] 👤 用户离开:', data.data?.username || data.data)
         this.callbacks.onUserLeave?.(data.data?.username || data.data)
         break
       }
@@ -291,14 +312,9 @@ export class ChatSocket {
         this.callbacks.onTyping?.(data.data.username, data.data.isTyping)
         break
       }
-      case 'pong': {
-        // 心跳响应
-        console.log('💓 收到心跳响应')
-        break
-      }
       case 'agent_thinking': {
         // Agent开始思考
-        console.log('🤖 Agent开始思考:', data.data)
+        console.log('[WebSocket] 🤖 Agent开始思考:', data.data)
         const { conversationId, agentName, tempId } = data.data
         if (conversationId && agentName) {
           this.callbacks.onAgentThinking?.({
@@ -312,7 +328,7 @@ export class ChatSocket {
       }
       case 'agent_thinking_stream': {
         // Agent思考过程中的流式更新
-        console.log('🤖 Agent思考流式更新:', data.data)
+        console.log('[WebSocket] 🤖 Agent思考流式更新:', data.data)
         const { conversationId, content, progress, tempId } = data.data
         if (conversationId) {
           this.callbacks.onAgentThinkingStream?.({
@@ -326,7 +342,7 @@ export class ChatSocket {
       }
       case 'agent_reply': {
         // Agent最终回复消息 - 直接处理，不要递归调用
-        console.log('🤖 Agent最终回复:', data.data)
+        console.log('[WebSocket] 🤖 Agent最终回复:', data.data)
         
         // 直接处理agent_reply消息，添加replaceThinking标记
         const serverMessage = {
@@ -336,21 +352,21 @@ export class ChatSocket {
         
         const chatMessage = this.normalizeMessage(serverMessage)
         if (chatMessage) {
-          console.log('🎯 Agent回复消息已标记 replaceThinking = true，conversationId:', chatMessage.conversationId)
+          console.log('[WebSocket] 🎯 Agent回复消息已标记 replaceThinking = true，conversationId:', chatMessage.conversationId)
           this.callbacks.onMessage?.(chatMessage)
         } else {
-          console.warn('⚠️ Agent回复消息格式化失败，跳过处理:', data.data)
+          console.warn('[WebSocket] ⚠️ Agent回复消息格式化失败，跳过处理:', data.data)
         }
         break
       }
 
       default:
-        console.warn('未知的消息类型:', data.type, data)
+        console.warn('[WebSocket] 未知的消息类型:', data.type, data)
     }
   }
 
   private requestHistory(limit: number = 50, before?: string) {
-    console.log('📜 请求历史消息, limit:', limit, 'before:', before)
+    console.log('[WebSocket] 📜 请求历史消息, limit:', limit, 'before:', before)
     this.send({
       type: 'history_request',
       data: { limit, before }
@@ -368,7 +384,7 @@ export class ChatSocket {
     const messageSize = new Blob([content]).size
     
     if (messageSize > maxMessageSize) {
-      console.error('❌ 消息过大:', {
+      console.error('[WebSocket] ❌ 消息过大:', {
         size: messageSize,
         maxSize: maxMessageSize,
         content: content.substring(0, 100) + '...'
@@ -396,7 +412,7 @@ export class ChatSocket {
       }
     }
 
-    console.log('📤 准备发送消息到WebSocket:', {
+    console.log('[WebSocket] 📤 准备发送消息到WebSocket:', {
       tempId,
       content: content.substring(0, 50) + '...',
       messageType,
@@ -408,7 +424,7 @@ export class ChatSocket {
     const serializedSize = new Blob([serializedMessage]).size
     
     if (serializedSize > maxMessageSize) {
-      console.error('❌ 序列化后消息过大:', {
+      console.error('[WebSocket] ❌ 序列化后消息过大:', {
         size: serializedSize,
         maxSize: maxMessageSize,
         message: serializedMessage.substring(0, 100) + '...'
@@ -421,7 +437,7 @@ export class ChatSocket {
       return tempId
     }
 
-    console.log('📤 发送消息:', {
+    console.log('[WebSocket] 📤 发送消息:', {
       tempId,
       contentLength: content.length,
       messageSize: serializedSize,
@@ -432,7 +448,7 @@ export class ChatSocket {
 
     // 设置10秒超时定时器
     const timeoutId = setTimeout(() => {
-      console.warn('⏰ 消息确认超时:', tempId)
+      console.warn('[WebSocket] ⏰ 消息确认超时:', tempId)
       this.pendingMessages.delete(tempId)
       // 调用回调标记消息为失败
       this.callbacks.onMessageSent?.(tempId, '', 'error')
@@ -440,7 +456,7 @@ export class ChatSocket {
 
     // 保存超时定时器
     this.pendingMessages.set(tempId, timeoutId)
-    console.log('⏰ 设置消息超时定时器:', tempId, '10秒')
+    console.log('[WebSocket] ⏰ 设置消息超时定时器:', tempId, '10秒')
 
     return tempId // 返回临时ID
   }
@@ -458,7 +474,7 @@ export class ChatSocket {
   private normalizeMessage(serverMessage: any): ChatMessage | null {
     // 验证服务器消息的基本结构
     if (!serverMessage) {
-      console.warn('⚠️ 服务器消息为空或undefined')
+      console.warn('[WebSocket] ⚠️ 服务器消息为空或undefined')
       return null
     }
 
@@ -505,7 +521,7 @@ export class ChatSocket {
       replaceThinking: serverMessage.replaceThinking // 是否需要替换思考消息
     }
 
-    console.log('🔄 消息格式化完成:', {
+    console.log('[WebSocket] 🔄 消息格式化完成:', {
       原始: {
         id: serverMessage.id,
         username: serverMessage.username,
@@ -549,25 +565,38 @@ export class ChatSocket {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(data))
     } else {
-      console.warn('WebSocket未连接，无法发送消息:', data)
-      // 尝试重连
+      console.warn('[WebSocket] WebSocket未连接，无法发送消息:', data)
+      // 只有在连接完全关闭时才尝试重连
       if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
-        this.doConnect()
+        // 避免在重连过程中重复调用
+        if (!this.reconnectTimer) {
+          console.log('[WebSocket] 🔄 连接已关闭，尝试重连...')
+          this.reconnect()
+        }
       }
     }
   }
 
   private reconnect() {
+    // 防止重复重连
     if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer)
+      console.log('[WebSocket] 🔄 重连已在进行中，跳过重复重连')
+      return
+    }
+
+    // 检查连接状态
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      console.log('[WebSocket] ✅ 连接已恢复，无需重连')
+      return
     }
 
     this.reconnectAttempts++
     const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000)
 
-    console.log(`🔄 ${delay}ms后尝试第${this.reconnectAttempts}次重连...`)
+    console.log(`[WebSocket] 🔄 ${delay}ms后尝试第${this.reconnectAttempts}次重连...`)
 
     this.reconnectTimer = window.setTimeout(() => {
+      this.reconnectTimer = null // 清除定时器引用
       this.doConnect()
     }, delay)
   }
@@ -575,15 +604,34 @@ export class ChatSocket {
   private startPing() {
     this.stopPing()
     this.pingTimer = window.setInterval(() => {
-      console.log('💓 发送心跳')
-      this.send({ type: 'ping' })
-    }, 30000)
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        console.log('[WebSocket] 💓 发送心跳')
+        this.send({ type: 'ping' })
+        
+        // 设置ping超时检测
+        this.pingTimeoutTimer = window.setTimeout(() => {
+          console.warn('[WebSocket] ⚠️ Ping超时，连接可能已断开')
+          this.callbacks.onStatus?.(false)
+          this.callbacks.onError?.({ 
+            message: 'Ping超时，连接已断开', 
+            type: 'PING_TIMEOUT' 
+          })
+        }, this.PING_TIMEOUT)
+      } else {
+        console.warn('[WebSocket] 💔 心跳检测失败，连接已断开')
+        this.callbacks.onStatus?.(false)
+      }
+    }, this.PING_INTERVAL)
   }
 
   private stopPing() {
     if (this.pingTimer) {
       clearInterval(this.pingTimer)
       this.pingTimer = null
+    }
+    if (this.pingTimeoutTimer) {
+      clearTimeout(this.pingTimeoutTimer)
+      this.pingTimeoutTimer = null
     }
   }
 
@@ -598,7 +646,7 @@ export class ChatSocket {
   }
 
   disconnect() {
-    console.log('🔌 主动断开WebSocket连接')
+    console.log('[WebSocket] 🔌 主动断开WebSocket连接')
 
     this.stopPing()
 
@@ -610,7 +658,7 @@ export class ChatSocket {
     // 清理所有待确认的消息
     this.pendingMessages.forEach((timeoutId, tempId) => {
       clearTimeout(timeoutId)
-      console.log('🧹 清理待确认消息:', tempId)
+      console.log('[WebSocket] 🧹 清理待确认消息:', tempId)
     })
     this.pendingMessages.clear()
 

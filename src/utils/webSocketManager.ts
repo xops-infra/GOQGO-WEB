@@ -95,12 +95,12 @@ class WebSocketConnection {
         // 添加认证参数
         wsUrl += `?token=${encodeURIComponent(token)}`
 
-        console.log('🔗 建立 WebSocket 连接:', wsUrl.replace(token, '***TOKEN***'))
+        console.log('[WebSocket] 🔗 建立 WebSocket 连接:', wsUrl.replace(token, '***TOKEN***'))
 
         this.ws = new WebSocket(wsUrl)
 
         this.ws.onopen = () => {
-          console.log('✅ WebSocket 连接成功')
+          console.log('[WebSocket] ✅ WebSocket连接成功')
           this.reconnectAttempts = 0
           this.startHeartbeat()
           this.callbacks.onConnect?.()
@@ -112,12 +112,12 @@ class WebSocketConnection {
             const message: WebSocketMessage = JSON.parse(event.data)
             this.handleMessage(message)
           } catch (error) {
-            console.error('❌ 解析 WebSocket 消息失败:', error)
+            console.error('[WebSocket] ❌ 解析 WebSocket 消息失败:', error)
           }
         }
 
         this.ws.onclose = (event) => {
-          console.log('🔌 WebSocket 连接关闭:', event.code, event.reason)
+          console.log('[WebSocket] 🔌 WebSocket连接关闭:', event.code, event.reason)
           this.stopHeartbeat()
           this.callbacks.onDisconnect?.()
           
@@ -127,9 +127,8 @@ class WebSocketConnection {
         }
 
         this.ws.onerror = (error) => {
-          console.error('❌ WebSocket 错误:', error)
-          this.callbacks.onError?.('WebSocket 连接错误')
-          reject(error)
+          console.error('[WebSocket] ❌ WebSocket错误:', error)
+          this.callbacks.onError?.(error)
         }
 
       } catch (error) {
@@ -317,12 +316,12 @@ class WebSocketManager {
     let connection = this.connections.get(key)
     
     if (!connection) {
-      console.log('🆕 创建新的 WebSocket 连接:', key)
+      console.log('[WebSocket] 🆕 创建新的 WebSocket 连接:', key)
       connection = new WebSocketConnection(config, callbacks)
       this.connections.set(key, connection)
       await connection.connect()
     } else {
-      console.log('♻️ 复用现有的 WebSocket 连接:', key)
+      console.log('[WebSocket] ♻️ 复用现有的 WebSocket 连接:', key)
       // 合并回调函数
       this.mergeCallbacks(connection, callbacks)
     }
@@ -337,7 +336,7 @@ class WebSocketManager {
   private mergeCallbacks(connection: WebSocketConnection, newCallbacks: WebSocketCallbacks) {
     // 这里需要实现回调函数的合并逻辑
     // 可以使用事件发射器模式或者回调函数数组
-    console.log('🔄 合并回调函数 (待实现)')
+    console.log('[WebSocket] 🔄 合并回调函数 (待实现)')
   }
 
   // 释放连接
@@ -350,10 +349,10 @@ class WebSocketManager {
       
       // 如果没有订阅者了，延迟关闭连接
       if (connection.subscriberCount === 0) {
-        console.log('⏰ 设置延迟关闭连接:', key)
+        console.log('[WebSocket] ⏰ 设置延迟关闭连接:', key)
         setTimeout(() => {
           if (connection.subscriberCount === 0) {
-            console.log('🗑️ 关闭无订阅者的连接:', key)
+            console.log('[WebSocket] 🗑️ 关闭无订阅者的连接:', key)
             connection.disconnect()
             this.connections.delete(key)
           }
@@ -378,9 +377,9 @@ class WebSocketManager {
 
   // 关闭所有连接
   disconnectAll() {
-    console.log('🔌 关闭所有 WebSocket 连接')
+    console.log('[WebSocket] 🔌 关闭所有 WebSocket 连接')
     this.connections.forEach((connection, key) => {
-      console.log('🔌 关闭连接:', key)
+      console.log('[WebSocket] 🔌 关闭连接:', key)
       connection.disconnect()
     })
     this.connections.clear()

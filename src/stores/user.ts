@@ -1,10 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import axios from 'axios'
-import { authManager } from '@/utils/auth'
 import { buildApiUrl, API_ENDPOINTS } from '@/config/api'
+import { authManager } from '@/utils/auth'
+import { logoutManager } from '@/utils/logoutManager'
+import axios from '@/utils/axios'
 
+// 用户接口定义
 export interface User {
+  id?: string
+  username?: string
   displayName: string
   email: string
   avatar?: string
@@ -32,7 +36,10 @@ export const useUserStore = defineStore('user', () => {
 
   // 计算属性
   const userInfo = computed(() => currentUser.value)
-  const username = computed(() => currentUser.value?.displayName || '')
+  const username = computed(() => {
+    const name = currentUser.value?.displayName || ''
+    return name
+  })
   const displayName = computed(() => currentUser.value?.displayName || '')
   const email = computed(() => currentUser.value?.email || '')
   const avatar = computed(() => currentUser.value?.avatar || '')
@@ -60,7 +67,6 @@ export const useUserStore = defineStore('user', () => {
         currentUser.value = JSON.parse(savedUser)
         isAuthenticated.value = true
 
-        console.log('✅ 恢复登录状态:', currentUser.value?.displayName)
         return true
       } else {
         // Token格式无效，清除认证信息
@@ -95,43 +101,85 @@ export const useUserStore = defineStore('user', () => {
         { headers: { 'Content-Type': 'application/json' } }
       )
 
-      if (!response.data.success) {
-        throw new Error(response.data.message || '登录失败')
+      // 检查响应数据是否存在
+      if (!response) {
+        throw new Error('服务器响应数据为空')
+      }
+
+      // 检查响应数据结构
+      if (typeof response !== 'object') {
+        throw new Error(`服务器响应格式错误: 期望object，实际${typeof response}`)
+      }
+
+      // 检查success属性
+      if (response.success === false) {
+        throw new Error(response.message || '登录失败')
+      }
+
+      if (response.success !== true) {
+        throw new Error(`服务器响应格式不正确: success=${response.success}`)
+      }
+
+      // 检查必要字段
+      if (!response.bearer_token) {
+        throw new Error('服务器未返回认证令牌')
+      }
+
+      if (!response.displayName) {
+        throw new Error('服务器未返回用户信息')
       }
 
       // 保存认证信息
       const user: User = {
-        displayName: response.data.displayName,
-        email: response.data.email,
-        role: response.data.role as 'admin' | 'developer' | 'viewer' || 'developer'
+        displayName: response.displayName,
+        email: response.email || '',
+        role: response.role as 'admin' | 'developer' | 'viewer' || 'developer'
       }
 
-      token.value = response.data.bearer_token
+      token.value = response.bearer_token
       currentUser.value = user
       isAuthenticated.value = true
 
       // 持久化存储
-      localStorage.setItem('goqgo_token', response.data.bearer_token)
+      localStorage.setItem('goqgo_token', response.bearer_token)
       localStorage.setItem('goqgo_user', JSON.stringify(user))
-
-      console.log('✅ Token登录成功:', response.data.displayName)
     } catch (err: any) {
       console.error('❌ Token登录失败:', err)
 
-      // 处理API返回的错误格式 {"message":"invalid token","success":false}
-      if (err.response?.data?.message) {
-        error.value = err.response.data.message
-      } else if (err.response?.data) {
-        // 如果有data但没有message字段，尝试使用整个data作为错误信息
-        error.value = typeof err.response.data === 'string' ? err.response.data : '登录失败'
+      // 处理不同类型的错误
+      if (err.response) {
+        // 服务器响应了错误状态码
+        console.log('🔍 错误响应详情:', {
+          status: err.response.status,
+          statusText: err.response.statusText,
+          data: err.response.data
+        })
+        
+        if (err.response.data && typeof err.response.data === 'object') {
+          if (err.response.data.message) {
+            error.value = err.response.data.message
+          } else if (err.response.data.error) {
+            error.value = err.response.data.error
+          } else {
+            error.value = `服务器错误: ${err.response.status}`
+          }
+        } else if (typeof err.response.data === 'string') {
+          error.value = err.response.data
+        } else {
+          error.value = `服务器错误: ${err.response.status}`
+        }
+      } else if (err.request) {
+        // 请求已发出但没有收到响应
+        error.value = '无法连接到服务器，请检查网络连接'
       } else if (err.message) {
+        // 其他错误
         error.value = err.message
       } else {
         error.value = '登录失败，请检查令牌是否正确'
       }
 
       clearAuth()
-      throw new Error(error.value)
+      throw new Error(error.value || '登录失败')
     } finally {
       isLoading.value = false
       loading.value = false
@@ -147,48 +195,97 @@ export const useUserStore = defineStore('user', () => {
     try {
       // 调用密码登录API（如果后台支持）
       const response = await axios.post<LoginResponse>(
-        buildApiUrl('/api/v1/users/login'),
-        { username, password },
+        buildApiUrl(API_ENDPOINTS.AUTH.USER_LOGIN(username)),
+        { password },
         { headers: { 'Content-Type': 'application/json' } }
       )
 
-      if (!response.data.success) {
-        throw new Error(response.data.message || '登录失败')
+      // 检查响应数据是否存在
+      if (!response) {
+        throw new Error('服务器响应数据为空')
+      }
+
+      // 检查响应数据结构
+      if (typeof response !== 'object') {
+        throw new Error(`服务器响应格式错误: 期望object，实际${typeof response}`)
+      }
+
+      // 检查success属性
+      if (response.success === false) {
+        throw new Error(response.message || '登录失败')
+      }
+
+      if (response.success !== true) {
+        throw new Error(`服务器响应格式不正确: success=${response.success}`)
+      }
+
+      // 检查必要字段
+      if (!response.bearer_token) {
+        throw new Error('服务器未返回认证令牌')
+      }
+
+      if (!response.displayName) {
+        throw new Error('服务器未返回用户信息')
       }
 
       // 保存认证信息
       const user: User = {
-        displayName: response.data.displayName,
-        email: response.data.email,
-        role: response.data.role as 'admin' | 'developer' | 'viewer' || 'developer'
+        displayName: response.displayName,
+        email: response.email || '',
+        role: response.role as 'admin' | 'developer' | 'viewer' || 'developer'
       }
 
-      token.value = response.data.bearer_token
+      token.value = response.bearer_token
       currentUser.value = user
       isAuthenticated.value = true
 
       // 持久化存储
-      localStorage.setItem('goqgo_token', response.data.bearer_token)
+      localStorage.setItem('goqgo_token', response.bearer_token)
       localStorage.setItem('goqgo_user', JSON.stringify(user))
-
-      console.log('✅ 密码登录成功:', response.data.displayName)
     } catch (err: any) {
       console.error('❌ 密码登录失败:', err)
 
-      // 处理API返回的错误格式 {"message":"invalid credentials","success":false}
-      if (err.response?.data?.message) {
-        error.value = err.response.data.message
-      } else if (err.response?.data) {
-        // 如果有data但没有message字段，尝试使用整个data作为错误信息
-        error.value = typeof err.response.data === 'string' ? err.response.data : '登录失败'
+      // 处理不同类型的错误
+      if (err.response) {
+        // 服务器响应了错误状态码
+        console.log('🔍 错误响应详情:', {
+          status: err.response.status,
+          statusText: err.response.statusText,
+          data: err.response.data
+        })
+        
+        if (err.response.data && typeof err.response.data === 'object') {
+          if (err.response.data.message) {
+            // 特殊处理常见错误消息
+            if (err.response.data.message === 'user not found') {
+              error.value = `用户 "${username}" 不存在。请联系管理员创建用户账号。`
+            } else if (err.response.data.message === 'invalid credentials') {
+              error.value = `用户名或密码错误。请检查您的登录凭据。`
+            } else {
+              error.value = err.response.data.message
+            }
+          } else if (err.response.data.error) {
+            error.value = err.response.data.error
+          } else {
+            error.value = `服务器错误: ${err.response.status}`
+          }
+        } else if (typeof err.response.data === 'string') {
+          error.value = err.response.data
+        } else {
+          error.value = `服务器错误: ${err.response.status}`
+        }
+      } else if (err.request) {
+        // 请求已发出但没有收到响应
+        error.value = '无法连接到服务器，请检查网络连接'
       } else if (err.message) {
+        // 其他错误
         error.value = err.message
       } else {
         error.value = '登录失败，请检查用户名和密码'
       }
 
       clearAuth()
-      throw new Error(error.value)
+      throw new Error(error.value || '登录失败')
     } finally {
       isLoading.value = false
       loading.value = false
@@ -208,7 +305,6 @@ export const useUserStore = defineStore('user', () => {
     try {
       // 这里可以调用获取用户详细信息的API
       // 目前直接使用已有的用户信息
-      console.log('✅ 用户信息已存在:', username)
     } catch (err: any) {
       console.error('❌ 获取用户信息失败:', err)
       error.value = err.message || '获取用户信息失败'
@@ -242,9 +338,16 @@ export const useUserStore = defineStore('user', () => {
   }
 
   // 登出
-  const logout = () => {
-    clearAuth()
-    console.log('✅ 用户已登出')
+  const logout = async () => {
+    try {
+      // 使用统一的退出登录管理器
+      await logoutManager.logout()
+    } catch (error) {
+      console.error('❌ 用户Store登出失败:', error)
+      // 如果统一管理器失败，执行基本清理
+      clearAuth()
+      throw error
+    }
   }
 
   // 清除认证信息
@@ -275,7 +378,6 @@ export const useUserStore = defineStore('user', () => {
       currentUser.value = { ...currentUser.value, ...userData }
       // 更新localStorage
       localStorage.setItem('goqgo_user', JSON.stringify(currentUser.value))
-      console.log('✅ 用户信息已更新:', userData)
     }
   }
 

@@ -70,13 +70,13 @@
       <!-- 右侧：用户信息和终端动画 -->
       <div class="right-section">
         <!-- 终端命令行动画 -->
-        <div class="terminal-animation">
+        <!-- <div class="terminal-animation">
           <div class="command-line">
             <span class="prompt">root@goqgo:~$</span>
             <span class="command">{{ currentCommand }}</span>
             <span class="cursor" :class="{ 'blink': showCursor }">|</span>
           </div>
-        </div>
+        </div> -->
         
         <!-- 用户信息 -->
         <div class="user-section">
@@ -121,6 +121,7 @@ import {
 import { useTheme } from '@/utils/theme'
 import { useUserStore } from '@/stores/user'
 import { authManager } from '@/utils/auth'
+import { logoutManager } from '@/utils/logoutManager'
 import UserAvatarIcon from '@/components/icons/UserAvatarIcon.vue'
 import TerminalIcons from '@/components/TerminalIcons.vue'
 
@@ -287,9 +288,8 @@ const handleUserMenuSelect = async (key: string) => {
     case 'logout':
       try {
         message.loading('正在退出登录...', { duration: 0, key: 'logout' })
-        await authManager.logout()
+        await logoutManager.logout()
         message.success('已退出登录', { key: 'logout' })
-        await router.push('/login')
       } catch (error) {
         console.error('退出登录失败:', error)
         message.error('退出登录失败', { key: 'logout' })

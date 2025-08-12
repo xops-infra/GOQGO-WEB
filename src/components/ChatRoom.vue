@@ -64,10 +64,10 @@
           <div
             v-if="message && (message.content || message.isThinking)"
             :class="[
-              'message-item',
+              'chat-message-wrapper',
               {
-                'message-self': isOwnMessage(message),
-                'message-other': !isOwnMessage(message)
+                'chat-message-self': isOwnMessage(message),
+                'chat-message-other': !isOwnMessage(message)
               }
             ]"
           >
@@ -75,23 +75,6 @@
           </div>
         </template>
       </div>
-    </div>
-
-    <!-- 连接状态指示器 -->
-    <div v-if="!isConnected" class="connection-status">
-      <n-alert type="warning" :show-icon="false">
-        <template #icon>
-          <n-icon>
-            <svg viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,9H13V7H11M11,17H13V11H11V17Z"
-              />
-            </svg>
-          </n-icon>
-        </template>
-        连接已断开，正在尝试重连...
-      </n-alert>
     </div>
 
     <!-- 统计面板 -->
@@ -520,7 +503,38 @@ const isOwnMessage = (message: any) => {
   const senderId = message.senderId?.toLowerCase() || ''
   const senderName = message.senderName?.toLowerCase() || ''
   
-  return senderId === currentUsername || senderName === currentUsername
+  // 添加更详细的调试日志
+  console.log('🔍 消息归属判断详情:', {
+    currentUsername,
+    senderId,
+    senderName,
+    messageId: message.id || message.tempId,
+    messageContent: message.content?.substring(0, 30) + '...',
+    messageType: message.type,
+    messageStatus: message.status,
+    // 原始值（未转小写）
+    originalSenderId: message.senderId,
+    originalSenderName: message.senderName,
+    // 匹配结果
+    senderIdMatch: senderId === currentUsername,
+    senderNameMatch: senderName === currentUsername,
+    isOwn: senderId === currentUsername || senderName === currentUsername
+  })
+  
+  // 检查是否有任何匹配
+  const isOwn = senderId === currentUsername || senderName === currentUsername
+  
+  // 如果消息类型是user且没有匹配到，可能是用户名问题
+  if (message.type === 'user' && !isOwn) {
+    console.warn('⚠️ 用户消息未匹配到当前用户:', {
+      currentUsername,
+      senderId: message.senderId,
+      senderName: message.senderName,
+      messageId: message.id || message.tempId
+    })
+  }
+  
+  return isOwn
 }
 
 // 滚动到指定消息
@@ -540,28 +554,39 @@ const scrollToMessage = (messageId: string) => {
   }
 }
 
-// 监听namespace变化，重新连接聊天室
+// 监听namespace变化
 watch(
   () => props.namespace,
   async (newNamespace, oldNamespace) => {
     if (newNamespace !== oldNamespace && newNamespace) {
       try {
+        console.log('[WebSocket] 🔄 namespace变更，从', oldNamespace, '切换到', newNamespace)
+        
         // 重置初始加载标志
         isInitialLoad.value = true
 
+        // 只有在真正需要时才断开连接
+        // 如果当前已连接到相同namespace，跳过重连
+        if (chatStore.currentNamespace === newNamespace && chatStore.isConnected) {
+          console.log('[WebSocket] ♻️ 已连接到相同namespace，跳过重连:', newNamespace)
+          return
+        }
+
         // 断开当前连接
+        console.log('[WebSocket] 🔌 断开当前连接，准备切换到新namespace')
         chatStore.disconnect()
 
         // 等待一小段时间确保连接完全断开
         await new Promise((resolve) => setTimeout(resolve, 100))
 
         // 连接到新的namespace
+        console.log('[WebSocket] 🔌 连接到新namespace:', newNamespace)
         await chatStore.connect(newNamespace)
 
         // 连接成功后，等待消息加载完成再滚动
         // 消息变化的watch会处理滚动
       } catch (error) {
-        console.error('切换聊天室失败:', error)
+        console.error('[WebSocket] ❌ 切换聊天室失败:', error)
         message.error(`切换到 ${newNamespace} 聊天室失败`)
       }
     }
@@ -843,29 +868,85 @@ onUnmounted(() => {
   box-sizing: border-box; /* 确保padding不会增加总宽度 */
 }
 
-.message-item {
+.chat-message-wrapper {
   max-width: 100%; /* 确保消息项不会超出容器宽度 */
   word-wrap: break-word; /* 确保长单词换行 */
   overflow-wrap: break-word; /* 现代浏览器的换行属性 */
   display: flex; /* 使用flexbox布局 */
+  margin-bottom: 8px; /* 消息间距 */
   
-  &.message-self {
+  &.chat-message-self {
     justify-content: flex-end; /* 自己的消息靠右 */
     
-    .message-card {
+    .message-item {
       width: 83.333%; /* 5/6宽度 */
       max-width: 600px; /* 最大宽度限制 */
-      min-width: 400px; /* 最小宽度确保可读性 */
+      min-width: 200px; /* 最小宽度200px */
+    }
+    
+    .message-card {
+      background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%); /* 蓝色渐变背景 */
+      color: #ffffff; /* 白色文字 */
+      border: 1px solid #1890ff;
+      box-shadow: 0 2px 8px rgba(24, 144, 255, 0.2);
+      
+      .sender-name {
+        color: #ffffff !important; /* 强制白色用户名 */
+      }
+      
+      .message-time {
+        color: rgba(255, 255, 255, 0.8); /* 半透明白色时间 */
+      }
+      
+      // 覆盖markdown内容样式
+      .markdown-content {
+        color: #ffffff;
+        
+        * {
+          color: inherit !important;
+        }
+        
+        code {
+          background: rgba(255, 255, 255, 0.1);
+          color: #ffffff;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        pre {
+          background: rgba(0, 0, 0, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+      }
     }
   }
 
-  &.message-other {
+  &.chat-message-other {
     justify-content: flex-start; /* 其他人的消息靠左 */
     
-    .message-card {
+    .message-item {
       width: 83.333%; /* 5/6宽度 */
       max-width: 600px; /* 最大宽度限制 */
-      min-width: 400px; /* 最小宽度确保可读性 */
+      min-width: 200px; /* 最小宽度200px */
+    }
+    
+    .message-card {
+      background: #f5f5f5; /* 浅灰色背景 */
+      color: #333333; /* 深色文字 */
+      border: 1px solid #e8e8e8;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      
+      .sender-name {
+        color: #333333 !important; /* 深色用户名 */
+      }
+      
+      .message-time {
+        color: #666666; /* 灰色时间 */
+      }
+      
+      // 确保其他消息的内容样式正常
+      .markdown-content {
+        color: #333333;
+      }
     }
   }
 }
@@ -913,24 +994,54 @@ onUnmounted(() => {
     }
   }
 
-  .message-item {
-    &.message-self {
+  .chat-message-wrapper {
+    &.chat-message-self {
       justify-content: flex-end; /* 自己的消息靠右 */
       
-      .message-card {
+      .message-item {
         width: 83.333%; /* 5/6宽度 */
         max-width: 600px; /* 最大宽度限制 */
-        min-width: 400px; /* 最小宽度确保可读性 */
+        min-width: 200px; /* 最小宽度200px */
+      }
+      
+      .message-card {
+        background: linear-gradient(135deg, #0066cc 0%, #0080ff 100%); /* 终端模式蓝色渐变 */
+        color: #ffffff;
+        border: 1px solid #0080ff;
+        box-shadow: 0 0 8px rgba(0, 128, 255, 0.3);
+        
+        .sender-name {
+          color: #ffffff !important;
+        }
+        
+        .message-time {
+          color: rgba(255, 255, 255, 0.8);
+        }
       }
     }
 
-    &.message-other {
+    &.chat-message-other {
       justify-content: flex-start; /* 其他人的消息靠左 */
       
-      .message-card {
+      .message-item {
         width: 83.333%; /* 5/6宽度 */
         max-width: 600px; /* 最大宽度限制 */
-        min-width: 400px; /* 最小宽度确保可读性 */
+        min-width: 200px; /* 最小宽度200px */
+      }
+      
+      .message-card {
+        background: var(--terminal-card-bg, #1a1a1a); /* 终端模式深灰背景 */
+        color: var(--terminal-text-primary, #ffffff);
+        border: 1px solid var(--terminal-border-subtle, rgba(0, 255, 65, 0.15));
+        box-shadow: 0 0 8px rgba(0, 255, 65, 0.1);
+        
+        .sender-name {
+          color: var(--terminal-text-primary, #ffffff) !important;
+        }
+        
+        .message-time {
+          color: var(--terminal-text-secondary, rgba(255, 255, 255, 0.6));
+        }
       }
     }
     

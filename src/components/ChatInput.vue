@@ -1,5 +1,28 @@
 <template>
   <div class="chat-input-container">
+    <!-- 离线状态提醒 -->
+    <div v-if="!isConnected" class="offline-notice">
+      <n-alert type="warning" :show-icon="false" class="offline-alert">
+        <template #icon>
+          <n-icon>
+            <svg viewBox="0 0 24 24">
+              <path
+                fill="currentColor"
+                d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,9H13V7H11M11,17H13V11H11V17Z"
+              />
+            </svg>
+          </n-icon>
+        </template>
+        <div class="offline-content">
+          <div class="offline-title">连接已断开</div>
+          <div class="offline-description">
+            WebSocket连接已断开，无法发送消息。
+            <span class="reconnect-hint">系统正在尝试重连...</span>
+          </div>
+        </div>
+      </n-alert>
+    </div>
+
     <!-- @ 提及选择器 -->
     <div
       v-if="showMentionSelector"
@@ -177,7 +200,7 @@
             text
             @click="handleFileUpload"
             class="attachment-button"
-            :disabled="!isConnected"
+            :disabled="isInputDisabled"
           >
             <template #icon>
               <n-icon>
@@ -199,7 +222,7 @@
           type="textarea"
           :placeholder="placeholderText"
           :autosize="{ minRows: 1, maxRows: 6 }"
-          :disabled="!isConnected"
+          :disabled="isInputDisabled"
           @keydown="handleKeyDown"
           @paste="handlePaste"
           @input="handleInputChange"
@@ -325,6 +348,10 @@ const placeholderText = computed(() => {
     return '连接断开，无法发送消息...'
   }
   return '输入消息... (支持拖拽文件上传，输入@提及实例)'
+})
+
+const isInputDisabled = computed(() => {
+  return !props.isConnected
 })
 
 // 消息长度统计
@@ -607,6 +634,9 @@ const handleSendMessage = async () => {
         emit('send', finalText, mentionedAgentNames)
         message.success('长消息已自动转换为文件上传')
         
+        // 清空附件预览，因为文件链接已经发送
+        clearAllAttachments()
+        
       } catch (uploadError) {
         loadingMessage.destroy()
         console.error('❌ 长消息文件上传失败:', uploadError)
@@ -653,6 +683,9 @@ const handleSendMessage = async () => {
     inputMessage.value = ''
     hideMentionSelector()
     hideAgentAutocomplete()
+    
+    // 清空附件列表
+    clearAllAttachments()
     
   } catch (error) {
     console.error('❌ 发送过程中出错:', error)
@@ -805,6 +838,9 @@ const uploadAndInsertFile = async (file: File) => {
 
     // 插入到输入框中
     insertTextAtCursor(fileLink)
+
+    // 清空附件预览，因为文件链接已经插入到输入框中
+    clearAllAttachments()
 
     message.success(`文件 ${file.name} 上传成功`)
   } catch (error) {
@@ -1058,6 +1094,9 @@ const convertMessageToFile = async () => {
       // 将输入框内容替换为文件链接
       inputMessage.value = fileLink
       
+      // 清空附件预览，因为文件链接已经插入到输入框中
+      clearAllAttachments()
+      
       message.success('长消息已转换为文件，聊天内容变为文件链接')
       
     } catch (uploadError) {
@@ -1132,167 +1171,39 @@ const formatBuildTime = (buildTime: string) => {
   position: relative;
 }
 
-// @ 提及选择器样式
-.mention-selector {
-  background-color: var(--bg-primary);
-  border: 1px solid var(--border-primary);
+/* 离线状态提醒样式 */
+.offline-notice {
+  margin-bottom: 16px;
+}
+
+.offline-alert {
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  backdrop-filter: blur(8px);
-  max-height: 280px;
-  overflow: hidden;
-  animation: mentionFadeIn 0.2s ease-out;
-
-  .mention-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 16px;
-    background-color: var(--bg-secondary);
-    border-bottom: 1px solid var(--border-primary);
-    color: var(--text-secondary);
-    font-size: 13px;
-    font-weight: 500;
-  }
-
-  .mention-list {
-    max-height: 200px;
-    overflow-y: auto;
-    padding: 4px 0;
-
-    .mention-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 8px 16px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border-left: 3px solid transparent;
-
-      &:hover,
-      &.mention-item-selected {
-        background-color: var(--bg-hover);
-        border-left-color: var(--color-primary);
-      }
-
-      .mention-avatar {
-        width: 32px;
-        height: 32px;
-        border-radius: 6px;
-        background-color: var(--bg-tertiary);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-secondary);
-        flex-shrink: 0;
-      }
-
-      .mention-info {
-        flex: 1;
-        min-width: 0;
-
-        .mention-name {
-          font-weight: 500;
-          color: var(--text-primary);
-          font-size: 14px;
-          margin-bottom: 2px;
-        }
-
-        .mention-role {
-          font-size: 12px;
-          color: var(--text-tertiary);
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-      }
-
-      .mention-status {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        flex-shrink: 0;
-
-        .status-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          
-          &.status-running {
-            background-color: var(--color-success);
-            box-shadow: 0 0 4px rgba(var(--color-success-rgb), 0.4);
-          }
-          
-          &.status-idle {
-            background-color: var(--color-warning);
-          }
-          
-          &.status-error {
-            background-color: var(--color-error);
-          }
-          
-          &.status-Creating,
-          &.status-Terminating {
-            background-color: var(--color-info);
-            animation: pulse 1.5s infinite;
-          }
-        }
-
-        .status-text {
-          font-size: 11px;
-          color: var(--text-tertiary);
-          font-weight: 500;
-        }
-      }
-    }
-  }
-
-  .mention-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 32px 16px;
-    color: var(--text-tertiary);
-
-    p {
-      margin: 8px 0 0 0;
-      font-size: 14px;
-    }
-  }
 }
 
-@keyframes mentionFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.chat-input {
-  position: relative;
-  background: var(--bg-primary, #fff);
-  border-top: 1px solid var(--border-primary, #e0e0e0);
-  padding: 12px 16px;
+.offline-content {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  z-index: 10;
+  gap: 4px;
 }
 
+.offline-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-color-1);
+}
+
+.offline-description {
+  font-size: 13px;
+  color: var(--text-color-2);
+  line-height: 1.4;
+}
+
+.reconnect-hint {
+  font-weight: 500;
+  color: var(--color-primary);
+}
+
+/* 拖拽相关样式 */
 .drag-overlay {
   position: absolute;
   top: 0;
@@ -1856,6 +1767,156 @@ const formatBuildTime = (buildTime: string) => {
         }
       }
     }
+  }
+}
+
+// @ 提及选择器样式
+.mention-selector {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(8px);
+  max-height: 280px;
+  overflow: hidden;
+  animation: mentionFadeIn 0.2s ease-out;
+
+  .mention-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-primary);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .mention-list {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 4px 0;
+
+    .mention-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-left: 3px solid transparent;
+
+      &:hover,
+      &.mention-item-selected {
+        background-color: var(--bg-hover);
+        border-left-color: var(--color-primary);
+      }
+
+      .mention-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        background-color: var(--bg-tertiary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-secondary);
+        flex-shrink: 0;
+      }
+
+      .mention-info {
+        flex: 1;
+        min-width: 0;
+
+        .mention-name {
+          font-weight: 500;
+          color: var(--text-primary);
+          font-size: 14px;
+          margin-bottom: 2px;
+        }
+
+        .mention-role {
+          font-size: 12px;
+          color: var(--text-tertiary);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      }
+
+      .mention-status {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+
+        .status-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          
+          &.status-running {
+            background-color: var(--color-success);
+            box-shadow: 0 0 4px rgba(var(--color-success-rgb), 0.4);
+          }
+          
+          &.status-idle {
+            background-color: var(--color-warning);
+          }
+          
+          &.status-error {
+            background-color: var(--color-error);
+          }
+          
+          &.status-Creating,
+          &.status-Terminating {
+            background-color: var(--color-info);
+            animation: pulse 1.5s infinite;
+          }
+        }
+
+        .status-text {
+          font-size: 11px;
+          color: var(--text-tertiary);
+          font-weight: 500;
+        }
+      }
+    }
+  }
+
+  .mention-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+    color: var(--text-tertiary);
+
+    p {
+      margin: 8px 0 0 0;
+      font-size: 14px;
+    }
+  }
+}
+
+@keyframes mentionFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
   }
 }
 

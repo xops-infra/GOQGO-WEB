@@ -1,9 +1,6 @@
 import { useUserStore } from '@/stores/user'
 import router from '@/router'
-import { createDiscreteApi } from 'naive-ui'
-
-// 创建独立的消息API实例
-const { message } = createDiscreteApi(['message'])
+import { logoutManager } from './logoutManager'
 
 /**
  * 全局认证管理工具
@@ -60,9 +57,6 @@ export class AuthManager {
     this.isRedirecting = true
     const errorMessage = reason || '认证失败'
     console.log('🔒 认证失败，跳转到登录页:', errorMessage)
-
-    // 显示用户友好的错误提示
-    message.error(`${errorMessage}，请重新登录`)
 
     // 清除认证信息
     this.clearAuth()
@@ -145,14 +139,37 @@ export class AuthManager {
    * 检查是否需要跳过认证的路径
    */
   shouldSkipAuth(path: string): boolean {
+    // 特殊处理用户登录端点：/api/v1/users/{username}/login
+    if (path.match(/\/api\/v1\/users\/[^\/]+\/login$/)) {
+      return true
+    }
+
+    // 其他不需要认证的端点
     const skipAuthPaths = [
-      '/api/v1/users/login',
-      '/api/v1/users/register',
+      '/api/v1/auth/login',
+      '/api/v1/auth/register',
       '/api/v1/health',
       '/api/v1/version'
     ]
 
     return skipAuthPaths.some((skipPath) => path.includes(skipPath))
+  }
+
+  /**
+   * 执行退出登录
+   */
+  async logout(reason?: string): Promise<void> {
+    console.log('🔒 认证管理器开始退出登录')
+    
+    try {
+      // 使用统一的退出登录管理器
+      await logoutManager.logout(reason)
+    } catch (error) {
+      console.error('❌ 认证管理器退出登录失败:', error)
+      // 如果统一管理器失败，尝试基本清理
+      this.clearAuth()
+      throw error
+    }
   }
 }
 

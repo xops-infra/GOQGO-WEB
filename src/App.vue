@@ -10,28 +10,6 @@
             <!-- Socket状态监控器 -->
             <SocketStatusMonitor v-if="showSocketMonitor" />
 
-            <!-- 页面刷新恢复提示 -->
-            <n-alert v-if="showRestorePrompt" type="info" closable @close="handleCloseRestorePrompt"
-              class="restore-prompt">
-              <template #header>
-                <n-icon>
-                  <RestoreIcon />
-                </n-icon>
-                检测到页面刷新
-              </template>
-              <div class="restore-content">
-                <p>发现之前的会话状态 ({{ restoreInfo?.ageText }})，是否恢复连接？</p>
-                <div class="restore-actions">
-                  <n-button size="small" type="primary" @click="handleRestore">
-                    恢复连接
-                  </n-button>
-                  <n-button size="small" @click="handleSkipRestore">
-                    跳过
-                  </n-button>
-                </div>
-              </div>
-            </n-alert>
-
             <router-view />
           </div>
         </n-notification-provider>
@@ -41,8 +19,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, h, nextTick } from 'vue'
-import { darkTheme, type GlobalThemeOverrides, NAlert, NButton, NIcon, useMessage } from 'naive-ui'
+import { computed, onMounted, onUnmounted, ref, nextTick } from 'vue'
+import { darkTheme, type GlobalThemeOverrides, useMessage } from 'naive-ui'
 import { useTheme } from '@/utils/theme'
 import { useRoute } from 'vue-router'
 import SocketStatusMonitor from '@/components/SocketStatusMonitor.vue'
@@ -52,16 +30,11 @@ const themeStore = useTheme()
 const { currentTheme, isTerminal } = themeStore
 const route = useRoute()
 
-// 页面刷新恢复相关状态
+// Socket状态监控
 const showSocketMonitor = ref(false)
-const showRestorePrompt = ref(false)
-const restoreInfo = ref<any>(null)
 
 // message实例，在onMounted中初始化
 let message: any = null
-let pageRefreshHandler: any = null
-let initPageRefreshHandler: any = null
-let cleanupPageRefreshHandler: any = null
 
 // 通知容器样式 - 左下角
 const messageContainerStyle = computed(() => ({
@@ -80,15 +53,7 @@ const notificationContainerStyle = computed(() => ({
   maxWidth: '400px'
 }))
 
-// 简单的恢复图标
-const RestoreIcon = {
-  render: () => {
-    return h('svg', { viewBox: '0 0 16 16', fill: 'currentColor' }, [
-      h('path', { d: 'M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z' }),
-      h('path', { d: 'M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z' })
-    ])
-  }
-}
+
 
 // Naive UI 主题配置 - 只使用terminal主题
 const naiveTheme = computed(() => {
@@ -138,118 +103,34 @@ const themeOverrides = computed<GlobalThemeOverrides>(() => {
 
 onMounted(async () => {
   try {
-    // 初始化message实例
-    message = useMessage()
-
     // 初始化主题
-    console.log('App mounted with theme:', currentTheme.value)
 
     // 等待下一个tick，确保所有组件和store都已初始化
     await nextTick()
 
-    // 延迟初始化页面刷新处理器，避免在setup阶段出错
-    setTimeout(async () => {
+    // 延迟初始化message，确保n-message-provider已经渲染
+    setTimeout(() => {
       try {
-        // 动态导入pageRefreshHandler，避免在setup阶段导入
-        const { pageRefreshHandler: handler, initPageRefreshHandler: init, cleanupPageRefreshHandler: cleanup } = await import('@/utils/pageRefreshHandler')
-        pageRefreshHandler = handler
-        initPageRefreshHandler = init
-        cleanupPageRefreshHandler = cleanup
-
-        initPageRefreshHandler()
-
-        // 检查是否在聊天页面
-        const isChatPage = route.path === '/'
-
-        if (isChatPage) {
-          // 显示Socket状态监控器
-          showSocketMonitor.value = true
-
-          // 检查是否有可恢复的状态
-          try {
-            if (pageRefreshHandler.hasRestorableState()) {
-              restoreInfo.value = pageRefreshHandler.getSavedStateInfo()
-
-              if (restoreInfo.value && !restoreInfo.value.isExpired) {
-                console.log('📦 发现可恢复的页面状态:', restoreInfo.value)
-                showRestorePrompt.value = true
-              } else {
-                console.log('⏰ 页面状态已过期，清理旧状态')
-                pageRefreshHandler.clearPageState()
-              }
-            }
-          } catch (error) {
-            console.warn('⚠️ 检查页面状态时出错:', error)
-          }
-        }
+        message = useMessage()
       } catch (error) {
-        console.warn('⚠️ 页面刷新处理器初始化失败:', error)
+        console.warn('⚠️ Message provider初始化失败:', error)
       }
-    }, 500) // 延迟500ms，确保所有store都已初始化
+    }, 100)
+
+    // 检查是否在聊天页面
+    const isChatPage = route.path === '/'
+
+    if (isChatPage) {
+      // 显示Socket状态监控器
+      showSocketMonitor.value = true
+    }
 
   } catch (error) {
     console.error('❌ App初始化时出错:', error)
   }
 })
 
-onUnmounted(() => {
-  // 清理页面刷新处理器
-  if (cleanupPageRefreshHandler) {
-    cleanupPageRefreshHandler()
-  }
-})
 
-// 处理恢复连接
-const handleRestore = async () => {
-  showRestorePrompt.value = false
-
-  if (!pageRefreshHandler) {
-    console.warn('⚠️ pageRefreshHandler未初始化')
-    return
-  }
-
-  try {
-    if (message) {
-      message.loading('正在恢复连接...', { duration: 0, key: 'restore' })
-    }
-
-    const success = await pageRefreshHandler.restorePageState()
-
-    if (success) {
-      if (message) {
-        message.success('连接已恢复', { key: 'restore' })
-      }
-    } else {
-      if (message) {
-        message.warning('恢复失败，请手动重新连接', { key: 'restore' })
-      }
-    }
-  } catch (error) {
-    console.error('恢复连接失败:', error)
-    if (message) {
-      message.error('恢复连接时出现错误', { key: 'restore' })
-    }
-  }
-}
-
-// 跳过恢复
-const handleSkipRestore = () => {
-  showRestorePrompt.value = false
-  if (pageRefreshHandler) {
-    pageRefreshHandler.clearPageState()
-  }
-  if (message) {
-    message.info('已跳过状态恢复')
-  }
-}
-
-// 关闭恢复提示
-const handleCloseRestorePrompt = () => {
-  showRestorePrompt.value = false
-  if (pageRefreshHandler) {
-    pageRefreshHandler.clearPageState()
-  }
-}
 </script>
 
 <style lang="scss">
@@ -556,52 +437,5 @@ const handleCloseRestorePrompt = () => {
   }
 }
 
-/* 页面刷新恢复提示样式 */
-.restore-prompt {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 2000;
-  max-width: 400px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  border-radius: 8px;
-}
 
-.restore-content {
-  margin-top: 8px;
-}
-
-.restore-content p {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  color: var(--n-text-color-2);
-}
-
-.restore-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.restore-actions .n-button {
-  flex: 1;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .restore-prompt {
-    left: 10px;
-    right: 10px;
-    transform: none;
-    max-width: none;
-  }
-
-  .restore-actions {
-    flex-direction: column;
-  }
-
-  .restore-actions .n-button {
-    flex: none;
-  }
-}
 </style>

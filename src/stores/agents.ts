@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { agentApi, type Agent, type CreateAgentRequest } from '@/api/agents'
+import { webSocketAgentStatusService, initializeAgentStatusService, type AgentStatusCallbacks } from '@/services/webSocketAgentService'
 import { useNamespacesStore } from './namespaces'
 import { authManager } from '@/utils/auth'
 import { useUserStore } from './user'
@@ -42,10 +43,81 @@ export const useAgentsStore = defineStore('agents', () => {
     return groups
   })
 
+  // 初始化 WebSocket Agent 服务
+  const initializeWebSocketService = async (namespace: string) => {
+    if (!useWebSocket.value) return
+
+    const callbacks: AgentOperationCallbacks = {
+      onAgentCreated: (agent: Agent) => {
+        console.log('🎉 Agent 创建成功:', agent)
+        agents.value.push(agent)
+      },
+      
+      onAgentUpdated: (agent: Agent) => {
+        console.log('🔄 Agent 更新:', agent)
+        const index = agents.value.findIndex(a => a.name === agent.name)
+        if (index !== -1) {
+          agents.value[index] = agent
+        }
+      },
+      
+      onAgentDeleted: (agentName: string) => {
+        console.log('🗑️ Agent 删除:', agentName)
+        const index = agents.value.findIndex(a => a.name === agentName)
+        if (index !== -1) {
+          agents.value.splice(index, 1)
+        }
+      },
+      
+      onAgentRestarted: (agent: Agent) => {
+        console.log('🔄 Agent 重启:', agent)
+        const index = agents.value.findIndex(a => a.name === agent.name)
+        if (index !== -1) {
+          agents.value[index] = agent
+        }
+      },
+      
+      onAgentStatusChanged: (agentName: string, status: string) => {
+        console.log('📊 Agent 状态变更:', agentName, status)
+        const agent = agents.value.find(a => a.name === agentName)
+        if (agent) {
+          agent.status = status as any
+        }
+      },
+      
+      onAgentListUpdated: (updatedAgents: Agent[]) => {
+        console.log('📋 Agent 列表更新:', updatedAgents.length)
+        // 只在WebSocket可用且数据有效时更新整个列表
+        if (useWebSocket.value && Array.isArray(updatedAgents)) {
+          agents.value = updatedAgents
+        }
+      },
+      
+      onError: (error: string) => {
+        console.error('❌ WebSocket Agent 操作错误:', error)
+        // WebSocket错误时回退到REST API模式
+        useWebSocket.value = false
+      }
+    }
+
+    try {
+      await initializeWebSocketAgentService(namespace, callbacks)
+      console.log('✅ WebSocket Agent 服务初始化完成，将用于状态更新')
+    } catch (error) {
+      console.error('❌ WebSocket Agent 服务初始化失败，回退到 REST API:', error)
+      useWebSocket.value = false
+    }
+  }
+
   // 监听namespace变化的处理函数
   const handleNamespaceChange = async (event: CustomEvent) => {
     const { namespace } = event.detail
     console.log(`Agents store: 检测到namespace变化为 ${namespace}`)
+    
+    // 初始化 WebSocket 服务
+    await initializeWebSocketService(namespace)
+    
+    // 获取 agents 列表
     await fetchAgents(namespace)
   }
 
@@ -95,18 +167,25 @@ export const useAgentsStore = defineStore('agents', () => {
         return
       }
 
-      console.log('📡 发送API请求获取agents...')
-      // 尝试调用真实API，传入AbortController信号
-      const data = await agentApi.getList(targetNamespace, fetchController?.signal)
-      // API返回的是 { items: Agent[] } 格式
-      console.log('✅ agentApi.getList 成功:', data)
-      
+      console.log(`📡 获取agents (namespace: ${targetNamespace})`)
+
+      // 只使用 REST API 获取数据，WebSocket 仅用于状态通知
+      const apiResponse = await agentApi.getList(targetNamespace, fetchController?.signal)
+      const data = apiResponse.items || []
+      console.log('✅ REST API 获取 agents 成功:', data)
+
+      // 确保data是数组
+      if (!Array.isArray(data)) {
+        console.warn('⚠️ API返回的数据不是数组格式，转换为空数组:', data)
+        data = []
+      }
+
       // 获取当前用户名
       const currentUsername = userStore.username
       const isAdminUser = userStore.isAdmin
       
       // 过滤agents：如果不是管理员，只显示当前用户的agents
-      let filteredAgents = data.items || []
+      let filteredAgents = data
       if (!isAdminUser && currentUsername) {
         filteredAgents = filteredAgents.filter(agent => 
           agent.username && agent.username.toLowerCase() === currentUsername.toLowerCase()
@@ -128,6 +207,7 @@ export const useAgentsStore = defineStore('agents', () => {
         selectedAgent.value = null
         console.log('📭 暂无可用的agents实例')
       }
+
     } catch (error: any) {
       // 如果是请求取消，不需要处理为错误
       if (error.name === 'CanceledError' || 
@@ -158,6 +238,7 @@ export const useAgentsStore = defineStore('agents', () => {
       console.log('🏁 performFetch 完成')
     }
   }
+
   const createAgent = async (namespace: string, data: any) => {
     loading.value = true
     try {
@@ -321,9 +402,34 @@ export const useAgentsStore = defineStore('agents', () => {
     selectedAgent.value = null
   }
 
-  // 刷新agents列表
+  // 刷新agents列表 - 强制使用API刷新
   const refreshAgents = async () => {
-    await fetchAgents()
+    console.log('🔄 强制刷新agents列表，使用API')
+    // 临时禁用WebSocket，强制使用API刷新
+    const wasWebSocketEnabled = useWebSocket.value
+    useWebSocket.value = false
+    
+    try {
+      await fetchAgents()
+    } finally {
+      // 恢复WebSocket状态
+      useWebSocket.value = wasWebSocketEnabled
+    }
+  }
+
+  // 使用WebSocket进行实时更新
+  const enableWebSocketUpdates = async () => {
+    if (!useWebSocket.value) {
+      console.log('🔄 启用WebSocket实时更新')
+      useWebSocket.value = true
+      await initializeWebSocketService(namespacesStore.currentNamespace)
+    }
+  }
+
+  // 禁用WebSocket，仅使用API
+  const disableWebSocketUpdates = () => {
+    console.log('🔄 禁用WebSocket，仅使用API')
+    useWebSocket.value = false
   }
 
   const clearAllAgents = () => {
@@ -343,9 +449,6 @@ export const useAgentsStore = defineStore('agents', () => {
       fetchTimeout = null
     }
   }
-
-  // 初始化事件监听器 - 只在 store 创建时执行一次
-  // setupEventListeners() // 注释掉，让组件手动调用
 
   return {
     // 状态
@@ -368,6 +471,8 @@ export const useAgentsStore = defineStore('agents', () => {
     selectAgent,
     clearSelection,
     refreshAgents,
+    enableWebSocketUpdates,
+    disableWebSocketUpdates,
     cleanup,
     setupEventListeners,
     cleanupEventListeners
