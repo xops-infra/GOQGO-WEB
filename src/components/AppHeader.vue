@@ -287,12 +287,9 @@ const handleUserMenuSelect = async (key: string) => {
       break
     case 'logout':
       try {
-        message.loading('正在退出登录...', { duration: 0, key: 'logout' })
         await logoutManager.logout()
-        message.success('已退出登录', { key: 'logout' })
       } catch (error) {
         console.error('退出登录失败:', error)
-        message.error('退出登录失败', { key: 'logout' })
       }
       break
   }
