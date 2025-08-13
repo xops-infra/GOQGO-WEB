@@ -122,23 +122,6 @@
           </div>
         </div>
       </div>
-      
-      <div class="footer-right">
-        <!-- 优化后的快捷键提示 -->
-        <div class="shortcuts-compact">
-          <span class="shortcut-label">快捷键:</span>
-          <div class="shortcut-items">
-            <span class="shortcut-key">Space</span>
-            <span class="shortcut-desc">暂停</span>
-            <span class="shortcut-key">Ctrl+L</span>
-            <span class="shortcut-desc">清空</span>
-            <span class="shortcut-key">Ctrl+C</span>
-            <span class="shortcut-desc">复制</span>
-            <span class="shortcut-key">Alt+Z</span>
-            <span class="shortcut-desc">换行</span>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>

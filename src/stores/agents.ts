@@ -171,7 +171,7 @@ export const useAgentsStore = defineStore('agents', () => {
 
       // 只使用 REST API 获取数据，WebSocket 仅用于状态通知
       const apiResponse = await agentApi.getList(targetNamespace, fetchController?.signal)
-      const data = apiResponse.items || []
+      let data = apiResponse.items || []
       console.log('✅ REST API 获取 agents 成功:', data)
 
       // 确保data是数组
