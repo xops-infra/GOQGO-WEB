@@ -134,6 +134,8 @@
             <span class="shortcut-desc">清空</span>
             <span class="shortcut-key">Ctrl+C</span>
             <span class="shortcut-desc">复制</span>
+            <span class="shortcut-key">Alt+Z</span>
+            <span class="shortcut-desc">换行</span>
           </div>
         </div>
       </div>
@@ -142,11 +144,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onUnmounted, watch } from 'vue'
 import { NButton, NIcon } from 'naive-ui'
 import { 
-  TrashOutline as TrashIcon,
-  CopyOutline as CopyIcon,
   CloseOutline as CloseIcon
 } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
@@ -466,10 +466,22 @@ watch(
   }
 )
 
-// ESC键支持
+// 键盘快捷键支持（仅在可见时生效）
 const handleKeydown = (e: KeyboardEvent) => {
-  if (e.key === 'Escape' && visible.value) {
+  if (!visible.value) return
+
+  // 关闭
+  if (e.key === 'Escape') {
     closeModal()
+    return
+  }
+
+  // 切换自动换行 Alt+Z（避免与浏览器冲突）
+  if ((e.altKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+    const wrap = xtermRendererRef.value?.getLineWrap() ?? true
+    xtermRendererRef.value?.setLineWrap(!wrap)
+    e.preventDefault()
+    message.info(`自动换行 ${wrap ? '关闭' : '开启'}`)
   }
 }
 

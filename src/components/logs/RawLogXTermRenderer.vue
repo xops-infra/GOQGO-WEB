@@ -31,6 +31,7 @@ let fitAddon: FitAddon | null = null
 let webLinksAddon: WebLinksAddon | null = null
 let searchAddon: SearchAddon | null = null
 let resizeObserver: ResizeObserver | null = null
+let isWraparoundEnabled = true
 
 // 上次渲染的内容，用于增量更新
 let lastRenderedContent = ''
@@ -80,7 +81,6 @@ const initTerminal = () => {
     // 终端行为配置
     scrollback: props.maxLines,
     scrollSensitivity: 1, // 滚动敏感度
-    fastScrollThreshold: 1000, // 快速滚动阈值
     // 基本配置
     convertEol: true,
     disableStdin: true, // 禁用输入，只用于显示
@@ -110,6 +110,14 @@ const initTerminal = () => {
 
   // 适配大小
   fitAddon.fit()
+
+  // 默认开启自动换行（DECAWM）
+  try {
+    terminal.write('\u001b[?7h') // CSI ? 7 h
+    isWraparoundEnabled = true
+  } catch (e) {
+    console.warn('设置自动换行失败', e)
+  }
 
   // 监听用户滚动事件
   terminal.onScroll((scrollPosition) => {
@@ -201,9 +209,9 @@ const renderRawContent = () => {
   // 直接写入原始内容，xterm会自动处理ANSI转义序列
   if (props.rawContent) {
     // 处理内容，确保正确处理换行和ANSI序列
+    // 保留 \r 让 xterm 正确覆盖同一行（spinner/进度条等）
     const processedContent = props.rawContent
-      .replace(/\r\n/g, '\n') // 统一换行符
-      .replace(/\r/g, '\n')   // 处理回车符
+      .replace(/\r\n/g, '\n') // 仅规范化 CRLF
     
     terminal.write(processedContent)
   }
@@ -302,6 +310,22 @@ const setRefreshToTopMode = (enabled: boolean) => {
   console.log('🔄📍 设置刷新到顶部模式:', enabled)
 }
 
+// 设置自动换行（DECAWM）
+const setLineWrap = (enabled: boolean) => {
+  if (!terminal) return
+  const seq = enabled ? '\u001b[?7h' : '\u001b[?7l'
+  terminal.write(seq)
+  isWraparoundEnabled = enabled
+  console.log('🔄 自动换行:', enabled)
+}
+
+// 获取自动换行状态
+const getLineWrap = (): boolean => {
+  if (!terminal) return isWraparoundEnabled
+  // 直接返回内部跟踪值，xterm公开API为只读 modes.wraparoundMode
+  return isWraparoundEnabled
+}
+
 // 获取当前滚动状态
 const getScrollStatus = () => {
   if (!terminal) return null
@@ -359,6 +383,8 @@ defineExpose({
   isAtBottom,
   getScrollStatus,
   setRefreshToTopMode,
+  setLineWrap,
+  getLineWrap,
   // 添加搜索功能
   search: (term: string) => searchAddon?.findNext(term),
   searchPrevious: (term: string) => searchAddon?.findPrevious(term),

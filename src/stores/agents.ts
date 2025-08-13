@@ -473,6 +473,7 @@ export const useAgentsStore = defineStore('agents', () => {
     refreshAgents,
     enableWebSocketUpdates,
     disableWebSocketUpdates,
+    clearAllAgents,
     cleanup,
     setupEventListeners,
     cleanupEventListeners
