@@ -1,5 +1,5 @@
 <template>
-  <div class="login-container">
+  <div class="register-container">
     <!-- 左侧品牌展示区域 -->
     <div class="brand-section">
       <div class="brand-content">
@@ -51,114 +51,25 @@
       </div>
     </div>
 
-    <!-- 右侧登录区域 -->
-    <div class="login-section">
-      <div class="login-content">
-        <!-- 登录表单 -->
-        <div class="login-form-container">
-          <div class="login-header">
-            <h2 class="login-title">欢迎回来</h2>
-            <p class="login-subtitle">请选择登录方式</p>
+    <!-- 右侧注册区域 -->
+    <div class="register-section">
+      <div class="register-content">
+        <!-- 注册表单 -->
+        <div class="register-form-container">
+          <div class="register-header">
+            <h2 class="register-title">创建账户</h2>
+            <p class="register-subtitle">加入GoQGo开发平台</p>
           </div>
 
-          <!-- 登录方式切换 -->
-          <div class="login-tabs">
-            <button
-              class="tab-button"
-              :class="{ active: loginType === 'token' }"
-              @click="loginType = 'token'"
-            >
-              Token登录
-            </button>
-            <button
-              class="tab-button"
-              :class="{ active: loginType === 'password' }"
-              @click="loginType = 'password'"
-            >
-              密码登录
-            </button>
-            <button
-              class="tab-button"
-              :class="{ active: loginType === 'ad' }"
-              @click="loginType = 'ad'"
-              disabled
-            >
-              AD登录
-              <span class="coming-soon">即将支持</span>
-            </button>
-          </div>
-
-          <!-- Token登录表单 -->
-          <div v-if="loginType === 'token'" class="login-form">
-            <n-form ref="tokenFormRef" :model="tokenForm" :rules="tokenRules" size="large">
-              <n-form-item path="token" label="访问令牌">
-                <n-input
-                  v-model:value="tokenForm.token"
-                  type="password"
-                  placeholder="请输入您的访问令牌"
-                  show-password-on="mousedown"
-                  :input-props="{ autocomplete: 'off' }"
-                  @keyup.enter="handleTokenLogin"
-                >
-                  <template #prefix>
-                    <n-icon>
-                      <svg viewBox="0 0 24 24">
-                        <path
-                          fill="currentColor"
-                          d="M7,14A2,2 0 0,1 5,12A2,2 0 0,1 7,10A2,2 0 0,1 9,12A2,2 0 0,1 7,14M12.65,10C11.83,7.67 9.61,6 7,6A6,6 0 0,0 1,12A6,6 0 0,0 7,18C9.61,18 11.83,16.33 12.65,14H17V18H21V14H23V10H12.65Z"
-                        />
-                      </svg>
-                    </n-icon>
-                  </template>
-                </n-input>
-              </n-form-item>
-
-              <n-form-item>
-                <n-button
-                  type="primary"
-                  size="large"
-                  block
-                  :loading="isLoading"
-                  @click="handleTokenLogin"
-                >
-                  {{ isLoading ? '登录中...' : '登录' }}
-                </n-button>
-              </n-form-item>
-            </n-form>
-
-            <!-- Token说明 -->
-            <div class="token-help">
-              <n-alert type="info" :show-icon="false">
-                <template #header>
-                  <n-icon style="margin-right: 8px">
-                    <svg viewBox="0 0 24 24">
-                      <path
-                        fill="currentColor"
-                        d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"
-                      />
-                    </svg>
-                  </n-icon>
-                  Token登录说明
-                </template>
-                <ul class="help-list">
-                  <li>使用预设的Token进行登录（类似AKSK认证）</li>
-                  <li>登录成功后会获得临时token，有效期3天</li>
-                  <li>示例Token: <code>my-simple-api-token-2025</code></li>
-                  <li>请联系管理员获取您的专用Token</li>
-                </ul>
-              </n-alert>
-            </div>
-          </div>
-
-          <!-- 密码登录表单 -->
-          <div v-if="loginType === 'password'" class="login-form">
-            <n-form ref="passwordFormRef" :model="passwordForm" :rules="passwordRules" size="large">
+          <!-- 注册表单 -->
+          <div class="register-form">
+            <n-form ref="registerFormRef" :model="registerForm" :rules="registerRules" size="large">
               <n-form-item path="username" label="用户名">
                 <n-input
-                  v-model:value="passwordForm.username"
-                  placeholder="请输入用户名"
+                  v-model:value="registerForm.username"
+                  placeholder="请输入用户名（3-20个字符）"
                   :input-props="{ autocomplete: 'username' }"
-                  @keyup.enter="handlePasswordLogin"
+                  @keyup.enter="handleRegister"
                 >
                   <template #prefix>
                     <n-icon>
@@ -173,14 +84,76 @@
                 </n-input>
               </n-form-item>
 
+              <n-form-item path="displayName" label="显示名称">
+                <n-input
+                  v-model:value="registerForm.displayName"
+                  placeholder="请输入显示名称"
+                  :input-props="{ autocomplete: 'name' }"
+                  @keyup.enter="handleRegister"
+                >
+                  <template #prefix>
+                    <n-icon>
+                      <svg viewBox="0 0 24 24">
+                        <path
+                          fill="currentColor"
+                          d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M7.07,18.28C7.5,17.38 10.12,16.5 12,16.5C13.88,16.5 16.5,17.38 16.93,18.28C15.57,19.36 13.86,20 12,20C10.14,20 8.43,19.36 7.07,18.28M18.36,16.83C16.93,15.09 13.46,14.5 12,14.5C10.54,14.5 7.07,15.09 5.64,16.83C4.62,15.5 4,13.82 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,13.82 19.38,15.5 18.36,16.83M12,6C10.06,6 8.5,7.56 8.5,9.5C8.5,11.44 10.06,13 12,13C13.94,13 15.5,11.44 15.5,9.5C15.5,7.56 13.94,6 12,6M12,11A1.5,1.5 0 0,1 10.5,9.5A1.5,1.5 0 0,1 12,8A1.5,1.5 0 0,1 13.5,9.5A1.5,1.5 0 0,1 12,11Z"
+                        />
+                      </svg>
+                    </n-icon>
+                  </template>
+                </n-input>
+              </n-form-item>
+
+              <n-form-item path="email" label="邮箱地址">
+                <n-input
+                  v-model:value="registerForm.email"
+                  placeholder="请输入邮箱地址"
+                  :input-props="{ autocomplete: 'email' }"
+                  @keyup.enter="handleRegister"
+                >
+                  <template #prefix>
+                    <n-icon>
+                      <svg viewBox="0 0 24 24">
+                        <path
+                          fill="currentColor"
+                          d="M20,8L12,13L4,8V6L12,11L20,6M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4Z"
+                        />
+                      </svg>
+                    </n-icon>
+                  </template>
+                </n-input>
+              </n-form-item>
+
               <n-form-item path="password" label="密码">
                 <n-input
-                  v-model:value="passwordForm.password"
+                  v-model:value="registerForm.password"
                   type="password"
-                  placeholder="请输入密码"
+                  placeholder="请输入密码（至少6个字符）"
                   show-password-on="mousedown"
-                  :input-props="{ autocomplete: 'current-password' }"
-                  @keyup.enter="handlePasswordLogin"
+                  :input-props="{ autocomplete: 'new-password' }"
+                  @keyup.enter="handleRegister"
+                >
+                  <template #prefix>
+                    <n-icon>
+                      <svg viewBox="0 0 24 24">
+                        <path
+                          fill="currentColor"
+                          d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z"
+                        />
+                      </svg>
+                    </n-icon>
+                  </template>
+                </n-input>
+              </n-form-item>
+
+              <n-form-item path="confirmPassword" label="确认密码">
+                <n-input
+                  v-model:value="registerForm.confirmPassword"
+                  type="password"
+                  placeholder="请再次输入密码"
+                  show-password-on="mousedown"
+                  :input-props="{ autocomplete: 'new-password' }"
+                  @keyup.enter="handleRegister"
                 >
                   <template #prefix>
                     <n-icon>
@@ -201,36 +174,43 @@
                   size="large"
                   block
                   :loading="isLoading"
-                  @click="handlePasswordLogin"
+                  @click="handleRegister"
                 >
-                  {{ isLoading ? '登录中...' : '登录' }}
+                  {{ isLoading ? '注册中...' : '创建账户' }}
                 </n-button>
               </n-form-item>
             </n-form>
 
-            <!-- 注册链接 -->
-            <div class="register-link">
-              <span>还没有账户？</span>
-              <n-button text type="primary" @click="goToRegister">
-                立即注册
+            <!-- 登录链接 -->
+            <div class="login-link">
+              <span>已有账户？</span>
+              <n-button text type="primary" @click="goToLogin">
+                立即登录
               </n-button>
             </div>
           </div>
 
-          <!-- AD登录表单（预留） -->
-          <div v-if="loginType === 'ad'" class="login-form">
-            <div class="coming-soon-content">
-              <n-icon size="48" :color="'var(--text-disabled)'">
-                <svg viewBox="0 0 24 24">
-                  <path
-                    fill="currentColor"
-                    d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21,11V5L12,1M12,7C13.4,7 14.8,8.6 14.8,10V11.5C15.4,11.5 16,12.4 16,13V16C16,17.4 15.4,18 14.8,18H9.2C8.6,18 8,17.4 8,16V13C8,12.4 8.6,11.5 9.2,11.5V10C9.2,8.6 10.6,7 12,7M12,8.2C11.2,8.2 10.5,8.7 10.5,10V11.5H13.5V10C13.5,8.7 12.8,8.2 12,8.2Z"
-                  />
-                </svg>
-              </n-icon>
-              <h3>AD登录功能开发中</h3>
-              <p>Active Directory集成登录功能即将上线，敬请期待！</p>
-            </div>
+          <!-- 注册说明 -->
+          <div class="register-help">
+            <n-alert type="info" :show-icon="false">
+              <template #header>
+                <n-icon style="margin-right: 8px">
+                  <svg viewBox="0 0 24 24">
+                    <path
+                      fill="currentColor"
+                      d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"
+                    />
+                  </svg>
+                </n-icon>
+                注册说明
+              </template>
+              <ul class="help-list">
+                <li>用户名只能包含字母、数字和下划线</li>
+                <li>密码长度至少6个字符，建议包含字母和数字</li>
+                <li>注册成功后将自动登录到系统</li>
+                <li>请使用真实邮箱地址，用于找回密码</li>
+              </ul>
+            </n-alert>
           </div>
         </div>
       </div>
@@ -240,64 +220,72 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useMessage, type FormInst, type FormRules } from 'naive-ui'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
-const route = useRoute()
 const message = useMessage()
 const userStore = useUserStore()
-
-// 获取重定向路径
-const getRedirectPath = () => {
-  const redirect = route.query.redirect as string
-  return redirect && redirect !== '/login' ? decodeURIComponent(redirect) : '/'
-}
 
 // 版本信息
 const version = ref('v0.1.1')
 
-// 登录类型
-const loginType = ref<'token' | 'password' | 'ad'>('token')
-
 // 加载状态
 const isLoading = ref(false)
 
-// Token登录表单
-const tokenFormRef = ref<FormInst | null>(null)
-const tokenForm = reactive({
-  token: 'my-simple-api-token-2025'
-})
-
-// 密码登录表单
-const passwordFormRef = ref<FormInst | null>(null)
-const passwordForm = reactive({
+// 注册表单
+const registerFormRef = ref<FormInst | null>(null)
+const registerForm = reactive({
   username: '',
-  password: ''
+  displayName: '',
+  email: '',
+  password: '',
+  confirmPassword: ''
 })
 
 // 表单验证规则
-const tokenRules: FormRules = {
-  token: [
-    {
-      required: true,
-      message: '请输入访问令牌',
-      trigger: ['input', 'blur']
-    },
-    {
-      min: 10,
-      message: '令牌长度至少10个字符',
-      trigger: ['input', 'blur']
-    }
-  ]
-}
-
-const passwordRules: FormRules = {
+const registerRules: FormRules = {
   username: [
     {
       required: true,
       message: '请输入用户名',
+      trigger: ['input', 'blur']
+    },
+    {
+      min: 3,
+      max: 20,
+      message: '用户名长度应在3-20个字符之间',
+      trigger: ['input', 'blur']
+    },
+    {
+      pattern: /^[a-zA-Z0-9_]+$/,
+      message: '用户名只能包含字母、数字和下划线',
+      trigger: ['input', 'blur']
+    }
+  ],
+  displayName: [
+    {
+      required: true,
+      message: '请输入显示名称',
+      trigger: ['input', 'blur']
+    },
+    {
+      min: 2,
+      max: 50,
+      message: '显示名称长度应在2-50个字符之间',
+      trigger: ['input', 'blur']
+    }
+  ],
+  email: [
+    {
+      required: true,
+      message: '请输入邮箱地址',
+      trigger: ['input', 'blur']
+    },
+    {
+      type: 'email',
+      message: '请输入有效的邮箱地址',
       trigger: ['input', 'blur']
     }
   ],
@@ -312,77 +300,65 @@ const passwordRules: FormRules = {
       message: '密码长度至少6个字符',
       trigger: ['input', 'blur']
     }
+  ],
+  confirmPassword: [
+    {
+      required: true,
+      message: '请确认密码',
+      trigger: ['input', 'blur']
+    },
+    {
+      validator: (rule, value) => {
+        if (value !== registerForm.password) {
+          return new Error('两次输入的密码不一致')
+        }
+        return true
+      },
+      trigger: ['input', 'blur']
+    }
   ]
 }
 
-// Token登录处理
-const handleTokenLogin = async () => {
-  if (!tokenFormRef.value) return
+// 注册处理
+const handleRegister = async () => {
+  if (!registerFormRef.value) return
 
   try {
-    await tokenFormRef.value.validate()
+    await registerFormRef.value.validate()
     isLoading.value = true
 
-    // 调用用户store的token登录方法
-    await userStore.loginWithToken(tokenForm.token)
-
-    message.success('登录成功！')
-
-    // 跳转到重定向页面或主页面
-    const redirectPath = getRedirectPath()
-    router.push(redirectPath)
-  } catch (error: any) {
-    console.error('Token登录失败:', error)
-
-    if (error?.message) {
-      message.error(error.message)
-    } else if (typeof error === 'string') {
-      message.error(error)
-    } else {
-      message.error('登录失败，请检查令牌是否正确')
-    }
-  } finally {
-    isLoading.value = false
-  }
-}
-
-// 密码登录处理
-const handlePasswordLogin = async () => {
-  if (!passwordFormRef.value) return
-
-  try {
-    await passwordFormRef.value.validate()
-    isLoading.value = true
-
-    // 调用用户store的新登录方法
-    await userStore.login({
-      username: passwordForm.username,
-      password: passwordForm.password
+    // 调用用户store的注册方法
+    await userStore.register({
+      username: registerForm.username,
+      displayName: registerForm.displayName,
+      email: registerForm.email,
+      password: registerForm.password
     })
 
-    message.success('登录成功！')
+    message.success('注册成功！正在跳转...')
 
-    // 跳转到重定向页面或主页面
-    const redirectPath = getRedirectPath()
-    router.push(redirectPath)
+    // 跳转到主页面
+    setTimeout(() => {
+      router.push('/')
+    }, 1000)
   } catch (error: any) {
-    console.error('密码登录失败:', error)
+    console.error('注册失败:', error)
 
     if (error?.message) {
       message.error(error.message)
     } else if (typeof error === 'string') {
       message.error(error)
     } else {
-      message.error('登录失败，请检查用户名和密码')
+      message.error('注册失败，请检查输入信息')
     }
   } finally {
     isLoading.value = false
   }
 }
 
-// 跳转到注册页面
-const goToRegister = () => {
-  router.push('/register')
+// 跳转到登录页面
+const goToLogin = () => {
+  router.push('/login')
 }
 
 // 获取版本信息
@@ -410,7 +386,7 @@ html, body {
   overflow: hidden;
 }
 
-.login-container {
+.register-container {
   display: flex;
   width: 100vw;
   height: 100vh;
@@ -440,20 +416,6 @@ html, body {
 
 .brand-header {
   margin-bottom: 50px;
-
-  .logo-container {
-    margin-bottom: 20px;
-
-    .brand-logo-text {
-      font-size: 4rem;
-      font-weight: 700;
-      color: var(--terminal-prompt, #00ff41);
-      text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff41, 0 0 30px #00ff41;
-      font-family: 'Orbitron', 'Arial', sans-serif;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-    }
-  }
 
   .brand-title {
     font-size: 3.5rem;
@@ -532,23 +494,23 @@ html, body {
   }
 }
 
-// 右侧登录区域
-.login-section {
+// 右侧注册区域
+.register-section {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--terminal-bg, #000000);
   padding: 40px;
-  overflow: hidden;
+  overflow: auto;
 }
 
-.login-content {
+.register-content {
   width: 100%;
-  max-width: 380px;
+  max-width: 420px;
 }
 
-.login-form-container {
+.register-form-container {
   background: var(--terminal-bg-secondary, #0a0a0a);
   border: 2px solid var(--terminal-border-active, #00ff41);
   padding: 35px;
@@ -568,11 +530,11 @@ html, body {
   }
 }
 
-.login-header {
+.register-header {
   text-align: center;
   margin-bottom: 30px;
 
-  .login-title {
+  .register-title {
     font-size: 1.6rem;
     font-weight: 600;
     color: var(--terminal-text, #ffffff);
@@ -580,7 +542,7 @@ html, body {
     font-family: 'Arial', sans-serif;
   }
 
-  .login-subtitle {
+  .register-subtitle {
     color: var(--terminal-text-secondary, #cccccc);
     margin: 0;
     font-size: 0.9rem;
@@ -588,54 +550,8 @@ html, body {
   }
 }
 
-.login-tabs {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 25px;
-  padding: 3px;
-  background: var(--terminal-bg-tertiary, #1a1a1a);
-  border: 1px solid var(--terminal-border, #333333);
-
-  .tab-button {
-    flex: 1;
-    padding: 10px 14px;
-    border: none;
-    background: transparent;
-    color: var(--terminal-text-secondary, #cccccc);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 0.85rem;
-    font-weight: 500;
-    font-family: 'Arial', sans-serif;
-
-    &:hover:not(:disabled) {
-      background: var(--terminal-surface, #2a2a2a);
-      color: var(--terminal-text, #ffffff);
-    }
-
-    &.active {
-      background: var(--terminal-prompt, #00ff41);
-      color: var(--terminal-bg, #000000);
-      font-weight: 600;
-    }
-
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      color: var(--terminal-text-muted, #666666);
-    }
-
-    .coming-soon {
-      display: block;
-      font-size: 0.7rem;
-      opacity: 0.7;
-      margin-top: 2px;
-    }
-  }
-}
-
-.login-form {
-  .register-link {
+.register-form {
+  .login-link {
     text-align: center;
     margin-top: 20px;
     color: var(--terminal-text-secondary, #cccccc);
@@ -646,7 +562,7 @@ html, body {
     }
   }
 
-  .token-help {
+  .register-help {
     margin-top: 20px;
 
     .help-list {
@@ -664,35 +580,7 @@ html, body {
           margin-bottom: 0;
         }
       }
-
-      code {
-        background: var(--terminal-bg-tertiary, #1a1a1a);
-        padding: 2px 6px;
-        border: 1px solid var(--terminal-border, #333333);
-        color: var(--terminal-prompt, #00ff41);
-        font-family: 'Courier New', monospace;
-        font-size: 0.75rem;
-      }
     }
-  }
-}
-
-.coming-soon-content {
-  text-align: center;
-  padding: 30px 20px;
-  color: var(--terminal-text-tertiary, #999999);
-
-  h3 {
-    margin: 16px 0 8px 0;
-    color: var(--terminal-text-secondary, #cccccc);
-    font-family: 'Arial', sans-serif;
-  }
-
-  p {
-    margin: 0;
-    font-size: 0.9rem;
-    line-height: 1.5;
-    font-family: 'Arial', sans-serif;
   }
 }
 
@@ -727,6 +615,12 @@ html, body {
   font-family: 'Arial', sans-serif;
 }
 
+:deep(.n-button--text-type) {
+  --n-text-color: var(--terminal-prompt, #00ff41);
+  --n-text-color-hover: var(--terminal-command, #00ffff);
+  --n-text-color-pressed: var(--pixel-blue, #0066ff);
+}
+
 :deep(.n-alert) {
   --n-border: 1px solid var(--terminal-border, #333333);
   --n-bg-color: var(--terminal-bg-tertiary, #1a1a1a);
@@ -735,7 +629,7 @@ html, body {
   font-family: 'Arial', sans-serif;
 }
 
-// 响应式设计 - 确保在不同屏幕尺寸下都能正常显示
+// 响应式设计
 @media (max-width: 1200px) {
   .brand-header .brand-title {
     font-size: 3rem;
@@ -755,7 +649,7 @@ html, body {
 }
 
 @media (max-width: 1024px) {
-  .login-container {
+  .register-container {
     flex-direction: column;
     height: 100vh;
     overflow: hidden;
@@ -763,7 +657,7 @@ html, body {
 
   .brand-section {
     flex: none;
-    height: 45vh;
+    height: 40vh;
     border-right: none;
     border-bottom: 2px solid var(--terminal-border-active, #00ff41);
     padding: 25px;
@@ -777,14 +671,14 @@ html, body {
     }
   }
 
-  .login-section {
+  .register-section {
     flex: none;
-    height: 55vh;
+    height: 60vh;
     padding: 25px;
-    overflow: hidden;
+    overflow: auto;
   }
 
-  .login-form-container {
+  .register-form-container {
     padding: 25px;
   }
 }
@@ -794,13 +688,8 @@ html, body {
     font-size: 2rem;
   }
 
-  .login-form-container {
+  .register-form-container {
     padding: 20px;
-  }
-  
-  .login-tabs .tab-button {
-    padding: 8px 10px;
-    font-size: 0.8rem;
   }
 }
 </style>

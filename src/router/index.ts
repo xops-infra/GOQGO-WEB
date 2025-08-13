@@ -3,6 +3,7 @@ import { useUserStore } from '@/stores/user'
 import BaseLayout from '@/components/BaseLayout.vue'
 
 import LoginView from '@/views/LoginView.vue'
+import RegisterView from '@/views/RegisterView.vue'
 import ChatView from '@/views/ChatView.vue'
 import AgentsView from '@/views/AgentsView.vue'
 import DashboardView from '@/views/DashboardView.vue'
@@ -18,6 +19,16 @@ const router = createRouter({
       component: LoginView,
       meta: {
         title: '登录 - GoQGo',
+        requiresAuth: false,
+        hideForAuth: true // 已登录用户隐藏此页面
+      }
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: RegisterView,
+      meta: {
+        title: '注册 - GoQGo',
         requiresAuth: false,
         hideForAuth: true // 已登录用户隐藏此页面
       }
@@ -123,9 +134,14 @@ router.beforeEach(async (to, from, next) => {
 
   // 如果是首次访问，尝试恢复登录状态
   if (!userStore.isAuthenticated) {
-    const restored = userStore.restoreAuth()
-    // 如果恢复失败，确保清除状态
-    if (!restored) {
+    try {
+      const restored = await userStore.restoreAuth()
+      // 如果恢复失败，确保清除状态
+      if (!restored) {
+        userStore.clearAuth()
+      }
+    } catch (error) {
+      console.error('恢复登录状态失败:', error)
       userStore.clearAuth()
     }
   }

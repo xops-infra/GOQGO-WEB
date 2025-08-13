@@ -12,17 +12,61 @@ export interface User {
   displayName: string
   email: string
   avatar?: string
-  role?: 'admin' | 'developer' | 'viewer' // 添加角色字段
-  // 可以根据实际API响应添加更多字段
+  role?: 'admin' | 'developer' | 'viewer'
+  status?: string
+  createdAt?: string
 }
 
+// 注册请求接口
+export interface RegisterRequest {
+  username: string
+  displayName: string
+  email: string
+  password: string
+}
+
+// 登录请求接口
+export interface LoginRequest {
+  username: string
+  password: string
+}
+
+// 认证API响应接口（基于后端API文档）
+export interface AuthResponse {
+  success: boolean
+  message: string
+  token: string
+  user: {
+    username: string
+    displayName: string
+    email: string
+    status: string
+    createdAt: string
+  }
+}
+
+// Token验证响应接口
+export interface VerifyResponse {
+  valid: boolean
+  user?: {
+    username: string
+    displayName: string
+    email: string
+    status: string
+    createdAt: string
+  }
+  error?: string
+  message?: string
+}
+
+// 兼容旧接口
 export interface LoginResponse {
   success: boolean
   message: string
   bearer_token: string
   displayName: string
   email: string
-  role?: string // 添加角色字段
+  role?: string
 }
 
 export const useUserStore = defineStore('user', () => {
@@ -56,23 +100,210 @@ export const useUserStore = defineStore('user', () => {
     return true
   })
 
-  // 从localStorage恢复登录状态
-  const restoreAuth = () => {
+  // 用户注册
+  const register = async (registerData: RegisterRequest) => {
+    isLoading.value = true
+    loading.value = true
+    error.value = null
+
+    try {
+      // 调用注册API
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.AUTH.REGISTER), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(registerData)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      const data: AuthResponse = await response.json()
+
+      // 检查响应格式
+      if (!data.success) {
+        throw new Error(data.message || '注册失败')
+      }
+
+      if (!data.token || !data.user) {
+        throw new Error('服务器响应格式错误')
+      }
+
+      // 保存认证信息
+      const user: User = {
+        username: data.user.username,
+        displayName: data.user.displayName,
+        email: data.user.email,
+        status: data.user.status,
+        createdAt: data.user.createdAt,
+        role: 'developer' // 默认角色
+      }
+
+      token.value = data.token
+      currentUser.value = user
+      isAuthenticated.value = true
+
+      // 持久化存储
+      localStorage.setItem('goqgo_token', data.token)
+      localStorage.setItem('goqgo_user', JSON.stringify(user))
+
+      console.log('✅ 注册成功:', data.message)
+    } catch (err: any) {
+      console.error('❌ 注册失败:', err)
+
+      if (err.message) {
+        error.value = err.message
+      } else {
+        error.value = '注册失败，请检查输入信息'
+      }
+
+      clearAuth()
+      throw new Error(error.value || '注册失败')
+    } finally {
+      isLoading.value = false
+      loading.value = false
+    }
+  }
+
+  // 用户登录（使用新的认证API）
+  const login = async (loginData: LoginRequest) => {
+    isLoading.value = true
+    loading.value = true
+    error.value = null
+
+    try {
+      // 调用登录API
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.AUTH.LOGIN), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(loginData)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      const data: AuthResponse = await response.json()
+
+      // 检查响应格式
+      if (!data.success) {
+        throw new Error(data.message || '登录失败')
+      }
+
+      if (!data.token || !data.user) {
+        throw new Error('服务器响应格式错误')
+      }
+
+      // 保存认证信息
+      const user: User = {
+        username: data.user.username,
+        displayName: data.user.displayName,
+        email: data.user.email,
+        status: data.user.status,
+        createdAt: data.user.createdAt,
+        role: 'developer' // 默认角色
+      }
+
+      token.value = data.token
+      currentUser.value = user
+      isAuthenticated.value = true
+
+      // 持久化存储
+      localStorage.setItem('goqgo_token', data.token)
+      localStorage.setItem('goqgo_user', JSON.stringify(user))
+
+      console.log('✅ 登录成功:', data.message)
+    } catch (err: any) {
+      console.error('❌ 登录失败:', err)
+
+      if (err.message) {
+        error.value = err.message
+      } else {
+        error.value = '登录失败，请检查用户名和密码'
+      }
+
+      clearAuth()
+      throw new Error(error.value || '登录失败')
+    } finally {
+      isLoading.value = false
+      loading.value = false
+    }
+  }
+
+  // Token验证
+  const verifyToken = async (tokenToVerify?: string) => {
+    const verifyToken = tokenToVerify || token.value
+    if (!verifyToken) {
+      throw new Error('没有可验证的token')
+    }
+
+    try {
+      const response = await fetch(buildApiUrl(API_ENDPOINTS.AUTH.VERIFY), {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${verifyToken}`
+        }
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || errorData.error || 'Token验证失败')
+      }
+
+      const data: VerifyResponse = await response.json()
+
+      if (!data.valid) {
+        throw new Error(data.message || data.error || 'Token无效')
+      }
+
+      // 如果验证成功且有用户信息，更新用户信息
+      if (data.user) {
+        const user: User = {
+          username: data.user.username,
+          displayName: data.user.displayName,
+          email: data.user.email,
+          status: data.user.status,
+          createdAt: data.user.createdAt,
+          role: currentUser.value?.role || 'developer'
+        }
+
+        currentUser.value = user
+        localStorage.setItem('goqgo_user', JSON.stringify(user))
+      }
+
+      return true
+    } catch (err: any) {
+      console.error('❌ Token验证失败:', err)
+      throw err
+    }
+  }
+  const restoreAuth = async () => {
     try {
       const savedToken = localStorage.getItem('goqgo_token')
       const savedUser = localStorage.getItem('goqgo_user')
 
-      if (savedToken && savedUser && authManager.validateTokenFormat(savedToken)) {
-        token.value = savedToken
-        currentUser.value = JSON.parse(savedUser)
-        isAuthenticated.value = true
+      if (savedToken && savedUser) {
+        // 验证token是否仍然有效
+        try {
+          await verifyToken(savedToken)
+          
+          // Token有效，恢复状态
+          token.value = savedToken
+          currentUser.value = JSON.parse(savedUser)
+          isAuthenticated.value = true
 
-        return true
-      } else {
-        // Token格式无效，清除认证信息
-        if (savedToken && !authManager.validateTokenFormat(savedToken)) {
-          console.warn('🔑 Token格式无效，清除认证信息')
+          console.log('✅ 登录状态恢复成功')
+          return true
+        } catch (verifyError) {
+          console.warn('🔑 Token验证失败，清除认证信息:', verifyError)
           clearAuth()
+          return false
         }
       }
     } catch (error) {
@@ -400,6 +631,9 @@ export const useUserStore = defineStore('user', () => {
     hasPermission,
 
     // 方法
+    register,
+    login,
+    verifyToken,
     restoreAuth,
     loginWithToken,
     loginWithPassword,
