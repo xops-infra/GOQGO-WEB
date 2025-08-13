@@ -327,13 +327,21 @@ const handleRegister = async () => {
     await registerFormRef.value.validate()
     isLoading.value = true
 
-    // 调用用户store的注册方法
-    await userStore.register({
-      username: registerForm.username,
-      displayName: registerForm.displayName,
-      email: registerForm.email,
-      password: registerForm.password
+    // 添加超时处理
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('请求超时，请检查网络连接')), 10000)
     })
+
+    // 调用用户store的注册方法
+    await Promise.race([
+      userStore.register({
+        username: registerForm.username,
+        displayName: registerForm.displayName,
+        email: registerForm.email,
+        password: registerForm.password
+      }),
+      timeoutPromise
+    ])
 
     message.success('注册成功！正在跳转...')
 
@@ -344,6 +352,9 @@ const handleRegister = async () => {
   } catch (error: any) {
     console.error('注册失败:', error)
 
+    // 确保loading状态被重置
+    isLoading.value = false
+
     if (error?.message) {
       message.error(error.message)
     } else if (typeof error === 'string') {
@@ -352,6 +363,7 @@ const handleRegister = async () => {
       message.error('注册失败，请检查输入信息')
     }
   } finally {
+    // 确保loading状态被重置
     isLoading.value = false
   }
 }

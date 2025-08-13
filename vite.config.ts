@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 
-const baseURL = 'http://localhost:8080'
+const baseURL = 'http://localhost:8000'
 
 export default defineConfig({
   plugins: [vue()],

@@ -107,14 +107,21 @@ export const useUserStore = defineStore('user', () => {
     error.value = null
 
     try {
+      // 创建超时控制器
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10秒超时
+
       // 调用注册API
       const response = await fetch(buildApiUrl(API_ENDPOINTS.AUTH.REGISTER), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(registerData)
+        body: JSON.stringify(registerData),
+        signal: controller.signal
       })
+
+      clearTimeout(timeoutId)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -154,7 +161,9 @@ export const useUserStore = defineStore('user', () => {
     } catch (err: any) {
       console.error('❌ 注册失败:', err)
 
-      if (err.message) {
+      if (err.name === 'AbortError') {
+        error.value = '请求超时，请检查网络连接'
+      } else if (err.message) {
         error.value = err.message
       } else {
         error.value = '注册失败，请检查输入信息'
