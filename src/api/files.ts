@@ -44,7 +44,7 @@ export const filesApi = {
         const uploadedFile = uploadResult.files[0]
 
         // 处理downloadUrl，如果已经是完整URL就直接使用，否则添加前缀
-        let fileUrl = uploadedFile.downloadUrl
+        const fileUrl = uploadedFile.downloadUrl
         if (!fileUrl.startsWith('http')) {
           // fileUrl = fileUrl // 保持原值，这里可能需要添加baseURL前缀
         }

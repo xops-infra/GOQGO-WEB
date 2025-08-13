@@ -57,15 +57,74 @@
       </div>
       
       <div v-if="isExpanded" class="content-body" :class="{ 'terminal-body': isTerminal }">
-        <div class="content-text" :class="{ 'terminal-log': isTerminal }">
-          {{ displayContent }}
+        <!-- 终端输出渲染器 -->
+        <div class="terminal-output-container">
+          <RawLogXTermRenderer
+            ref="terminalRef"
+            :raw-content="props.content"
+            :auto-scroll="autoScroll"
+            :max-lines="maxLines"
+            class="thinking-terminal-renderer"
+          />
         </div>
         
-        <!-- 8-bit风格的滚动条 -->
-        <div v-if="isTerminal && hasMoreContent" class="terminal-scrollbar">
-          <div class="scrollbar-track">
-            <div class="scrollbar-thumb" :style="{ height: scrollThumbHeight }"></div>
-          </div>
+        <!-- 终端控制按钮 -->
+        <div class="terminal-controls" :class="{ 'terminal-controls-8bit': isTerminal }">
+          <n-button
+            size="tiny"
+            :type="autoScroll ? 'primary' : 'default'"
+            @click="toggleAutoScroll"
+            :class="{ 'btn-8bit': isTerminal }"
+          >
+            <template #icon>
+              <n-icon><ArrowDownIcon /></n-icon>
+            </template>
+            {{ autoScroll ? '自动滚动' : '手动滚动' }}
+          </n-button>
+          
+          <n-button
+            size="tiny"
+            @click="scrollToBottom"
+            :class="{ 'btn-8bit': isTerminal }"
+          >
+            <template #icon>
+              <n-icon><ArrowDownIcon /></n-icon>
+            </template>
+            到底部
+          </n-button>
+          
+          <n-button
+            size="tiny"
+            @click="scrollToTop"
+            :class="{ 'btn-8bit': isTerminal }"
+          >
+            <template #icon>
+              <n-icon><ArrowUpIcon /></n-icon>
+            </template>
+            到顶部
+          </n-button>
+          
+          <n-button
+            size="tiny"
+            @click="clearTerminal"
+            :class="{ 'btn-8bit': isTerminal }"
+          >
+            <template #icon>
+              <n-icon><TrashIcon /></n-icon>
+            </template>
+            清空
+          </n-button>
+          
+          <n-button
+            size="tiny"
+            @click="copyToClipboard"
+            :class="{ 'btn-8bit': isTerminal }"
+          >
+            <template #icon>
+              <n-icon><CopyIcon /></n-icon>
+            </template>
+            复制
+          </n-button>
         </div>
       </div>
     </div>
@@ -92,12 +151,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { NIcon, NButton } from 'naive-ui'
-import { AlertCircleOutline, TimeOutline, CheckmarkCircleOutline } from '@vicons/ionicons5'
+import { 
+  AlertCircleOutline, 
+  TimeOutline, 
+  CheckmarkCircleOutline,
+  ArrowDownOutline as ArrowDownIcon,
+  ArrowUpOutline as ArrowUpIcon,
+  TrashOutline as TrashIcon,
+  CopyOutline as CopyIcon
+} from '@vicons/ionicons5'
 import { useTheme } from '@/utils/theme'
 import { useTimeManager, formatRelativeTime } from '@/utils/timeManager'
 import type { ConversationState } from '@/types/conversation'
+import RawLogXTermRenderer from '@/components/logs/RawLogXTermRenderer.vue'
 
 interface Props {
   conversationId: string
@@ -126,7 +194,12 @@ const { currentTime } = useTimeManager()
 // 响应式状态
 const isExpanded = ref(false)
 const dotIndex = ref(0)
-const maxDisplayLength = 500
+// 移除 maxDisplayLength，因为现在使用终端渲染器
+
+// 终端相关状态
+const terminalRef = ref<InstanceType<typeof RawLogXTermRenderer> | null>(null)
+const autoScroll = ref(true)
+const maxLines = 10000
 
 // 动画定时器
 let dotAnimation: number | null = null
@@ -149,22 +222,9 @@ const contentSize = computed(() => {
   }
 })
 
-const displayContent = computed(() => {
-  if (props.content.length <= maxDisplayLength) {
-    return props.content
-  }
-  return props.content.substring(0, maxDisplayLength) + '...'
-})
+// 移除 displayContent 和 hasMoreContent，因为现在使用终端渲染器
 
-const hasMoreContent = computed(() => {
-  return props.content.length > maxDisplayLength
-})
-
-const scrollThumbHeight = computed(() => {
-  if (!hasMoreContent.value) return '100%'
-  const ratio = maxDisplayLength / props.content.length
-  return `${Math.max(ratio * 100, 10)}%`
-})
+// 移除 scrollThumbHeight，因为现在使用终端渲染器的内置滚动条
 
 const formattedDuration = computed(() => {
   const duration = Date.now() - props.startTime
@@ -227,6 +287,39 @@ const toggleExpanded = () => {
 
 const handleRetry = () => {
   emit('retry', props.conversationId)
+}
+
+// 终端控制方法
+const toggleAutoScroll = () => {
+  autoScroll.value = !autoScroll.value
+}
+
+const scrollToBottom = () => {
+  if (terminalRef.value) {
+    terminalRef.value.scrollToBottom()
+  }
+}
+
+const scrollToTop = () => {
+  if (terminalRef.value) {
+    terminalRef.value.scrollToTop()
+  }
+}
+
+const clearTerminal = () => {
+  if (terminalRef.value) {
+    terminalRef.value.clearTerminal()
+  }
+}
+
+const copyToClipboard = async () => {
+  try {
+    await navigator.clipboard.writeText(props.content)
+    // 可以添加一个提示消息
+    console.log('✅ 终端内容已复制到剪贴板')
+  } catch (err) {
+    console.error('❌ 复制失败:', err)
+  }
 }
 
 const startDotAnimation = () => {
@@ -540,48 +633,43 @@ onUnmounted(() => {
   }
 }
 
-.content-text {
-  font-family: 'Monaco', 'Consolas', monospace;
-  font-size: 11px;
-  color: #555;
-  background: rgba(255, 255, 255, 0.7);
-  padding: 8px;
+.terminal-output-container {
+  height: 300px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 4px;
-  max-height: 200px;
-  overflow-y: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
+  overflow: hidden;
 
-  &.terminal-log {
-    background: transparent;
-    color: #00ff00;
-    border: none;
-    border-radius: 0;
-    padding: 8px;
-  }
-}
-
-.terminal-scrollbar {
-  position: absolute;
-  right: 2px;
-  top: 2px;
-  bottom: 2px;
-  width: 8px;
-
-  .scrollbar-track {
-    width: 100%;
+  .thinking-terminal-renderer {
     height: 100%;
-    background: rgba(0, 255, 0, 0.2);
-    position: relative;
+    width: 100%;
   }
 
-  .scrollbar-thumb {
-    width: 100%;
-    background: #00ff00;
-    position: absolute;
-    top: 0;
+  &.terminal-body {
+    border: 1px solid #00ff00;
+    border-radius: 0;
   }
 }
+
+.terminal-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+
+  &.terminal-controls-8bit {
+    border-top: 1px solid #00ff00;
+  }
+
+  .n-button {
+    font-size: 11px;
+    padding: 4px 8px;
+    height: 24px;
+  }
+}
+
+// 移除 terminal-scrollbar 样式，因为现在使用终端渲染器的内置滚动条
 
 .error-section {
   margin-top: 12px;

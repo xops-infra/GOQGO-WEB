@@ -18,6 +18,9 @@ export const useChatStore = defineStore('chat', () => {
   
   // 控制自动滚动的状态
   const shouldPreventAutoScroll = ref(false)
+  
+  // 记录已完成的对话ID，用于忽略后续的thinking_stream消息
+  const completedConversations = ref<Set<string>>(new Set())
 
   // WebSocket连接管理器
   let socketManager: ChatSocket | null = null
@@ -68,6 +71,7 @@ export const useChatStore = defineStore('chat', () => {
     typingUsers.value.clear()
     hasMoreHistory.value = true
     sessionStartTime.value = new Date().toISOString() // 记录会话开始时间
+    completedConversations.value.clear() // 清空已完成的对话记录
 
 
 
@@ -194,11 +198,22 @@ export const useChatStore = defineStore('chat', () => {
 
   // 添加消息
   const addMessage = (message: ChatMessage, options: { preventAutoScroll?: boolean } = {}) => {
+    
     // 验证消息数据的完整性
     if (!message || (!message.id && !message.tempId)) {
       console.warn('⚠️ 消息缺少必要的ID字段，跳过添加:', message)
       return
     }
+
+    // 记录调试事件
+    console.log('MESSAGE', 'ADD_ATTEMPT', {
+      id: message.id,
+      conversationId: message.conversationId,
+      type: message.type,
+      isThinking: message.isThinking,
+      replaceThinking: message.replaceThinking,
+      senderName: message.senderName
+    })
 
     if (!message.content && message.messageType !== 'image' && !message.isThinking) {
       console.warn('⚠️ 消息内容为空且非图片消息或思考消息，跳过添加:', message)
@@ -217,6 +232,15 @@ export const useChatStore = defineStore('chat', () => {
     // 2. 或者是Agent消息且不是思考状态（兼容旧逻辑）
     const shouldReplaceThinking = message.replaceThinking || 
       ((message.type === 'agent' || message.type === 'agent_message') && !message.isThinking)
+    
+    // 如果是agent_reply类型的消息，标记对话为已完成
+    if (message.replaceThinking && message.conversationId) {
+      completedConversations.value.add(message.conversationId)
+      console.log('✅ 标记对话为已完成:', message.conversationId)
+      
+      // 定期清理已完成对话记录
+      cleanupCompletedConversations()
+    }
     
     if (shouldReplaceThinking) {
       let thinkingMessageIndex = -1
@@ -279,19 +303,24 @@ export const useChatStore = defineStore('chat', () => {
         
         console.log('✅ 思考消息已移除:', {
           matchMethod,
+          conversationId: message.conversationId,
           removedMessage: {
             id: thinkingMessage.id,
             senderName: thinkingMessage.senderName,
             conversationId: thinkingMessage.conversationId,
-            tempId: thinkingMessage.tempId
+            tempId: thinkingMessage.tempId,
+            isThinking: thinkingMessage.isThinking
           },
           newMessage: {
             id: message.id,
             senderName: message.senderName,
             conversationId: message.conversationId,
-            tempId: message.tempId
+            tempId: message.tempId,
+            replaceThinking: message.replaceThinking,
+            type: message.type
           },
-          remainingMessages: messages.value.length
+          remainingMessages: messages.value.length,
+          remainingThinkingMessages: messages.value.filter(msg => msg.isThinking).length
         })
         
         // 重置防止自动滚动标志（延迟重置，确保UI更新完成）
@@ -543,11 +572,13 @@ export const useChatStore = defineStore('chat', () => {
     messages.value = []
     onlineUsers.value = []
     typingUsers.value.clear()
+    completedConversations.value.clear() // 清空已完成的对话记录
   }
 
   // 清空消息
   const clearMessages = () => {
     messages.value = []
+    completedConversations.value.clear() // 清空已完成的对话记录
     console.log('🗑️ 清空聊天消息')
   }
 
@@ -560,7 +591,18 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  // 清理残留的思考消息（辅助方法）
+  // 清理已完成对话记录（防止内存泄漏）
+  const cleanupCompletedConversations = () => {
+    const now = Date.now()
+    const maxAge = 5 * 60 * 1000 // 5分钟
+    
+    // 由于Set中只存储conversationId字符串，我们需要一个更智能的清理策略
+    // 这里我们简单地在消息数量过多时清理
+    if (completedConversations.value.size > 100) {
+      console.log('🧹 清理过多的已完成对话记录')
+      completedConversations.value.clear()
+    }
+  }
   const cleanupThinkingMessages = (agentName?: string, maxAge: number = 30000) => {
     const now = Date.now()
     let cleanedCount = 0
@@ -665,6 +707,28 @@ export const useChatStore = defineStore('chat', () => {
     const { conversationId, content, progress, tempId } = data
     
     console.log('🤖 处理思考流式更新:', { conversationId, content, progress, tempId })
+    
+    // 🔍 检查对话是否已完成（收到agent_reply后应忽略后续thinking_stream）
+    if (conversationId && completedConversations.value.has(conversationId)) {
+      console.warn('⚠️ 忽略已完成对话的 agent_thinking_stream:', conversationId)
+      return
+    }
+    
+    // 🔍 检查是否已经有对应的Agent回复消息（防止延迟的thinking_stream）
+    if (conversationId) {
+      const hasAgentReply = messages.value.some(
+        msg => msg.conversationId === conversationId && 
+               msg.type === 'agent' && 
+               !msg.isThinking
+      )
+      
+      if (hasAgentReply) {
+        console.warn('⚠️ 忽略延迟的 agent_thinking_stream，Agent已回复:', conversationId)
+        // 同时标记对话为已完成
+        completedConversations.value.add(conversationId)
+        return
+      }
+    }
     
     // 优先通过conversationId查找，如果没有则通过tempId查找
     let thinkingMessageIndex = -1
@@ -842,6 +906,7 @@ export const useChatStore = defineStore('chat', () => {
     hasMoreHistory,
     sessionStartTime,
     shouldPreventAutoScroll,
+    completedConversations,
 
     // 方法
     connect,
@@ -857,5 +922,6 @@ export const useChatStore = defineStore('chat', () => {
     
     // 思考消息管理
     cleanupThinkingMessages,
+    cleanupCompletedConversations,
   }
 })

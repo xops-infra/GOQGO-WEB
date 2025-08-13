@@ -24,14 +24,40 @@ export class AuthManager {
   isAuthenticated(): boolean {
     const token = localStorage.getItem('goqgo_token')
     const user = localStorage.getItem('goqgo_user')
-    return !!(token && user)
+    
+    // 如果localStorage中有完整的认证信息
+    if (token && user) {
+      return true
+    }
+    
+    // 如果有环境变量token，也认为是已认证状态
+    const envToken = import.meta.env.VITE_API_TOKEN
+    if (envToken) {
+      console.log('🔑 使用环境变量认证')
+      return true
+    }
+    
+    return false
   }
 
   /**
    * 获取当前token
    */
   getToken(): string | null {
-    return localStorage.getItem('goqgo_token')
+    // 优先使用localStorage中的token
+    const localToken = localStorage.getItem('goqgo_token')
+    if (localToken) {
+      return localToken
+    }
+    
+    // 如果localStorage中没有token，尝试使用环境变量
+    const envToken = import.meta.env.VITE_API_TOKEN
+    if (envToken) {
+      console.log('🔑 使用环境变量中的API token')
+      return envToken
+    }
+    
+    return null
   }
 
   /**

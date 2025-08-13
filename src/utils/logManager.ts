@@ -44,15 +44,21 @@ export class LogManager {
     console.log('📡 开始获取日志:', {
       namespace: this.namespace,
       agentName: this.agentName,
-      lines: lines
+      lines: lines,
+      timestamp: new Date().toISOString()
     })
     
     try {
       this.currentLines = lines
       
+      console.log('📡 调用 logsApi.getLogs...')
       const response = await logsApi.getLogs(this.namespace, this.agentName, lines)
       
-      console.log('📡 API响应原始数据:', response)
+      console.log('📡 API响应原始数据:', {
+        response,
+        type: typeof response,
+        keys: response ? Object.keys(response) : 'null'
+      })
       
       if (!response) {
         throw new Error('API响应为空')
@@ -61,7 +67,12 @@ export class LogManager {
       // 直接使用API返回的数据，不做任何修改
       const data = response.data || response
       
-      console.log('📋 使用的数据:', data)
+      console.log('📋 处理后的数据:', {
+        data,
+        hasContent: !!data.content,
+        contentLength: data.content?.length || 0,
+        contentPreview: data.content ? data.content.substring(0, 100) + '...' : 'empty'
+      })
 
       // 获取原始内容
       const rawContent = data.content || ''
@@ -69,12 +80,22 @@ export class LogManager {
       // 为了兼容性，仍然创建简单的日志条目（但主要使用原始内容）
       const logs = this.parseLogContent(rawContent, data.timestamp || new Date().toISOString())
       
+      console.log('📋 解析后的日志条目:', {
+        logsCount: logs.length,
+        rawContentLength: rawContent.length
+      })
+      
       // 传递原始内容给回调，让xterm直接处理
       this.callbacks.onLogsUpdate?.(logs, data, rawContent)
 
       return data
     } catch (error: any) {
-      console.error('❌ 获取日志失败:', error)
+      console.error('❌ 获取日志失败:', {
+        error,
+        message: error?.message,
+        status: error?.response?.status,
+        data: error?.response?.data
+      })
       this.callbacks.onError?.('获取日志失败: ' + (error?.message || '未知错误'))
       return null
     }
