@@ -57,53 +57,84 @@
       </div>
       
       <div class="footer-center">
-        <!-- 主要功能按钮 -->
-        <div class="action-buttons">
-          <!-- 实时跟踪切换 -->
+        <!-- 优化后的功能按钮组 -->
+        <div class="control-buttons-group">
+          <!-- 实时跟踪按钮 - 突出显示 -->
           <n-button
-            :type="isRealTimeEnabled ? 'primary' : 'default'"
+            :type="isRealTimeEnabled ? 'success' : 'default'"
             size="small"
             @click="toggleRealTime"
             :disabled="!isConnected"
-            class="action-btn"
+            class="primary-control-btn"
+            round
           >
             <template #icon>
               <n-icon>
-                <svg viewBox="0 0 24 24">
-                  <path
-                    fill="currentColor"
-                    d="M12,2A2,2 0 0,1 14,4V8A2,2 0 0,1 12,10A2,2 0 0,1 10,8V4A2,2 0 0,1 12,2M21,11H20A8,8 0 0,1 12,19A8,8 0 0,1 4,11H3A1,1 0 0,1 2,10A1,1 0 0,1 3,9H4A8,8 0 0,1 12,1A8,8 0 0,1 20,9H21A1,1 0 0,1 22,10A1,1 0 0,1 21,11Z"
-                  />
+                <svg viewBox="0 0 24 24" width="14" height="14">
+                  <circle cx="12" cy="12" r="3" fill="currentColor" v-if="isRealTimeEnabled"/>
+                  <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2" v-else/>
                 </svg>
               </n-icon>
             </template>
             {{ isRealTimeEnabled ? '实时跟踪' : '已暂停' }}
           </n-button>
           
-          <!-- 清空按钮 -->
-          <n-button size="small" @click="clearLogs" class="action-btn">
-            <template #icon>
-              <n-icon><TrashIcon /></n-icon>
-            </template>
-            清空
-          </n-button>
+          <!-- 分隔线 -->
+          <div class="button-divider"></div>
           
-          <!-- 复制按钮 -->
-          <n-button size="small" @click="copyAllLogs" class="action-btn">
-            <template #icon>
-              <n-icon><CopyIcon /></n-icon>
-            </template>
-            复制
-          </n-button>
+          <!-- 操作按钮组 -->
+          <div class="action-buttons-compact">
+            <!-- 清空按钮 -->
+            <n-button 
+              size="small" 
+              @click="clearLogs" 
+              class="compact-btn"
+              quaternary
+              title="清空日志 (Ctrl+L)"
+            >
+              <template #icon>
+                <n-icon size="14">
+                  <svg viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/>
+                  </svg>
+                </n-icon>
+              </template>
+              清空
+            </n-button>
+            
+            <!-- 复制按钮 -->
+            <n-button 
+              size="small" 
+              @click="copyAllLogs" 
+              class="compact-btn"
+              quaternary
+              title="复制日志 (Ctrl+C)"
+            >
+              <template #icon>
+                <n-icon size="14">
+                  <svg viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"/>
+                  </svg>
+                </n-icon>
+              </template>
+              复制
+            </n-button>
+          </div>
         </div>
       </div>
       
       <div class="footer-right">
-        <div class="shortcuts">
+        <!-- 优化后的快捷键提示 -->
+        <div class="shortcuts-compact">
           <span class="shortcut-label">快捷键:</span>
-          <span class="shortcut-item">Space 暂停</span>
-          <span class="shortcut-item">Ctrl+L 清空</span>
-          <span class="shortcut-item">Ctrl+C 复制</span>
+          <div class="shortcut-items">
+            <span class="shortcut-key">Space</span>
+            <span class="shortcut-desc">暂停</span>
+            <span class="shortcut-key">Ctrl+L</span>
+            <span class="shortcut-desc">清空</span>
+            <span class="shortcut-key">Ctrl+C</span>
+            <span class="shortcut-desc">复制</span>
+          </div>
         </div>
       </div>
     </div>
@@ -604,59 +635,119 @@ onUnmounted(() => {
     }
     
     .footer-center {
-      .action-buttons {
+      .control-buttons-group {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 16px;
         
-        .action-btn {
-          background: #21262d;
-          border: 2px solid #30363d; // 增强边框
-          color: #f0f6fc;
+        .primary-control-btn {
+          background: linear-gradient(135deg, #238636, #2ea043);
+          border: 2px solid #2ea043;
+          color: #ffffff;
+          font-weight: 500;
+          padding: 8px 16px;
           transition: all 0.2s ease;
-          padding: 6px 12px; // 增加内边距
+          box-shadow: 0 2px 8px rgba(46, 160, 67, 0.2);
           
           &:hover {
-            background: #30363d;
-            border-color: #58a6ff;
-            transform: translateY(-2px); // 悬停时上移
-            box-shadow: 0 4px 12px rgba(88, 166, 255, 0.3); // 添加阴影
+            background: linear-gradient(135deg, #2ea043, #238636);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(46, 160, 67, 0.3);
           }
           
           &:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
+            background: #21262d;
+            border-color: #30363d;
+            color: #8b949e;
             box-shadow: none;
+            transform: none;
+          }
+          
+          &.n-button--default {
+            background: #21262d;
+            border-color: #30363d;
+            color: #f0f6fc;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            
+            &:hover {
+              background: #30363d;
+              border-color: #484f58;
+            }
+          }
+        }
+        
+        .button-divider {
+          width: 1px;
+          height: 24px;
+          background: linear-gradient(to bottom, transparent, #30363d, transparent);
+          margin: 0 4px;
+        }
+        
+        .action-buttons-compact {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          
+          .compact-btn {
+            background: rgba(33, 38, 45, 0.6);
+            border: 1px solid rgba(48, 54, 61, 0.8);
+            color: #8b949e;
+            padding: 6px 10px;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(4px);
+            
+            &:hover {
+              background: rgba(48, 54, 61, 0.8);
+              border-color: #484f58;
+              color: #f0f6fc;
+              transform: translateY(-1px);
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            }
+            
+            &:active {
+              transform: translateY(0);
+              box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+            }
           }
         }
       }
     }
     
     .footer-right {
-      .shortcuts {
+      .shortcuts-compact {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 12px;
         
         .shortcut-label {
           color: #8b949e;
+          font-size: 11px;
           font-weight: 500;
         }
         
-        .shortcut-item {
-          color: #58a6ff;
-          background: #21262d;
-          padding: 3px 8px;
-          border-radius: 6px;
-          border: 1px solid #30363d;
-          font-size: 11px;
-          transition: all 0.2s ease;
+        .shortcut-items {
+          display: flex;
+          align-items: center;
+          gap: 8px;
           
-          &:hover {
-            background: #30363d;
-            border-color: #58a6ff;
-            transform: scale(1.05);
+          .shortcut-key {
+            background: linear-gradient(135deg, #21262d, #161b22);
+            border: 1px solid #30363d;
+            color: #f0f6fc;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-weight: 500;
+            box-shadow: 
+              0 1px 2px rgba(0, 0, 0, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+          }
+          
+          .shortcut-desc {
+            color: #8b949e;
+            font-size: 10px;
+            margin-right: 4px;
           }
         }
       }
@@ -680,21 +771,39 @@ onUnmounted(() => {
       flex-direction: column;
       gap: 12px;
       
-      .footer-center .action-buttons {
+      .footer-center .control-buttons-group {
         gap: 8px;
+        flex-direction: column;
         
-        .action-btn {
-          padding: 4px 8px;
+        .primary-control-btn {
+          padding: 6px 12px;
           font-size: 12px;
+        }
+        
+        .action-buttons-compact {
+          gap: 6px;
+          
+          .compact-btn {
+            padding: 4px 8px;
+            font-size: 11px;
+          }
         }
       }
       
-      .footer-right .shortcuts {
+      .footer-right .shortcuts-compact {
         gap: 6px;
         
-        .shortcut-item {
-          font-size: 10px;
-          padding: 2px 6px;
+        .shortcut-items {
+          gap: 4px;
+          
+          .shortcut-key {
+            font-size: 9px;
+            padding: 1px 4px;
+          }
+          
+          .shortcut-desc {
+            font-size: 9px;
+          }
         }
       }
     }
