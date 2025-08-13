@@ -151,7 +151,7 @@ import {
 } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
 import LogsIcon from '@/components/icons/LogsIcon.vue'
-import RawLogXTermRenderer from '@/components/logs/RawLogXTermRenderer.vue'
+import RawLogXTermRenderer from '@/components/log/RawLogXTermRenderer.vue'
 import { LogManager } from '@/utils/logManager'
 import type { Agent, LogEntry } from '@/api/agents'
 

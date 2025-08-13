@@ -165,7 +165,7 @@ import {
 import { useTheme } from '@/utils/theme'
 import { useTimeManager, formatRelativeTime } from '@/utils/timeManager'
 import type { ConversationState } from '@/types/conversation'
-import RawLogXTermRenderer from '@/components/logs/RawLogXTermRenderer.vue'
+import RawLogXTermRenderer from '@/components/log/RawLogXTermRenderer.vue'
 
 interface Props {
   conversationId: string
